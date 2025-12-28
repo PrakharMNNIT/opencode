@@ -8,7 +8,6 @@ import * as path from "path"
 import { Tool } from "./tool"
 import { LSP } from "../lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
-import { Permission } from "../permission"
 import DESCRIPTION from "./edit.txt"
 import { File } from "../file"
 import { Bus } from "../bus"
@@ -17,6 +16,7 @@ import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 import { Agent } from "../agent/agent"
 import { Snapshot } from "@/snapshot"
+import { PermissionNext } from "@/permission/next"
 
 const MAX_DIAGNOSTICS_PER_FILE = 20
 
@@ -46,31 +46,20 @@ export const EditTool = Tool.define("edit", {
     const filePath = path.isAbsolute(params.filePath) ? params.filePath : path.join(Instance.directory, params.filePath)
     if (!Filesystem.contains(Instance.directory, filePath)) {
       const parentDir = path.dirname(filePath)
-      if (agent.permission.external_directory === "ask") {
-        await Permission.ask({
-          type: "external_directory",
-          pattern: [parentDir, path.join(parentDir, "*")],
-          sessionID: ctx.sessionID,
-          messageID: ctx.messageID,
-          callID: ctx.callID,
-          title: `Edit file outside working directory: ${filePath}`,
-          metadata: {
-            filepath: filePath,
-            parentDir,
-          },
-        })
-      } else if (agent.permission.external_directory === "deny") {
-        throw new Permission.RejectedError(
-          ctx.sessionID,
-          "external_directory",
-          ctx.callID,
-          {
-            filepath: filePath,
-            parentDir,
-          },
-          `File ${filePath} is not in the current working directory`,
-        )
-      }
+      await PermissionNext.ask({
+        callID: ctx.callID,
+        permission: "external_directory",
+        message: `Edit file outside working directory: ${filePath}`,
+        patterns: [parentDir, path.join(parentDir, "*")],
+        always: [parentDir + "/*"],
+        sessionID: ctx.sessionID,
+        metadata: {
+          filepath: filePath,
+          parentDir,
+        },
+
+        ruleset: agent.permission,
+      })
     }
 
     let diff = ""
@@ -80,19 +69,20 @@ export const EditTool = Tool.define("edit", {
       if (params.oldString === "") {
         contentNew = params.newString
         diff = trimDiff(createTwoFilesPatch(filePath, filePath, contentOld, contentNew))
-        if (agent.permission.edit === "ask") {
-          await Permission.ask({
-            type: "edit",
-            sessionID: ctx.sessionID,
-            messageID: ctx.messageID,
-            callID: ctx.callID,
-            title: "Edit this file: " + filePath,
-            metadata: {
-              filePath,
-              diff,
-            },
-          })
-        }
+        await PermissionNext.ask({
+          callID: ctx.callID,
+          permission: "edit",
+          message: "Edit this file: " + path.relative(Instance.directory, filePath),
+          patterns: [path.relative(Instance.worktree, filePath)],
+          always: ["*"],
+          sessionID: ctx.sessionID,
+          metadata: {
+            filepath: filePath,
+            diff,
+          },
+
+          ruleset: agent.permission,
+        })
         await Bun.write(filePath, params.newString)
         await Bus.publish(File.Event.Edited, {
           file: filePath,
@@ -112,19 +102,19 @@ export const EditTool = Tool.define("edit", {
       diff = trimDiff(
         createTwoFilesPatch(filePath, filePath, normalizeLineEndings(contentOld), normalizeLineEndings(contentNew)),
       )
-      if (agent.permission.edit === "ask") {
-        await Permission.ask({
-          type: "edit",
-          sessionID: ctx.sessionID,
-          messageID: ctx.messageID,
-          callID: ctx.callID,
-          title: "Edit this file: " + filePath,
-          metadata: {
-            filePath,
-            diff,
-          },
-        })
-      }
+      await PermissionNext.ask({
+        permission: "edit",
+        callID: ctx.callID,
+        message: "Edit this file: " + path.relative(Instance.directory, filePath),
+        patterns: [path.relative(Instance.worktree, filePath)],
+        always: ["*"],
+        sessionID: ctx.sessionID,
+        metadata: {
+          filepath: filePath,
+          diff,
+        },
+        ruleset: agent.permission,
+      })
 
       await file.write(contentNew)
       await Bus.publish(File.Event.Edited, {

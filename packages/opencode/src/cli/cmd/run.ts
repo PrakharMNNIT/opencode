@@ -202,14 +202,14 @@ export const RunCommand = cmd({
             break
           }
 
-          if (event.type === "permission.updated") {
+          if (event.type === "permission.next.asked") {
             const permission = event.properties
             if (permission.sessionID !== sessionID) continue
             const result = await select({
-              message: `Permission required to run: ${permission.title}`,
+              message: `Permission required to run: ${permission.message}`,
               options: [
                 { value: "once", label: "Allow once" },
-                { value: "always", label: "Always allow" },
+                { value: "always", label: "Always allow: " + permission.always.join(", ") },
                 { value: "reject", label: "Reject" },
               ],
               initialValue: "once",

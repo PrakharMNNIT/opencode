@@ -8,9 +8,9 @@ import DESCRIPTION from "./read.txt"
 import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 import { Identifier } from "../id/id"
-import { Permission } from "../permission"
 import { Agent } from "@/agent/agent"
 import { iife } from "@/util/iife"
+import { PermissionNext } from "@/permission/next"
 
 const DEFAULT_READ_LIMIT = 2000
 const MAX_LINE_LENGTH = 2000
@@ -32,32 +32,33 @@ export const ReadTool = Tool.define("read", {
 
     if (!ctx.extra?.["bypassCwdCheck"] && !Filesystem.contains(Instance.directory, filepath)) {
       const parentDir = path.dirname(filepath)
-      if (agent.permission.external_directory === "ask") {
-        await Permission.ask({
-          type: "external_directory",
-          pattern: [parentDir, path.join(parentDir, "*")],
-          sessionID: ctx.sessionID,
-          messageID: ctx.messageID,
-          callID: ctx.callID,
-          title: `Access file outside working directory: ${filepath}`,
-          metadata: {
-            filepath,
-            parentDir,
-          },
-        })
-      } else if (agent.permission.external_directory === "deny") {
-        throw new Permission.RejectedError(
-          ctx.sessionID,
-          "external_directory",
-          ctx.callID,
-          {
-            filepath: filepath,
-            parentDir,
-          },
-          `File ${filepath} is not in the current working directory`,
-        )
-      }
+      await PermissionNext.ask({
+        callID: ctx.callID,
+        permission: "external_directory",
+        message: `Access file outside working directory: ${filepath}`,
+        patterns: [parentDir],
+        always: [parentDir + "/*"],
+        sessionID: ctx.sessionID,
+        metadata: {
+          filepath,
+          parentDir,
+        },
+
+        ruleset: agent.permission,
+      })
     }
+
+    await PermissionNext.ask({
+      callID: ctx.callID,
+      permission: "read",
+      message: `Read file ${filepath}`,
+      patterns: [filepath],
+      always: ["*"],
+      sessionID: ctx.sessionID,
+      metadata: {},
+
+      ruleset: agent.permission,
+    })
 
     const block = iife(() => {
       const basename = path.basename(filepath)

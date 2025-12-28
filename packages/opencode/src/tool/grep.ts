@@ -4,6 +4,8 @@ import { Ripgrep } from "../file/ripgrep"
 
 import DESCRIPTION from "./grep.txt"
 import { Instance } from "../project/instance"
+import { Agent } from "@/agent/agent"
+import { PermissionNext } from "@/permission/next"
 
 const MAX_LINE_LENGTH = 2000
 
@@ -14,10 +16,27 @@ export const GrepTool = Tool.define("grep", {
     path: z.string().optional().describe("The directory to search in. Defaults to the current working directory."),
     include: z.string().optional().describe('File pattern to include in the search (e.g. "*.js", "*.{ts,tsx}")'),
   }),
-  async execute(params) {
+  async execute(params, ctx) {
     if (!params.pattern) {
       throw new Error("pattern is required")
     }
+
+    const agent = await Agent.get(ctx.agent)
+    await PermissionNext.ask({
+      callID: ctx.callID,
+      permission: "grep",
+      message: `Grep search: ${params.pattern}`,
+      patterns: [params.pattern],
+      always: ["*"],
+      sessionID: ctx.sessionID,
+      metadata: {
+        pattern: params.pattern,
+        path: params.path,
+        include: params.include,
+      },
+
+      ruleset: agent.permission,
+    })
 
     const searchPath = params.path || Instance.directory
 

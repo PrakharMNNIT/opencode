@@ -4,6 +4,8 @@ import { Tool } from "./tool"
 import DESCRIPTION from "./glob.txt"
 import { Ripgrep } from "../file/ripgrep"
 import { Instance } from "../project/instance"
+import { Agent } from "@/agent/agent"
+import { PermissionNext } from "@/permission/next"
 
 export const GlobTool = Tool.define("glob", {
   description: DESCRIPTION,
@@ -16,7 +18,23 @@ export const GlobTool = Tool.define("glob", {
         `The directory to search in. If not specified, the current working directory will be used. IMPORTANT: Omit this field to use the default directory. DO NOT enter "undefined" or "null" - simply omit it for the default behavior. Must be a valid directory path if provided.`,
       ),
   }),
-  async execute(params) {
+  async execute(params, ctx) {
+    const agent = await Agent.get(ctx.agent)
+    await PermissionNext.ask({
+      callID: ctx.callID,
+      permission: "glob",
+      message: `Glob search: ${params.pattern}`,
+      patterns: [params.pattern],
+      always: ["*"],
+      sessionID: ctx.sessionID,
+      metadata: {
+        pattern: params.pattern,
+        path: params.path,
+      },
+
+      ruleset: agent.permission,
+    })
+
     let search = params.path ?? Instance.directory
     search = path.isAbsolute(search) ? search : path.resolve(Instance.directory, search)
 

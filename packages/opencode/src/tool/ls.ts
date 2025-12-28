@@ -4,6 +4,8 @@ import * as path from "path"
 import DESCRIPTION from "./ls.txt"
 import { Instance } from "../project/instance"
 import { Ripgrep } from "../file/ripgrep"
+import { Agent } from "@/agent/agent"
+import { PermissionNext } from "@/permission/next"
 
 export const IGNORE_PATTERNS = [
   "node_modules/",
@@ -40,8 +42,23 @@ export const ListTool = Tool.define("list", {
     path: z.string().describe("The absolute path to the directory to list (must be absolute, not relative)").optional(),
     ignore: z.array(z.string()).describe("List of glob patterns to ignore").optional(),
   }),
-  async execute(params) {
+  async execute(params, ctx) {
     const searchPath = path.resolve(Instance.directory, params.path || ".")
+
+    const agent = await Agent.get(ctx.agent)
+    await PermissionNext.ask({
+      callID: ctx.callID,
+      permission: "list",
+      message: `List directory: ${searchPath}`,
+      patterns: [searchPath],
+      always: ["*"],
+      sessionID: ctx.sessionID,
+      metadata: {
+        path: searchPath,
+      },
+
+      ruleset: agent.permission,
+    })
 
     const ignoreGlobs = IGNORE_PATTERNS.map((p) => `!${p}*`).concat(params.ignore?.map((p) => `!${p}`) || [])
     const files = []

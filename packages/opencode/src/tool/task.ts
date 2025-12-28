@@ -10,6 +10,7 @@ import { SessionPrompt } from "../session/prompt"
 import { iife } from "@/util/iife"
 import { defer } from "@/util/defer"
 import { Config } from "../config/config"
+import { PermissionNext } from "@/permission/next"
 
 export const TaskTool = Tool.define("task", async () => {
   const agents = await Agent.list().then((x) => x.filter((a) => a.mode !== "primary"))
@@ -29,6 +30,21 @@ export const TaskTool = Tool.define("task", async () => {
       command: z.string().describe("The command that triggered this task").optional(),
     }),
     async execute(params, ctx) {
+      const callingAgent = await Agent.get(ctx.agent)
+      await PermissionNext.ask({
+        callID: ctx.callID,
+        permission: "task",
+        message: `Launch task: ${params.description}`,
+        patterns: [params.subagent_type],
+        always: ["*"],
+        sessionID: ctx.sessionID,
+        metadata: {
+          description: params.description,
+          subagent_type: params.subagent_type,
+        },
+        ruleset: callingAgent.permission,
+      })
+
       const agent = await Agent.get(params.subagent_type)
       if (!agent) throw new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`)
       const session = await iife(async () => {

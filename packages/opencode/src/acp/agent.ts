@@ -80,7 +80,7 @@ export namespace ACP {
                     toolCall: {
                       toolCallId: permission.callID ?? permission.id,
                       status: "pending",
-                      title: permission.title,
+                      title: permission.message,
                       rawInput: permission.metadata,
                       kind: toToolKind(permission.type),
                       locations: toLocations(permission.type, permission.metadata),

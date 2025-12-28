@@ -135,27 +135,4 @@ export namespace ToolRegistry {
     )
     return result
   }
-
-  export async function enabled(agent: Agent.Info): Promise<Record<string, boolean>> {
-    const result: Record<string, boolean> = {}
-
-    if (agent.permission.edit === "deny") {
-      result["edit"] = false
-      result["write"] = false
-    }
-    if (agent.permission.bash["*"] === "deny" && Object.keys(agent.permission.bash).length === 1) {
-      result["bash"] = false
-    }
-    if (agent.permission.webfetch === "deny") {
-      result["webfetch"] = false
-      result["codesearch"] = false
-      result["websearch"] = false
-    }
-    // Disable skill tool if all skills are denied
-    if (agent.permission.skill["*"] === "deny" && Object.keys(agent.permission.skill).length === 1) {
-      result["skill"] = false
-    }
-
-    return result
-  }
 }

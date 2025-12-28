@@ -3,7 +3,6 @@ import * as path from "path"
 import * as fs from "fs/promises"
 import { Tool } from "./tool"
 import { FileTime } from "../file/time"
-import { Permission } from "../permission"
 import { Bus } from "../bus"
 import { FileWatcher } from "../file/watcher"
 import { Instance } from "../project/instance"
@@ -11,6 +10,7 @@ import { Agent } from "../agent/agent"
 import { Patch } from "../patch"
 import { Filesystem } from "../util/filesystem"
 import { createTwoFilesPatch } from "diff"
+import { PermissionNext } from "@/permission/next"
 
 const PatchParams = z.object({
   patchText: z.string().describe("The full patch text that describes all changes to be made"),
@@ -55,31 +55,20 @@ export const PatchTool = Tool.define("patch", {
 
       if (!Filesystem.contains(Instance.directory, filePath)) {
         const parentDir = path.dirname(filePath)
-        if (agent.permission.external_directory === "ask") {
-          await Permission.ask({
-            type: "external_directory",
-            pattern: [parentDir, path.join(parentDir, "*")],
-            sessionID: ctx.sessionID,
-            messageID: ctx.messageID,
-            callID: ctx.callID,
-            title: `Patch file outside working directory: ${filePath}`,
-            metadata: {
-              filepath: filePath,
-              parentDir,
-            },
-          })
-        } else if (agent.permission.external_directory === "deny") {
-          throw new Permission.RejectedError(
-            ctx.sessionID,
-            "external_directory",
-            ctx.callID,
-            {
-              filepath: filePath,
-              parentDir,
-            },
-            `File ${filePath} is not in the current working directory`,
-          )
-        }
+        await PermissionNext.ask({
+          callID: ctx.callID,
+          permission: "external_directory",
+          message: `Patch file outside working directory: ${filePath}`,
+          patterns: [parentDir, path.join(parentDir, "*")],
+          always: [parentDir + "/*"],
+          sessionID: ctx.sessionID,
+          metadata: {
+            filepath: filePath,
+            parentDir,
+          },
+
+          ruleset: agent.permission,
+        })
       }
 
       switch (hunk.type) {
@@ -152,18 +141,19 @@ export const PatchTool = Tool.define("patch", {
     }
 
     // Check permissions if needed
-    if (agent.permission.edit === "ask") {
-      await Permission.ask({
-        type: "edit",
-        sessionID: ctx.sessionID,
-        messageID: ctx.messageID,
-        callID: ctx.callID,
-        title: `Apply patch to ${fileChanges.length} files`,
-        metadata: {
-          diff: totalDiff,
-        },
-      })
-    }
+    await PermissionNext.ask({
+      callID: ctx.callID,
+      permission: "edit",
+      message: `Apply patch to ${fileChanges.length} files`,
+      patterns: fileChanges.map((c) => path.relative(Instance.worktree, c.filePath)),
+      always: ["*"],
+      sessionID: ctx.sessionID,
+      metadata: {
+        diff: totalDiff,
+      },
+
+      ruleset: agent.permission,
+    })
 
     // Apply the changes
     const changedFiles: string[] = []

@@ -363,7 +363,7 @@ export const Terminal = (props: TerminalProps) => {
         cursorStyle: "bar",
         cols: restoreSize?.cols,
         rows: restoreSize?.rows,
-        fontSize: 14,
+        fontSize: settings.appearance.fontSize(),
         fontFamily: monoFontFamily(settings.appearance.font()),
         allowTransparency: false,
         convertEol: false,

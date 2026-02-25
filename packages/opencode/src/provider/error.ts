@@ -46,7 +46,7 @@ export namespace ProviderError {
   function message(providerID: ProviderID, e: APICallError) {
     return iife(() => {
       const msg = e.message
-      if (msg === "") {
+      if (msg === "" || msg === "undefined") {
         if (e.responseBody) return e.responseBody
         if (e.statusCode) {
           const err = STATUS_CODES[e.statusCode]

@@ -2,10 +2,11 @@
 
 > **Evaluator:** FrontendPE (Distinguished Principal Frontend Engineer)  
 > **Date:** 2025-02-27  
-> **Documents Reviewed:**  
-> - `docs/plans/2025-02-26-aurora-design-system.md` (The Spec)  
+> **Documents Reviewed:**
+>
+> - `docs/plans/2025-02-26-aurora-design-system.md` (The Spec)
 > - `docs/plans/2025-02-27-aurora-design-review.md` (Architecture Review)  
-> **Codebase:** Branch `prax-dev`, SolidJS + Tauri Desktop App  
+>   **Codebase:** Branch `prax-dev`, SolidJS + Tauri Desktop App
 
 ---
 
@@ -24,25 +25,27 @@ The Aurora Design System represents a genuinely distinctive aesthetic direction 
 **This is the highest-ROI item.** The codebase already has two mature theme systems that are plug-and-play:
 
 **Desktop UI Theme** (`packages/ui/src/theme/themes/aurora.json`):
+
 - 9 OKLCH seed colors map cleanly to Aurora's palette
 - Extensive `overrides` can force exact hex values where algorithmic generation drifts
 - Registration in `default-themes.ts` is trivial
 
 **Seed Mapping (Aurora → DesktopTheme):**
 
-| Aurora Concept | Seed Slot | Dark Value | Light Value |
-|---|---|---|---|
-| Void backgrounds | `neutral` | `#0A0A0F` | `#FAFAFA` |
-| Electric Cyan | `primary` | `#00D4FF` | `#0891B2` |
-| Success Green | `success` | `#4ADE80` | `#16A34A` |
-| Amber Warning | `warning` | `#FFBB33` | `#D97706` |
-| Error Red | `error` | `#F87171` | `#DC2626` |
-| Soft Violet | `info` | `#A78BFA` | `#7C3AED` |
-| Cyan (interactive) | `interactive` | `#00D4FF` | `#0891B2` |
-| Diff Green | `diffAdd` | `#4ADE80` | `#16A34A` |
-| Diff Red | `diffRemove` | `#F87171` | `#DC2626` |
+| Aurora Concept     | Seed Slot     | Dark Value | Light Value |
+| ------------------ | ------------- | ---------- | ----------- |
+| Void backgrounds   | `neutral`     | `#0A0A0F`  | `#FAFAFA`   |
+| Electric Cyan      | `primary`     | `#00D4FF`  | `#0891B2`   |
+| Success Green      | `success`     | `#4ADE80`  | `#16A34A`   |
+| Amber Warning      | `warning`     | `#FFBB33`  | `#D97706`   |
+| Error Red          | `error`       | `#F87171`  | `#DC2626`   |
+| Soft Violet        | `info`        | `#A78BFA`  | `#7C3AED`   |
+| Cyan (interactive) | `interactive` | `#00D4FF`  | `#0891B2`   |
+| Diff Green         | `diffAdd`     | `#4ADE80`  | `#16A34A`   |
+| Diff Red           | `diffRemove`  | `#F87171`  | `#DC2626`   |
 
 **Override Requirements (exact void scale):**
+
 ```json
 "overrides": {
   "background-base": "#0A0A0F",
@@ -54,6 +57,7 @@ The Aurora Design System represents a genuinely distinctive aesthetic direction 
 ```
 
 **TUI Theme** (`packages/opencode/src/cli/cmd/tui/context/theme/aurora.json`):
+
 - The spec's Appendix JSON is almost directly usable
 - Just needs `$schema` field and dark/light variant wrapping
 
@@ -77,6 +81,7 @@ The core Aurora identity — "elements emit light" — is achievable with pure C
 ```
 
 These are **pure CSS, no JS, no perf cost, no animation frames**. They work on any element:
+
 - Buttons: `box-shadow: var(--glow-cyan)` on hover
 - Inputs: `box-shadow: var(--glow-cyan-hover)` on focus
 - Cards: `box-shadow: var(--glow-violet)` on hover
@@ -91,12 +96,12 @@ User messages get a `2px` cyan left border, assistant messages get violet. This 
 
 ```css
 [data-theme="aurora"] [data-role="user"] {
-  border-left: 2px solid var(--aurora-cyan, #00D4FF);
+  border-left: 2px solid var(--aurora-cyan, #00d4ff);
   background: rgba(0, 212, 255, 0.05);
 }
 
 [data-theme="aurora"] [data-role="assistant"] {
-  border-left: 2px solid var(--aurora-violet, #A78BFA);
+  border-left: 2px solid var(--aurora-violet, #a78bfa);
 }
 ```
 
@@ -108,14 +113,14 @@ User messages get a `2px` cyan left border, assistant messages get violet. This 
 
 The spec's keyframes are standard CSS and the codebase already has an `animation.css` with similar patterns:
 
-| Aurora Keyframe | Existing Equivalent | Action |
-|---|---|---|
-| `aurora-fade-in` | `fadeIn` ✅ | Already exists |
-| `aurora-scale-in` | `fadeInScale` ✅ | Already exists |
-| `aurora-slide-up` | `fadeUp` ✅ | Already exists (5px vs 8px — negligible) |
-| `aurora-pulse` | `subtleGlow` 🟡 | Needs cyan color variant |
-| `aurora-shimmer` | `shimmer` ✅ | Already exists |
-| `aurora-drift` | ❌ Missing | Add — but **disabled by default** |
+| Aurora Keyframe   | Existing Equivalent | Action                                   |
+| ----------------- | ------------------- | ---------------------------------------- |
+| `aurora-fade-in`  | `fadeIn` ✅         | Already exists                           |
+| `aurora-scale-in` | `fadeInScale` ✅    | Already exists                           |
+| `aurora-slide-up` | `fadeUp` ✅         | Already exists (5px vs 8px — negligible) |
+| `aurora-pulse`    | `subtleGlow` 🟡     | Needs cyan color variant                 |
+| `aurora-shimmer`  | `shimmer` ✅        | Already exists                           |
+| `aurora-drift`    | ❌ Missing          | Add — but **disabled by default**        |
 
 **Action:** Add `aurora-pulse` (cyan glow breathing) and `aurora-drift` (slow background gradient shift). Both should respect `prefers-reduced-motion`.
 
@@ -129,7 +134,9 @@ The spec's §11.1 is correct and critical. Currently only `dialog.css` respects 
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -150,7 +157,8 @@ The review correctly identified missing line-length constraints. Chat messages c
   --max-prose-width: 70ch;
 }
 
-.message-content, .chat-message-body {
+.message-content,
+.chat-message-body {
   max-width: var(--max-prose-width);
 }
 ```
@@ -175,6 +183,7 @@ The review correctly identified missing line-length constraints. Chat messages c
 ```
 
 **Caveats:**
+
 1. **Performance:** `backdrop-filter` triggers compositing layers. On a chat interface with 50+ messages, each with a glass card = 50+ compositing layers. This WILL cause jank on scroll.
 2. **Mitigation:** Apply glass ONLY to:
    - The prompt input (1 element, always visible)
@@ -193,7 +202,7 @@ The spec's light theme is feasible but the review correctly identified contrast 
 
 ```css
 /* Light mode glass needs higher opacity */
---glass-light: rgba(0, 0, 0, 0.06);  /* not 0.04 */
+--glass-light: rgba(0, 0, 0, 0.06); /* not 0.04 */
 --glass-medium: rgba(0, 0, 0, 0.09); /* not 0.06 */
 ```
 
@@ -213,8 +222,9 @@ The spec's prompt input with double-line gradient border and inner glow is the s
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
-  transition: box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-              border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 [data-theme="aurora"] .prompt-input-container:focus-within {
@@ -226,6 +236,7 @@ The spec's prompt input with double-line gradient border and inner glow is the s
 ```
 
 **Caveats:**
+
 1. The spec mentions a "gradient border" (cyan → purple → magenta). CSS gradient borders require the `border-image` hack or a pseudo-element overlay. Both work but add complexity.
 2. The "micro-pulse on type" (`scale(1.002x)`) is imperceptible at that magnitude and adds a transform on every keystroke — skip it.
 3. The "content slides up on send" animation is a nice touch but needs careful integration with SolidJS's reactivity system.
@@ -251,6 +262,7 @@ The spec recommends JetBrains Mono for code. The app already ships 16 Nerd Font 
 The spec describes a "subtle animated gradient aurora" on the background that slowly drifts. The review's §11.1 even flags this as a motion sickness risk.
 
 **Why Not:**
+
 1. **Motion sickness:** Even "very subtle" background animation is distracting for extended coding sessions (hours, not minutes)
 2. **Performance:** A full-viewport CSS gradient animation running continuously consumes GPU cycles for zero functional benefit
 3. **Battery drain:** On a Tauri desktop app, continuous animation = battery murder
@@ -298,16 +310,17 @@ The spec uses gradient borders (cyan → purple → magenta) on cards. CSS gradi
   background: var(--void-base);
 }
 .gradient-border::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, #00D4FF, #A78BFA, #FF6B9D);
+  background: linear-gradient(135deg, #00d4ff, #a78bfa, #ff6b9d);
   z-index: -1;
 }
 ```
 
 **Why Not:**
+
 - Pseudo-element approach requires `overflow: visible` which breaks `backdrop-filter` clipping
 - `border-image` doesn't work with `border-radius`
 - For every card, you need an extra pseudo-element = double the DOM compositing
@@ -333,38 +346,39 @@ The spec uses `--void-*`, `--glass-*`, `--aurora-*` naming. The codebase uses `-
 
 ## Part 4: Implementation Priority Matrix
 
-| Priority | Item | Effort | Impact | Risk |
-|----------|------|--------|--------|------|
-| **P0** | Aurora theme JSON files (Desktop + TUI) | 1 day | 🔥🔥🔥🔥🔥 | Low |
-| **P0** | `prefers-reduced-motion` global | 0.25 day | 🔥🔥🔥 (a11y) | None |
-| **P1** | Glow box-shadows on focus/hover | 0.5 day | 🔥🔥🔥🔥🔥 | None |
-| **P1** | Color-coded message left borders | 0.5 day | 🔥🔥🔥🔥 | None |
-| **P1** | `--max-prose-width: 70ch` | 0.25 day | 🔥🔥🔥 | None |
-| **P2** | Prompt input hero treatment (glass + glow) | 1 day | 🔥🔥🔥🔥🔥 | Low |
-| **P2** | Aurora keyframes (pulse, drift-static) | 0.5 day | 🔥🔥🔥 | Low |
-| **P3** | Glassmorphism on sidebar + dialogs | 1 day | 🔥🔥🔥 | Medium |
-| **P3** | Light theme variant | 1 day | 🔥🔥 | Low |
-| **P3** | JetBrains Mono as Aurora default | 0.25 day | 🔥🔥 | None |
-| **SKIP** | Animated aurora background | — | — | High |
-| **SKIP** | WebGL/shaders | — | — | Critical |
-| **SKIP** | Parallax on messages | — | — | High |
-| **SKIP** | Gradient borders on all elements | — | — | Medium |
-| **SKIP** | Token rename | — | — | Critical |
+| Priority | Item                                       | Effort   | Impact        | Risk     |
+| -------- | ------------------------------------------ | -------- | ------------- | -------- |
+| **P0**   | Aurora theme JSON files (Desktop + TUI)    | 1 day    | 🔥🔥🔥🔥🔥    | Low      |
+| **P0**   | `prefers-reduced-motion` global            | 0.25 day | 🔥🔥🔥 (a11y) | None     |
+| **P1**   | Glow box-shadows on focus/hover            | 0.5 day  | 🔥🔥🔥🔥🔥    | None     |
+| **P1**   | Color-coded message left borders           | 0.5 day  | 🔥🔥🔥🔥      | None     |
+| **P1**   | `--max-prose-width: 70ch`                  | 0.25 day | 🔥🔥🔥        | None     |
+| **P2**   | Prompt input hero treatment (glass + glow) | 1 day    | 🔥🔥🔥🔥🔥    | Low      |
+| **P2**   | Aurora keyframes (pulse, drift-static)     | 0.5 day  | 🔥🔥🔥        | Low      |
+| **P3**   | Glassmorphism on sidebar + dialogs         | 1 day    | 🔥🔥🔥        | Medium   |
+| **P3**   | Light theme variant                        | 1 day    | 🔥🔥          | Low      |
+| **P3**   | JetBrains Mono as Aurora default           | 0.25 day | 🔥🔥          | None     |
+| **SKIP** | Animated aurora background                 | —        | —             | High     |
+| **SKIP** | WebGL/shaders                              | —        | —             | Critical |
+| **SKIP** | Parallax on messages                       | —        | —             | High     |
+| **SKIP** | Gradient borders on all elements           | —        | —             | Medium   |
+| **SKIP** | Token rename                               | —        | —             | Critical |
 
 ---
 
 ## Part 5: Total Effort Estimate
 
-| Phase | Items | Days | Cumulative |
-|-------|-------|------|------------|
-| **Phase 0** | Theme files + a11y global | 1.25 days | 1.25 days |
-| **Phase 1** | Glow effects + message borders + prose width | 1.25 days | 2.5 days |
-| **Phase 2** | Prompt input hero + keyframes | 1.5 days | 4 days |
-| **Phase 3** | Glass on fixed elements + light theme + font | 2.25 days | 6.25 days |
+| Phase       | Items                                        | Days      | Cumulative |
+| ----------- | -------------------------------------------- | --------- | ---------- |
+| **Phase 0** | Theme files + a11y global                    | 1.25 days | 1.25 days  |
+| **Phase 1** | Glow effects + message borders + prose width | 1.25 days | 2.5 days   |
+| **Phase 2** | Prompt input hero + keyframes                | 1.5 days  | 4 days     |
+| **Phase 3** | Glass on fixed elements + light theme + font | 2.25 days | 6.25 days  |
 
 **Total: ~6 working days for a complete, production-grade Aurora implementation.**
 
 This does NOT include:
+
 - QA/cross-browser testing (add 1-2 days)
 - Upstream merge conflict resolution (varies)
 - TUI-specific component visual adjustments (add 1 day)
@@ -373,7 +387,7 @@ This does NOT include:
 
 ## Part 6: The Wow Factor
 
-The single most impactful Aurora technique is **glow as interactive feedback**. When every other code editor uses flat shadows or material elevation, Aurora makes elements *radiate*:
+The single most impactful Aurora technique is **glow as interactive feedback**. When every other code editor uses flat shadows or material elevation, Aurora makes elements _radiate_:
 
 ```
 Other tools:   hover → darken background → feels heavy
@@ -381,6 +395,7 @@ Aurora:        hover → emit light → feels alive, weightless, digital
 ```
 
 This is achieved with ONE CSS property (`box-shadow` with colored, spread, blurred shadows) that:
+
 - Costs zero JS
 - Costs near-zero GPU (single compositing operation)
 - Works in both Tauri WebView and browsers
@@ -393,18 +408,18 @@ This is achieved with ONE CSS property (`box-shadow` with colored, spread, blurr
 
 ## Appendix: Spec Corrections
 
-| Spec Statement | Correction |
-|---|---|
-| "Create aurora-dark.json and aurora-light.json" | Single `aurora.json` with `light` and `dark` variant objects |
-| "Use `--void-*` CSS variables" | Map to existing `--background-*` tokens via overrides |
-| "Major Third type scale" | Keep existing 4-size scale (13/14/16/20) |
-| "Animated aurora drift on background" | Static gradient on welcome screen only |
-| "Glass cards on everything" | Glass on prompt input, sidebar, dialogs only |
-| "Spring physics via JS library" | CSS `cubic-bezier(0.22, 1, 0.36, 1)` already matches — no library needed |
-| "Gradient borders on cards" | Solid color borders + glow shadows instead |
+| Spec Statement                                  | Correction                                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------------ |
+| "Create aurora-dark.json and aurora-light.json" | Single `aurora.json` with `light` and `dark` variant objects             |
+| "Use `--void-*` CSS variables"                  | Map to existing `--background-*` tokens via overrides                    |
+| "Major Third type scale"                        | Keep existing 4-size scale (13/14/16/20)                                 |
+| "Animated aurora drift on background"           | Static gradient on welcome screen only                                   |
+| "Glass cards on everything"                     | Glass on prompt input, sidebar, dialogs only                             |
+| "Spring physics via JS library"                 | CSS `cubic-bezier(0.22, 1, 0.36, 1)` already matches — no library needed |
+| "Gradient borders on cards"                     | Solid color borders + glow shadows instead                               |
 
 ---
 
-*Evaluation completed: 2025-02-27*  
-*Methodology: FrontendPE Principal-level design review with codebase architecture validation*  
-*Conclusion: Aurora is a strong, implementable design system. Scope to ~6 days of work by cutting the impractical 15% and focusing on the high-impact 85%.*
+_Evaluation completed: 2025-02-27_
+_Methodology: FrontendPE Principal-level design review with codebase architecture validation_
+_Conclusion: Aurora is a strong, implementable design system. Scope to ~6 days of work by cutting the impractical 15% and focusing on the high-impact 85%._

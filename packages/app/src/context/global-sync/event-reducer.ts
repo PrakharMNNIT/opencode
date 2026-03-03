@@ -167,7 +167,10 @@ export function applyDirectoryEvent(input: {
       break
     }
     case "session.queue.changed": {
-      const props = event.properties as { sessionID: string; queue: { id: string; text: string; time: number; mode: "queue" | "steer" }[] }
+      const props = event.properties as {
+        sessionID: string
+        queue: { id: string; text: string; time: number; mode: "queue" | "steer" }[]
+      }
       input.setStore("steer_queue", props.sessionID, reconcile(props.queue, { key: "id" }))
       break
     }

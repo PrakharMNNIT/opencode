@@ -27,19 +27,21 @@
 ## Prerequisites
 
 ### For CLI Usage
-| Requirement | Version | Notes |
-|---|---|---|
-| **macOS / Linux / Windows** | Any modern | Windows via WSL recommended |
-| **API Key** | — | At minimum one of: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, or other supported provider key |
+
+| Requirement                 | Version    | Notes                                                                                                                     |
+| --------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **macOS / Linux / Windows** | Any modern | Windows via WSL recommended                                                                                               |
+| **API Key**                 | —          | At minimum one of: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, or other supported provider key |
 
 ### For Building from Source
-| Requirement | Version | Notes |
-|---|---|---|
-| **Bun** | ≥ 1.3 | Runtime and package manager. Install: `curl -fsSL https://bun.sh/install \| bash` |
-| **Node.js** | ≥ 20 | Required by some tooling (tsgo, etc.) |
-| **Git** | Any | For cloning |
-| **Rust + Cargo** | stable | Only for desktop app builds (Tauri) |
-| **Xcode CLI Tools** | Latest | macOS only — `xcode-select --install` |
+
+| Requirement         | Version | Notes                                                                             |
+| ------------------- | ------- | --------------------------------------------------------------------------------- |
+| **Bun**             | ≥ 1.3   | Runtime and package manager. Install: `curl -fsSL https://bun.sh/install \| bash` |
+| **Node.js**         | ≥ 20    | Required by some tooling (tsgo, etc.)                                             |
+| **Git**             | Any     | For cloning                                                                       |
+| **Rust + Cargo**    | stable  | Only for desktop app builds (Tauri)                                               |
+| **Xcode CLI Tools** | Latest  | macOS only — `xcode-select --install`                                             |
 
 ---
 
@@ -54,6 +56,7 @@ curl -fsSL https://opencode.ai/install | bash
 ```
 
 This script:
+
 - Auto-detects your OS (macOS/Linux/Windows) and architecture (arm64/x64)
 - Detects musl vs glibc on Linux, x64 baseline (no AVX2) variants
 - Downloads the latest release from GitHub
@@ -61,6 +64,7 @@ This script:
 - Adds the bin directory to your shell PATH (fish/zsh/bash/ash/sh)
 
 **Options:**
+
 ```bash
 # Install a specific version
 curl -fsSL https://opencode.ai/install | bash -s -- --version 1.2.15
@@ -83,6 +87,7 @@ opencode --version
 ### Package Managers
 
 #### npm / Bun / pnpm / Yarn
+
 ```bash
 # npm (global)
 npm i -g opencode-ai@latest
@@ -98,32 +103,38 @@ yarn global add opencode-ai@latest
 ```
 
 #### Homebrew (macOS / Linux)
+
 ```bash
 brew install opencode-ai/tap/opencode
 ```
 
 #### Scoop (Windows)
+
 ```powershell
 scoop bucket add opencode https://github.com/anomalyco/scoop-bucket
 scoop install opencode
 ```
 
 #### Chocolatey (Windows)
+
 ```powershell
 choco install opencode-ai
 ```
 
 #### Arch Linux (pacman / paru)
+
 ```bash
 paru -S opencode-ai-bin
 ```
 
 #### mise
+
 ```bash
 mise use -g opencode-ai@latest
 ```
 
 #### Nix
+
 ```bash
 # Run directly
 nix run github:anomalyco/opencode
@@ -155,6 +166,7 @@ bun link
 ```
 
 **For the prax-dev branch:**
+
 ```bash
 git clone https://github.com/PrakharMNNIT/opencode.git
 cd opencode
@@ -175,6 +187,7 @@ The desktop app is a **Tauri 2** application that bundles the web UI with a nati
 ### Pre-built DMG (macOS)
 
 For the official release builds, download from [GitHub Releases](https://github.com/anomalyco/opencode/releases):
+
 - **macOS:** `.dmg` file — mount, drag to Applications
 - **Windows:** `.exe` (NSIS installer)
 - **Linux:** `.deb`, `.rpm`, or `.AppImage`
@@ -184,11 +197,12 @@ For the official release builds, download from [GitHub Releases](https://github.
 ### Building the Desktop App from Source
 
 #### Prerequisites (Additional)
-| Requirement | Notes |
-|---|---|
-| **Rust (stable)** | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
-| **Tauri CLI** | Installed as a dev dependency, or: `cargo install tauri-cli` |
-| **System libs** | macOS: Xcode CLI tools. Linux: `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf` |
+
+| Requirement       | Notes                                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Rust (stable)** | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh`                                          |
+| **Tauri CLI**     | Installed as a dev dependency, or: `cargo install tauri-cli`                                               |
+| **System libs**   | macOS: Xcode CLI tools. Linux: `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf` |
 
 #### Build Steps
 
@@ -285,6 +299,7 @@ opencode dev web
 ### 3. Theme Configuration
 
 OpenCode supports multiple themes, including the **Aurora** design system (added in this prax-dev branch):
+
 - **Aurora Dark** — "Digital luminescence" — elements emit light into void
 - **Aurora Light** — "Prismatic refraction" — light refracts through crystal
 
@@ -296,33 +311,34 @@ Themes can be selected in the settings dialog within the UI.
 
 The `prax-dev` branch is a customized development build with the following differences from upstream:
 
-| Aspect | Upstream (`dev`) | Prax-Dev (`prax-dev`) |
-|---|---|---|
-| **Product Name** | "OpenCode" | "OpenCode Prax-Dev" |
-| **Bundle ID** | `ai.opencode.desktop` | `ai.opencode.desktop.prax-dev` |
-| **Icon Set** | `icons/prod/` | `icons/prax-dev/` |
-| **Tauri Config** | `tauri.conf.json` | `tauri.conf.json` (modified for prax-dev) |
-| **Aurora Theme** | Not yet merged | ✅ Full Aurora design system |
-| **CLI Command** | `opencode` | `opencode` (same) |
-| **Can Coexist** | — | Yes, different bundle ID allows side-by-side install |
+| Aspect           | Upstream (`dev`)      | Prax-Dev (`prax-dev`)                                |
+| ---------------- | --------------------- | ---------------------------------------------------- |
+| **Product Name** | "OpenCode"            | "OpenCode Prax-Dev"                                  |
+| **Bundle ID**    | `ai.opencode.desktop` | `ai.opencode.desktop.prax-dev`                       |
+| **Icon Set**     | `icons/prod/`         | `icons/prax-dev/`                                    |
+| **Tauri Config** | `tauri.conf.json`     | `tauri.conf.json` (modified for prax-dev)            |
+| **Aurora Theme** | Not yet merged        | ✅ Full Aurora design system                         |
+| **CLI Command**  | `opencode`            | `opencode` (same)                                    |
+| **Can Coexist**  | —                     | Yes, different bundle ID allows side-by-side install |
 
 ### Sidecar Binaries
 
 The desktop app bundles the CLI as a sidecar. Supported targets:
 
-| Target Triple | Platform |
-|---|---|
-| `aarch64-apple-darwin` | macOS Apple Silicon |
-| `x86_64-apple-darwin` | macOS Intel |
-| `x86_64-pc-windows-msvc` | Windows x64 |
-| `x86_64-unknown-linux-gnu` | Linux x64 |
-| `aarch64-unknown-linux-gnu` | Linux ARM64 |
+| Target Triple               | Platform            |
+| --------------------------- | ------------------- |
+| `aarch64-apple-darwin`      | macOS Apple Silicon |
+| `x86_64-apple-darwin`       | macOS Intel         |
+| `x86_64-pc-windows-msvc`    | Windows x64         |
+| `x86_64-unknown-linux-gnu`  | Linux x64           |
+| `aarch64-unknown-linux-gnu` | Linux ARM64         |
 
 ---
 
 ## Troubleshooting
 
 ### CLI not found after installation
+
 ```bash
 # Reload your shell config
 source ~/.zshrc  # or ~/.bashrc
@@ -332,6 +348,7 @@ export PATH="$HOME/.opencode/bin:$PATH"
 ```
 
 ### API key errors
+
 ```bash
 # Verify your key is set
 echo $ANTHROPIC_API_KEY
@@ -341,6 +358,7 @@ opencode --help
 ```
 
 ### Desktop app — sidecar not found
+
 ```bash
 # Rebuild the sidecar
 cd packages/opencode && bun run build
@@ -348,6 +366,7 @@ cd ../desktop && bun run predev
 ```
 
 ### Build errors on macOS
+
 ```bash
 # Ensure Xcode CLI tools are installed
 xcode-select --install
@@ -357,6 +376,7 @@ rustup update stable
 ```
 
 ### Build errors on Linux
+
 ```bash
 # Install required system libraries (Ubuntu/Debian)
 sudo apt install -y \
@@ -369,6 +389,7 @@ sudo apt install -y \
 ```
 
 ### Nix build
+
 ```bash
 # Build CLI via Nix
 nix build github:anomalyco/opencode#opencode
@@ -379,4 +400,4 @@ nix build github:anomalyco/opencode#desktop
 
 ---
 
-*Guide compiled: 2025-02-28 | Branch: prax-dev | CLI version: 1.2.15*
+_Guide compiled: 2025-02-28 | Branch: prax-dev | CLI version: 1.2.15_

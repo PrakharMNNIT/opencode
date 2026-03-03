@@ -48,7 +48,6 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 
 ## 📝 Files Changed (37 selected)
 
-
 ### ✨ `packages/ui/src/assets/icons/provider/evroc.svg` **[ADDED]**
 
 **Status:** ✅ **NEW FILE** - This file has been newly created
@@ -61,10 +60,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
       2 +  <path d="M79.01 5.863c-4.066 0-6.511 2.92-6.511 6.535 0 3.635 2.445 6.555 6.511 6.555 4.046 0 6.512-2.92 6.512-6.555s-2.466-6.535-6.512-6.535Zm0 10.968c-2.633 0-4.172-1.933-4.172-4.433s1.539-4.455 4.172-4.455c2.635 0 4.151 1.933 4.151 4.434 0 2.521-1.516 4.454-4.15 4.454Zm14.393 2.096c3.393 0 5.542-1.808 5.837-4.539h-2.36c-.316 1.555-1.517 2.437-3.477 2.437-2.423 0-3.878-1.68-3.878-4.433 0-2.774 1.476-4.434 3.878-4.434 1.96 0 3.14.862 3.477 2.5h2.36c-.295-2.773-2.444-4.622-5.837-4.622-3.856 0-6.217 2.669-6.217 6.535 0 3.887 2.36 6.556 6.217 6.556Zm-29.543-.311h2.36v-6.01c0-2.752 1.348-4.244 3.772-4.244h2.276V6.177h-2.255c-2.128 0-3.288.735-3.898 2.605l-.443-.063.527-2.542h-2.36v12.439h.02Zm-24.445-7.332c.106-2.101 1.517-3.53 3.793-3.53 2.276 0 3.646 1.345 3.646 3.53h-7.439Zm9.778.4c0-3.426-2.381-5.821-5.943-5.821-3.73 0-6.174 2.563-6.174 6.535 0 4.013 2.423 6.555 6.28 6.555 2.929 0 5.247-1.597 5.669-3.887h-2.36c-.507 1.156-1.666 1.828-3.31 1.828-2.38 0-3.877-1.408-3.94-3.803h9.694c.042-.588.084-.861.084-1.408Zm5.69 6.932h1.939l5.5-12.44h-2.529L56 15.99l-.316.021-3.793-9.833h-2.508l5.5 12.439ZM32.23 12.35c0-.882-.359-1.701-.99-2.437a8.594 8.594 0 0 1-1.497 1.093c.337.42.527.861.527 1.345 0 2.731-5.837 4.811-14.14 4.811-8.281.021-14.118-2.059-14.118-4.811 0-.463.168-.925.505-1.345a8.13 8.13 0 0 1-1.475-1.093c-.632.736-.99 1.555-.99 2.438 0 4.034 7.207 6.534 16.1 6.534 8.87.021 16.078-2.5 16.078-6.535Zm-3.351 1.534c-.906-.462-1.96-.861-3.16-1.197-1.37.378-2.909.672-4.553.861 2.318.294 4.341.778 5.9 1.408.76-.336 1.37-.693 1.813-1.072Zm-17.849-.357a31.902 31.902 0 0 1-4.467-.84c-1.18.336-2.255.735-3.16 1.197.42.379 1.01.715 1.748 1.05 1.539-.63 3.52-1.113 5.88-1.407Zm21.2-6.808c0-4.013-7.207-6.534-16.079-6.534C7.26.185.051 2.706.051 6.719c0 4.035 7.208 6.535 16.1 6.535 8.872.021 16.079-2.5 16.079-6.535Zm-1.94 0c0 2.732-5.836 4.812-14.139 4.812-8.302.021-14.14-2.06-14.14-4.812 0-2.731 5.838-4.811 14.14-4.811 7.86 0 14.14 2.08 14.14 4.811Zm-3.223 2.564c.758-.336 1.37-.694 1.812-1.072-2.95-1.513-7.544-2.353-12.728-2.353s-9.799.84-12.728 2.353c.422.378 1.012.715 1.75 1.05 2.507-1.05 6.363-1.68 10.978-1.68 4.404 0 8.324.651 10.916 1.702ZM1.042 15.628c-.632.736-.99 1.534-.99 2.438 0 4.034 7.207 6.534 16.1 6.534 8.892 0 16.099-2.521 16.099-6.534 0-.883-.359-1.702-.99-2.438-.422.4-.907.757-1.497 1.093.337.42.527.861.527 1.345 0 2.731-5.837 4.811-14.14 4.811-8.302 0-14.14-2.08-14.14-4.811 0-.463.17-.925.506-1.345a10.73 10.73 0 0 1-1.475-1.093Z"></path>
       3 +</svg>
       4   No newline at end of file
-  1   5  
+  1   5
 
 ```
-
 
 ### 📄 `packages/ui/src/assets/icons/provider/meganova.svg`
 
@@ -81,10 +79,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
       1 +<svg width="24" height="24" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
       2 +<path d="M534 154C541.732 154 548 160.268 548 168C548 170.518 547.334 172.881 546.17 174.923L602.021 240.338C603.835 239.48 605.861 239 608 239C615.732 239 622 245.268 622 253C622 254.065 621.88 255.102 621.655 256.099L706.818 300.431C709.276 298.294 712.487 297 716 297C723.732 297 730 303.268 730 311C730 311.443 729.978 311.882 729.938 312.314L863.375 379.883C865.943 376.893 869.75 375 874 375C881.732 375 888 381.268 888 389C888 391.789 887.183 394.387 885.777 396.569L946.472 464.134C948.168 463.404 950.037 463 952 463C959.732 463 966 469.268 966 477C966 484.732 959.732 491 952 491C945.627 491 940.248 486.741 938.555 480.914L856.912 472.417C854.794 477.459 849.811 481 844 481C839.112 481 834.811 478.495 832.307 474.699L729.884 506.808C728.997 513.686 723.119 519 716 519C713.249 519 710.684 518.206 708.52 516.835L621.863 571.045C621.953 571.684 622 572.336 622 573C622 580.732 615.732 587 608 587C606.913 587 605.854 586.876 604.838 586.642L545.427 672.909C547.047 675.194 548 677.986 548 681C548 685.573 545.806 689.633 542.415 692.188L562.436 761.104C567.278 761.8 571 765.965 571 771C571 772.011 570.848 772.986 570.569 773.906L603.281 804.182C604.687 803.428 606.293 803 608 803C611.041 803 613.763 804.359 615.597 806.5L702.076 770.468C702.026 769.985 702 769.496 702 769C702 761.268 708.268 755 716 755C723.732 755 730 761.268 730 769C730 776.732 723.732 783 716 783C712.501 783 709.301 781.716 706.847 779.594L617.979 836.371C617.991 836.579 618 836.789 618 837C618 842.523 613.523 847 608 847C602.477 847 598 842.523 598 837C598 836.723 598.014 836.449 598.036 836.178L513.258 779.798C511.544 781.175 509.369 782 507 782C501.477 782 497 777.523 497 772C497 769.373 498.014 766.983 499.671 765.198L467.477 694.922C466.991 694.973 466.499 695 466 695C458.268 695 452 688.732 452 681C452 677.846 453.043 674.935 454.803 672.595L395.197 586.633C394.17 586.873 393.1 587 392 587C384.268 587 378 580.732 378 573C378 572.271 378.055 571.555 378.162 570.856L292.756 515.923C290.358 517.847 287.314 519 284 519C276.58 519 270.509 513.228 270.031 505.929L167.816 474.509C165.332 478.411 160.969 481 156 481C150.213 481 145.246 477.489 143.113 472.48L61.3994 481.062C59.6582 486.813 54.319 491 48 491C40.268 491 34 484.732 34 477C34 469.268 40.268 463 48 463C50.289 463 52.4497 463.549 54.3574 464.523L113.915 396.071C112.698 393.996 112 391.58 112 389C112 381.268 118.268 375 126 375C130.139 375 133.858 376.796 136.421 379.651L270.236 313.574C270.081 312.74 270 311.879 270 311C270 303.268 276.268 297 284 297C287.987 297 291.584 298.667 294.134 301.341L378.38 256.251C378.132 255.208 378 254.119 378 253C378 245.268 384.268 239 392 239C394.155 239 396.197 239.487 398.021 240.357L454.009 175.23C452.734 173.12 452 170.646 452 168C452 160.268 458.268 154 466 154C473.732 154 480 160.268 480 168C480 175.732 473.732 182 466 182C465.903 182 465.806 181.997 465.71 181.995L456.335 215.262C458.572 217.096 460 219.881 460 223C460 223.476 459.964 223.943 459.899 224.401L490.157 243.044C492.686 240.544 496.163 239 500 239C503.689 239 507.043 240.427 509.544 242.759L540.088 224.312C540.032 223.882 540 223.445 540 223C540 219.852 541.455 217.045 543.729 215.212L534.666 181.983C534.445 181.994 534.223 182 534 182C526.268 182 520 175.732 520 168C520 160.268 526.268 154 534 154ZM601.857 829.11C603.553 827.789 605.684 827 608 827C610.386 827 612.575 827.836 614.294 829.23L675.14 790.358L617.926 814.197C617.334 819.155 613.118 823 608 823C602.477 823 598 818.523 598 813C598 812.133 598.11 811.291 598.317 810.488L565.37 779.995C564.05 780.638 562.567 781 561 781C556.709 781 553.05 778.296 551.631 774.5H519.738L601.857 829.11ZM534.745 694.979L512.811 763.863C513.81 764.579 514.673 765.473 515.351 766.5H552.07C552.714 765.226 553.62 764.108 554.72 763.219L534.893 694.97C534.843 694.973 534.794 694.977 534.745 694.979ZM479.419 685C478.611 687.716 477.001 690.086 474.863 691.836L505.827 759.428L526.949 693.097C523.912 691.323 521.604 688.438 520.581 685H479.419ZM472.819 668.771C475.97 670.531 478.37 673.475 479.419 677H520.581C521.664 673.363 524.184 670.345 527.483 668.606L499.583 566.045L472.819 668.771ZM506.869 556.264C506.448 556.662 505.992 557.025 505.507 557.346L535.354 667.064C536.67 667.191 537.934 667.499 539.119 667.965L597.867 582.66C596.132 580.841 594.883 578.555 594.325 576.011L506.869 556.264ZM405.68 575.984C405.128 578.527 403.885 580.811 402.158 582.632L461.236 667.831C462.425 667.401 463.689 667.128 465.003 667.035L493.727 556.786C493.457 556.568 493.198 556.338 492.952 556.094L405.68 575.984ZM508.761 544.178C509.515 545.545 509.956 547.106 509.994 548.769L594.938 567.95C595.639 566.14 596.705 564.512 598.046 563.156L557.757 476.993C557.023 476.976 556.309 476.88 555.622 476.713L508.761 544.178ZM445.066 476.519C444.466 476.712 443.841 476.849 443.197 476.926L402.037 563.241C403.332 564.573 404.364 566.161 405.05 567.922L490.011 548.559C490.068 547.243 490.38 545.994 490.898 544.857L445.066 476.519ZM565.856 473.183C565.642 473.455 565.413 473.716 565.172 473.965L605.076 559.306C606.019 559.105 606.997 559 608 559C612.173 559 615.919 560.826 618.483 563.723L703.216 510.716C702.671 509.5 702.295 508.192 702.117 506.822L565.856 473.183ZM297.766 507.556C297.653 508.166 297.501 508.762 297.312 509.342L381.642 563.581C384.202 560.766 387.895 559 392 559C393.044 559 394.061 559.114 395.039 559.331L435.461 474.562C435.054 474.21 434.675 473.828 434.329 473.415L297.766 507.556ZM451.235 463.162C451.727 464.344 452 465.64 452 467C452 468.48 451.675 469.884 451.098 471.148L496.927 539.482C497.895 539.17 498.928 539 500 539C500.832 539 501.64 539.103 502.412 539.294L549.257 471.854C548.457 470.416 548 468.762 548 467C548 465.371 548.392 463.834 549.083 462.475L501.213 398.924C500.815 398.972 500.411 399 500 399C499.329 399 498.673 398.933 498.039 398.807L451.235 463.162ZM346.938 397.694C345.907 398.281 344.763 398.691 343.546 398.88L295.016 496.359C295.772 497.322 296.404 498.386 296.89 499.528L432.083 465.729C432.175 465.006 432.341 464.306 432.579 463.639L346.938 397.694ZM567.637 464.329C567.737 464.692 567.819 465.062 567.878 465.44L703.396 498.896C704.247 497.143 705.453 495.595 706.92 494.344L659.017 398.948C658.682 398.982 658.343 399 658 399C656.789 399 655.629 398.785 654.555 398.391L567.637 464.329ZM773.415 398.4C772.743 398.645 772.037 398.816 771.307 398.911L726.722 495.999C727.447 496.862 728.07 497.814 728.572 498.836L830 467.039C830 467.026 830 467.013 830 467C830 464.574 830.617 462.293 831.702 460.304L773.415 398.4ZM168.537 460.766C169.446 462.59 169.968 464.64 169.997 466.811L271.812 498.106C272.696 496.546 273.872 495.173 275.265 494.06L230.778 398.967C230.521 398.987 230.262 399 230 399C229.342 399 228.699 398.934 228.076 398.812L168.537 460.766ZM667.337 385.418C667.764 386.53 668 387.737 668 389C668 391.257 667.252 393.338 665.991 395.012L713.5 489.621V324.776C713.053 324.696 712.614 324.594 712.184 324.473L667.337 385.418ZM290.106 323.6C289.907 323.697 289.705 323.789 289.5 323.877V489.49L335.673 396.743C333.431 394.909 332 392.122 332 389C332 386.919 332.636 384.987 333.724 383.387L290.106 323.6ZM239.209 385.098C239.718 386.297 240 387.615 240 389C240 391.341 239.194 393.492 237.847 395.195L281.5 488.509V324.776C281.224 324.727 280.951 324.668 280.681 324.603L239.209 385.098ZM721.5 323.877V488.205L763.549 396.639C761.379 394.804 760 392.064 760 389C760 386.918 760.637 384.985 761.726 383.384L721.64 323.815C721.593 323.836 721.547 323.857 721.5 323.877ZM60.1543 470.048C60.6859 470.975 61.113 471.97 61.4229 473.015L142.217 464.529C142.869 460.867 144.945 457.698 147.852 455.614L125.642 402.995C123.533 402.942 121.541 402.422 119.764 401.536L60.1543 470.048ZM879.71 401.785C877.966 402.565 876.034 403 874 403C873.859 403 873.72 402.996 873.58 402.992L852.339 455.754C855.128 457.825 857.119 460.91 857.77 464.463L938.617 472.877C939.015 471.584 939.595 470.37 940.328 469.267L879.71 401.785ZM508.659 394C508.497 394.28 508.321 394.551 508.133 394.813L555.263 457.382C556.133 457.135 557.051 457 558 457C559.655 457 561.215 457.404 562.59 458.116L647.109 394H508.659ZM438.096 457.791C439.295 457.282 440.615 457 442 457C443.192 457 444.335 457.209 445.396 457.592L491.476 394.23C491.429 394.155 491.385 394.077 491.341 394H355.251L438.096 457.791ZM139.08 394C137.987 396.857 135.986 399.263 133.429 400.867L155.438 453.012C155.624 453.004 155.812 453 156 453C158.578 453 160.993 453.698 163.067 454.913L221.44 394.174C221.406 394.117 221.374 394.058 221.341 394H139.08ZM837.377 454.662C839.349 453.601 841.604 453 844 453C844.273 453 844.544 453.008 844.812 453.023L865.972 400.47C863.702 398.878 861.926 396.63 860.92 394H780.261L837.377 454.662ZM561.53 324.356C560.432 324.771 559.243 325 558 325C557.329 325 556.673 324.933 556.039 324.807L508.931 384.504C509.172 384.982 509.379 385.481 509.542 386H646.656L561.53 324.356ZM768.495 379.112C768.986 379.038 769.489 379 770 379C774.478 379 778.268 381.943 779.542 386H857.747L729.39 321.004L768.495 379.112ZM355.696 386H490.458C490.55 385.708 490.655 385.423 490.771 385.144L444.67 324.637C443.82 324.872 442.925 325 442 325C441.036 325 440.105 324.861 439.223 324.606L355.696 386ZM141.636 386H220.458C221.732 381.943 225.522 379 230 379C231.159 379 232.271 379.199 233.306 379.562L273.545 320.864L141.636 386ZM617.724 263.07C617.275 263.503 616.799 263.906 616.296 264.276L659.187 379.072C660.037 379.173 660.854 379.38 661.625 379.68L705.419 320.167C703.289 317.711 702 314.506 702 311C702 309.687 702.18 308.415 702.519 307.21L617.724 263.07ZM451.826 313.151C451.938 313.751 452 314.368 452 315C452 316.655 451.595 318.215 450.883 319.59L496.599 379.593C497.66 379.209 498.806 379 500 379C500.963 379 501.893 379.139 502.773 379.393L549.469 320.219C548.537 318.699 548 316.913 548 315C548 314.117 548.115 313.26 548.33 312.444L505.47 265.89C503.789 266.604 501.941 267 500 267C497.866 267 495.844 266.521 494.034 265.667L451.826 313.151ZM297.771 308.468C297.921 309.289 298 310.135 298 311C298 313.614 297.283 316.06 296.035 318.154L340.507 379.111C340.994 379.038 341.493 379 342 379C342.385 379 342.765 379.024 343.139 379.066L383.879 264.404C383.354 264.03 382.857 263.62 382.39 263.179L297.771 308.468ZM397.089 266.046C395.512 266.662 393.795 267 392 267C391.816 267 391.634 266.994 391.452 266.987L351.633 379.058L432.961 319.28C432.345 317.983 432 316.532 432 315C432 313.273 432.437 311.648 433.208 310.23L397.089 266.046ZM567.117 310.896C567.682 312.148 568 313.537 568 315C568 316.293 567.751 317.527 567.305 318.661L650.615 378.989L608.765 266.979C608.511 266.992 608.257 267 608 267C606.25 267 604.576 266.678 603.031 266.092L567.117 310.896ZM405.818 250.75C405.937 251.483 406 252.234 406 253C406 256.03 405.037 258.836 403.4 261.127L439.519 305.31C440.312 305.107 441.143 305 442 305C443.87 305 445.62 305.515 447.117 306.408L488.073 260.334C486.759 258.201 486 255.689 486 253C486 251.995 486.106 251.014 486.308 250.069L455.703 231.212C454.085 232.338 452.12 233 450 233C447.634 233 445.462 232.177 443.75 230.804L405.818 250.75ZM556.249 230.805C554.537 232.177 552.365 233 550 233C547.847 233 545.855 232.317 544.224 231.16L513.598 249.657C513.86 250.728 514 251.848 514 253C514 255.88 513.129 258.556 511.639 260.781L553.387 306.128C554.767 305.409 556.336 305 558 305C559.11 305 560.177 305.183 561.175 305.517L596.675 261.23C594.993 258.92 594 256.076 594 253C594 252.234 594.061 251.483 594.18 250.751L556.249 230.805ZM551.447 213.105C556.284 213.807 560 217.969 560 223C560 223.243 559.988 223.485 559.971 223.724L591.452 240.279L543.561 184.188L551.447 213.105ZM408.715 240.19L440.028 223.724C440.011 223.485 440 223.243 440 223C440 217.94 443.758 213.761 448.635 213.095L456.745 184.319L408.715 240.19Z" fill="currentColor"/>
   7   3  </svg>
-  8   4  
+  8   4
 
 ```
-
 
 ### ✨ `packages/ui/src/assets/icons/provider/opencode-go.svg` **[ADDED]**
 
@@ -97,10 +94,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
       1 +<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       2 +<path d="M19.4004 21H5V3H19.4004V6.59961H8.59961V17.4004H15.7998V13.7998H12.2002V10.2002H19.4004V21Z" fill="currentColor"/>
       3 +</svg>
-      4  
+      4
 
 ```
-
 
 ### 📄 `packages/ui/src/assets/icons/provider/opencode.svg`
 
@@ -112,10 +108,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
   2     -<path opacity="0.2" d="M19.2002 17.4H8.40017V13.8H15.6002V10.2H19.2002V17.4ZM8.40017 13.8H4.80017V10.2H8.40017V13.8Z" fill="currentColor"/>
   3   2  <path d="M8.40005 17.4H19.2001V21H4.80005V13.8H8.40005V17.4ZM15.6001 10.2V13.8H8.40005V10.2H15.6001ZM19.2001 10.2H15.6001V6.6H4.80005V3H19.2001V10.2Z" fill="currentColor"/>
   4   3  </svg>
-  5   4  
+  5   4
 
 ```
-
 
 ### 📄 `packages/ui/src/components/accordion.css`
 
@@ -124,17 +119,16 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 ```diff
 @@ -52,7 +52,7 @@
  52  52          letter-spacing: var(--letter-spacing-normal);
- 53  53  
+ 53  53
  54  54          &:hover {
  55     -          background-color: var(--surface-base-hover);
      55 +          background-color: var(--card-bg-hover);
  56  56          }
  57  57          &:active {
  58  58            background-color: var(--surface-base-active);
- 59  59  
+ 59  59
 
 ```
-
 
 ### 📄 `packages/ui/src/components/button.css`
 
@@ -163,17 +157,17 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      19 +    transform 100ms var(--ease-smooth),
      20 +    filter var(--duration-fast) var(--ease-smooth),
      21 +    opacity var(--duration-fast) var(--ease-smooth);
- 19  22  
+ 19  22
  20  23    &[data-variant="primary"] {
  21  24      background-color: var(--button-primary-base);
  22  25      border-color: var(--border-weak-base);
  23  26      color: var(--icon-invert-base);
      27 +    box-shadow: var(--glow-accent);
- 24  28  
+ 24  28
  25  29      [data-slot="icon-svg"] {
  26  30        color: var(--icon-invert-base);
 @@ -28,17 +32,25 @@
- 28  32  
+ 28  32
  29  33      &:hover:not(:disabled) {
  30  34        background-color: var(--icon-strong-hover);
  31     -      box-shadow: var(--shadow-sm);
@@ -198,25 +192,25 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  41  52        background-color: var(--icon-strong-disabled);
      53 +      box-shadow: var(--glow-none);
  42  54        opacity: 0.6;
- 43  55  
+ 43  55
  44  56        [data-slot="icon-svg"] {
 @@ -54,11 +66,11 @@
- 54  66  
+ 54  66
  55  67      [data-slot="icon-svg"] {
  56  68        color: var(--icon-base);
  57     -      transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1);
      69 +      transition: color var(--duration-fast) var(--ease-smooth);
  58  70      }
- 59  71  
+ 59  71
  60  72      &:hover:not(:disabled) {
  61     -      background-color: var(--surface-base-hover);
      73 +      background-color: var(--card-bg-hover);
- 62  74  
+ 62  74
  63  75        [data-slot="icon-svg"] {
  64  76          color: var(--icon-hover);
 @@ -89,14 +101,18 @@
  89 101    }
- 90 102  
+ 90 102
  91 103    &[data-variant="secondary"] {
  92     -    border: transparent;
     104 +    border: 1px solid var(--border-accent-base);
@@ -225,7 +219,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  95 107      box-shadow: var(--shadow-xs-border-base);
     108 +    backdrop-filter: blur(8px);
     109 +    -webkit-backdrop-filter: blur(8px);
- 96 110  
+ 96 110
  97 111      &:hover:not(:disabled) {
  98 112        background-color: var(--button-secondary-hover);
     113 +      border-color: var(--border-accent-hover);
@@ -234,10 +228,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 100 116      }
 101 117      &:focus:not(:disabled) {
 102 118        background-color: var(--button-secondary-base);
-103 119  
+103 119
 
 ```
-
 
 ### 📄 `packages/ui/src/components/card.css`
 
@@ -266,7 +259,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  12  14    border-radius: var(--radius-lg);
  13  15    padding: 6px 12px;
  14  16    overflow: clip;
- 15  17  
+ 15  17
  16  18    &:hover {
  17     -    border-color: var(--border-weaker-hover);
  18     -    box-shadow: var(--shadow-xs);
@@ -274,12 +267,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      20 +    box-shadow: var(--card-glow);
      21 +    transform: translateY(-2px);
  19  22    }
- 20  23  
+ 20  23
  21  24    &[data-variant="error"] {
- 22  25  
+ 22  25
 
 ```
-
 
 ### 📄 `packages/ui/src/components/checkbox.css`
 
@@ -292,12 +284,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  91  91      background-color: var(--surface-weak);
      92 +    box-shadow: var(--glow-accent);
  92  93    }
- 93  94  
+ 93  94
  94  95    &[data-checked]:hover:not([data-disabled], [data-readonly]) [data-slot="checkbox-checkbox-control"],
- 95  96  
+ 95  96
 
 ```
-
 
 ### 📄 `packages/ui/src/components/collapsible.css`
 
@@ -323,11 +314,10 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      29 +    }
  23  30      user-select: none;
  24  31      color: var(--text-base);
- 25  32  
- 26  33  
+ 25  32
+ 26  33
 
 ```
-
 
 ### 📄 `packages/ui/src/components/context-menu.css`
 
@@ -352,10 +342,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  10  12    padding: 4px;
  11  13    z-index: 100;
  12  14    transform-origin: var(--kb-menu-content-transform-origin);
- 13  15  
+ 13  15
 
 ```
-
 
 ### 📄 `packages/ui/src/components/dialog.css`
 
@@ -373,12 +362,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
       8 +  backdrop-filter: blur(8px);
       9 +  -webkit-backdrop-filter: blur(8px);
  10  10  }
- 11  11  
+ 11  11
  12  12  [data-component="dialog"] {
 @@ -47,18 +47,17 @@
  47  47          display: none;
  48  48        }
- 49  49  
+ 49  49
  50     -      /* padding: 8px; */
  51     -      /* padding: 8px 8px 0 8px; */
  52  50        border-radius: var(--radius-xl);
@@ -392,7 +381,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  57     -        0 0 0 1px var(--border-weaker-base);
      55 +      box-shadow: var(--dialog-shadow);
      56 +      border: 1px solid var(--border-accent-base);
- 58  57  
+ 58  57
  59  58        [data-slot="dialog-header"] {
  60  59          display: flex;
  61     -        padding: 16px 20px;
@@ -403,7 +392,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 @@ -67,13 +66,13 @@
  67  66          [data-slot="dialog-title"] {
  68  67            color: var(--text-strong);
- 69  68  
+ 69  68
  70     -          /* text-16-medium */
      69 +          /* text-17-semibold */
  71  70            font-family: var(--font-family-sans);
@@ -420,17 +409,17 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  79  78        }
 @@ -140,10 +139,10 @@
 140 139  }
-141 140  
+141 140
 142 141  [data-component="dialog"][data-transition] [data-slot="dialog-content"] {
 143     -  animation: contentHide 120ms cubic-bezier(0.4, 0, 1, 1) forwards;
     142 +  animation: contentHide 150ms ease-in forwards;
-144 143  
+144 143
 145 144    &[data-expanded] {
 146     -    animation: contentShow 250ms cubic-bezier(0.16, 1, 0.3, 1);
     145 +    animation: contentShow 300ms var(--ease-snappy);
 147 146    }
 148 147  }
-149 148  
+149 148
 @@ -176,7 +175,7 @@
 176 175  @keyframes contentShow {
 177 176    from {
@@ -448,10 +437,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
     192 +    transform: scale(0.95) translateY(4px);
 194 193    }
 195 194  }
-196 195  
+196 195
 
 ```
-
 
 ### 📄 `packages/ui/src/components/dock-surface.css`
 
@@ -479,7 +467,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      12 +    border-color var(--duration-slow) var(--ease-smooth),
      13 +    box-shadow var(--duration-slow) var(--ease-smooth);
  11  14  }
- 12  15  
+ 12  15
  13  16  [data-dock-surface="shell"]:focus-within {
  14     -  box-shadow:
  15     -    var(--shadow-xs-border),
@@ -488,7 +476,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      17 +  border-color: var(--border-accent-focus);
      18 +  box-shadow: var(--prompt-glow);
  18  19  }
- 19  20  
+ 19  20
  20  21  [data-dock-surface="tray"] {
  21  22    background-color: var(--background-base);
  22     -  border: 1px solid var(--border-weak-base);
@@ -501,12 +489,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  27     -  transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
      28 +  transition: border-color var(--duration-normal) var(--ease-smooth);
  28  29  }
- 29  30  
+ 29  30
  30  31  [data-dock-surface="tray"][data-dock-attach="top"] {
- 31  32  
+ 31  32
 
 ```
-
 
 ### 📄 `packages/ui/src/components/dropdown-menu.css`
 
@@ -531,11 +518,10 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      12 +  box-shadow: var(--popover-shadow);
  11  13    z-index: 50;
  12  14    transform-origin: var(--kb-menu-content-transform-origin);
- 13  15  
- 14  16  
+ 13  15
+ 14  16
 
 ```
-
 
 ### 📄 `packages/ui/src/components/hover-card.css`
 
@@ -553,19 +539,18 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      14 +  backdrop-filter: blur(16px);
      15 +  -webkit-backdrop-filter: blur(16px);
  14  16    pointer-events: auto;
- 15  17  
+ 15  17
  16     -  border: 1px solid color-mix(in oklch, var(--border-base) 50%, transparent);
      18 +  border: 1px solid var(--border-accent-base);
  17  19    background-clip: padding-box;
  18     -  box-shadow: var(--shadow-md);
      20 +  box-shadow: var(--popover-shadow);
- 19  21  
+ 19  21
  20  22    transform-origin: var(--kb-hovercard-content-transform-origin);
- 21  23  
- 22  24  
+ 21  23
+ 22  24
 
 ```
-
 
 ### 📄 `packages/ui/src/components/icon-button.css`
 
@@ -591,15 +576,15 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      13 +    box-shadow var(--duration-fast) var(--ease-smooth),
      14 +    transform 80ms var(--ease-smooth),
      15 +    filter var(--duration-fast) var(--ease-smooth);
- 14  16  
+ 14  16
  15  17    &[data-variant="primary"] {
  16  18      background-color: var(--icon-strong-base);
      19 +    box-shadow: var(--glow-accent);
- 17  20  
+ 17  20
  18  21      [data-slot="icon-svg"] {
  19  22        /* color: var(--icon-weak-base); */
 @@ -29,6 +32,9 @@
- 29  32  
+ 29  32
  30  33      &:hover:not(:disabled) {
  31  34        background-color: var(--icon-strong-hover);
      35 +      box-shadow: var(--glow-accent-hover);
@@ -610,17 +595,16 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  34  40        background-color: var(--icon-strong-focus);
 @@ -88,7 +94,7 @@
  88  94      }
- 89  95  
+ 89  95
  90  96      &:hover:not(:disabled) {
  91     -      background-color: var(--surface-base-hover);
      97 +      background-color: var(--card-bg-hover);
- 92  98  
+ 92  98
  93  99        [data-slot="icon-svg"] {
  94 100          color: var(--icon-hover);
- 95 101  
+ 95 101
 
 ```
-
 
 ### 📄 `packages/ui/src/components/keybind.css`
 
@@ -636,13 +620,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
   9   9    background: var(--surface-base);
  10     -  box-shadow: var(--shadow-xxs-border);
      10 +  border: 1px solid var(--border-accent-base);
- 11  11  
+ 11  11
  12  12    /* text-12-regular */
  13  13    font-family: var(--font-family-sans);
- 14  14  
+ 14  14
 
 ```
-
 
 ### 📄 `packages/ui/src/components/logo.css`
 
@@ -660,10 +643,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
       8 +[data-component="logo-mark"]:hover {
       9 +  filter: drop-shadow(0 0 12px var(--accent-base));
   4  10  }
-  5  11  
+  5  11
 
 ```
-
 
 ### 📄 `packages/ui/src/components/popover.css`
 
@@ -684,13 +666,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  13  14    background-clip: padding-box;
  14     -  box-shadow: var(--shadow-lg);
      15 +  box-shadow: var(--popover-shadow);
- 15  16  
+ 15  16
  16  17    transform-origin: var(--kb-popover-content-transform-origin);
- 17  18  
- 18  19  
+ 17  18
+ 18  19
 
 ```
-
 
 ### 📄 `packages/ui/src/components/progress.css`
 
@@ -707,12 +688,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      46 +    box-shadow: 0 0 12px -2px var(--accent-base);
      47 +    transition: width var(--duration-normal) var(--ease-smooth);
  47  48    }
- 48  49  
+ 48  49
  49  50    &[data-indeterminate] [data-slot="progress-fill"] {
- 50  51  
+ 50  51
 
 ```
-
 
 ### 📄 `packages/ui/src/components/provider-icons/sprite.svg`
 
@@ -774,10 +754,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 865 857      <symbol viewBox="0 0 40 40" id="deepseek">
 866 858        <path
 867 859          d="M35.6638 9.91965C35.3251 9.75432 35.1785 10.0703 34.9811 10.2316C34.9131 10.2836 34.8558 10.3516 34.7985 10.413C34.3025 10.9423 33.7238 11.289 32.9678 11.2476C31.8625 11.1863 30.9186 11.533 30.0839 12.3783C29.9066 11.3356 29.3173 10.7143 28.4213 10.3143C27.9519 10.1063 27.4773 9.89965 27.148 9.44766C26.9186 9.12633 26.856 8.76767 26.7413 8.41568C26.668 8.20235 26.5946 7.98502 26.3506 7.94902C26.084 7.90769 25.98 8.13035 25.876 8.31702C25.4587 9.07967 25.2973 9.91965 25.3133 10.7703C25.3493 12.6849 26.1573 14.2102 27.764 15.2942C27.9466 15.4182 27.9933 15.5435 27.9359 15.7249C27.8266 16.0982 27.696 16.4609 27.5813 16.8355C27.508 17.0742 27.3986 17.1248 27.1426 17.0222C26.2777 16.6504 25.4919 16.1164 24.828 15.4489C23.6854 14.3449 22.6534 13.1263 21.3654 12.1716C21.067 11.9511 20.7606 11.7416 20.4468 11.5436C19.1335 10.2676 20.6201 9.21967 20.9641 9.09567C21.3241 8.965 21.0881 8.51968 19.9254 8.52501C18.7628 8.53035 17.6988 8.91834 16.3428 9.43699C16.1413 9.51421 15.934 9.57529 15.7229 9.61966C14.4557 9.38091 13.1598 9.33506 11.8789 9.48366C9.36565 9.76365 7.35902 10.953 5.88305 12.9809C4.10975 15.4182 3.69243 18.1888 4.20308 21.0768C4.74041 24.122 6.29504 26.6433 8.683 28.6139C11.1603 30.6579 14.0122 31.6592 17.2668 31.4672C19.2428 31.3539 21.4441 31.0886 23.9254 28.9873C24.552 29.2993 25.208 29.4233 26.2986 29.5166C27.1386 29.5953 27.9466 29.4766 28.5719 29.3459C29.5519 29.1379 29.4839 28.23 29.1306 28.0646C26.2573 26.726 26.888 27.2713 26.3133 26.83C27.7746 25.102 29.9746 23.3074 30.8359 17.4928C30.9026 17.0302 30.8452 16.7395 30.8359 16.3662C30.8306 16.1395 30.8826 16.0502 31.1426 16.0249C31.8639 15.95 32.5637 15.7349 33.2025 15.3915C35.0638 14.3742 35.8158 12.7049 35.9931 10.7023C36.0198 10.3956 35.9878 10.081 35.6638 9.91965ZM19.4414 27.9433C16.6562 25.754 15.3055 25.0327 14.7482 25.0634C14.2256 25.0954 14.3202 25.6913 14.4349 26.0807C14.5549 26.4647 14.7109 26.7286 14.9295 27.066C15.0815 27.2886 15.1855 27.6206 14.7789 27.87C13.8816 28.4246 12.3229 27.6833 12.2496 27.6473C10.435 26.578 8.91632 25.1673 7.84834 23.2381C6.81637 21.3808 6.21638 19.3888 6.11771 17.2622C6.09105 16.7475 6.24171 16.5662 6.7537 16.4729C7.42583 16.3442 8.11451 16.3267 8.79233 16.4209C11.6349 16.8368 14.0536 18.1075 16.0828 20.1194C17.2402 21.2661 18.1161 22.6354 19.0188 23.974C19.9788 25.3953 21.0108 26.75 22.3254 27.8593C22.7894 28.2486 23.1587 28.5446 23.5134 28.7619C22.4441 28.8819 20.6601 28.9086 19.4414 27.9433ZM20.7748 19.3568C20.7745 19.2906 20.7904 19.2253 20.8211 19.1666C20.8517 19.1078 20.8962 19.0575 20.9507 19.0198C21.0052 18.9821 21.068 18.9583 21.1337 18.9503C21.1995 18.9424 21.2662 18.9505 21.3281 18.9741C21.407 19.0024 21.475 19.0546 21.5228 19.1235C21.5706 19.1923 21.5958 19.2743 21.5947 19.3581C21.5949 19.4123 21.5843 19.4659 21.5636 19.5159C21.5428 19.5659 21.5123 19.6113 21.4738 19.6494C21.4354 19.6875 21.3897 19.7176 21.3395 19.7378C21.2893 19.7581 21.2356 19.7682 21.1814 19.7675C21.1277 19.7676 21.0745 19.7571 21.0248 19.7365C20.9752 19.7158 20.9302 19.6855 20.8925 19.6473C20.8548 19.609 20.825 19.5636 20.805 19.5138C20.785 19.4639 20.7739 19.4105 20.7748 19.3568ZM24.9213 21.4848C24.6547 21.5928 24.3893 21.6861 24.1347 21.6981C23.7516 21.7114 23.3756 21.5918 23.0707 21.3594C22.7054 21.0528 22.4441 20.8821 22.3347 20.3488C22.297 20.0881 22.3042 19.823 22.3561 19.5648C22.4494 19.1288 22.3454 18.8488 22.0374 18.5955C21.7881 18.3875 21.4694 18.3302 21.1201 18.3302C21.0005 18.3232 20.8843 18.2875 20.7814 18.2262C20.6348 18.1542 20.5148 17.9728 20.6294 17.7488C20.6668 17.6768 20.8428 17.5008 20.8854 17.4688C21.3601 17.1995 21.9081 17.2875 22.4134 17.4902C22.8827 17.6822 23.2374 18.0342 23.748 18.5328C24.2694 19.1341 24.364 19.3008 24.6613 19.7515C24.896 20.1048 25.1093 20.4674 25.2547 20.8821C25.344 21.1421 25.2293 21.3541 24.9213 21.4848Z"
-868 860  
+868 860
 
 ```
-
 
 ### 📄 `packages/ui/src/components/provider-icons/types.ts`
 
@@ -800,10 +779,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  78  80    "deepseek",
  79  81    "deepinfra",
  80  82    "cortecs",
- 81  83  
+ 81  83
 
 ```
-
 
 ### 📄 `packages/ui/src/components/resize-handle.css`
 
@@ -813,7 +791,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 @@ -9,9 +9,14 @@
   9   9      transition: opacity 0.15s ease-in-out;
  10  10    }
- 11  11  
+ 11  11
  12     -  &:hover::after,
      12 +  &:hover::after {
      13 +    opacity: 0.5;
@@ -825,12 +803,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      18 +    opacity: 0.8;
      19 +    background: var(--accent-base);
  15  20    }
- 16  21  
+ 16  21
  17  22    &[data-direction="horizontal"] {
- 18  23  
+ 18  23
 
 ```
-
 
 ### 📄 `packages/ui/src/components/session-turn.css`
 
@@ -845,7 +822,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  39     -    border-bottom: 1px solid var(--border-weaker-base);
      38 +    padding: 20px 0;
      39 +    border-bottom: 1px solid var(--border-accent-base);
- 40  40  
+ 40  40
  41  41      &:last-child {
  42  42        border-bottom: none;
 @@ -88,6 +88,8 @@
@@ -854,13 +831,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  90  90      gap: 12px;
      91 +    border-left: 3px solid var(--message-assistant-border);
      92 +    padding-left: 16px;
- 91  93  
+ 91  93
  92  94      > :first-child > [data-component="markdown"]:first-child {
  93  95        margin-top: 0;
- 94  96  
+ 94  96
 
 ```
-
 
 ### 📄 `packages/ui/src/components/spinner.css`
 
@@ -874,10 +850,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
   3   3    flex-shrink: 0;
   4   4    width: 18px;
   5   5    aspect-ratio: 1;
-  6   6  
+  6   6
 
 ```
-
 
 ### 📄 `packages/ui/src/components/switch.css`
 
@@ -890,12 +865,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  97  97      background-color: var(--icon-strong-base);
      98 +    box-shadow: var(--glow-accent);
  98  99    }
- 99 100  
+ 99 100
 100 101    &[data-checked] [data-slot="switch-thumb"] {
-101 102  
+101 102
 
 ```
-
 
 ### 📄 `packages/ui/src/components/tag.css`
 
@@ -905,7 +879,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 @@ -4,10 +4,11 @@
   4   4    justify-content: center;
   5   5    user-select: none;
-  6   6  
+  6   6
   7     -  border-radius: var(--radius-xs);
   8     -  border: 0.5px solid var(--border-weak-base);
       7 +  border-radius: var(--radius-full);
@@ -913,13 +887,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
   9   9    background: var(--surface-raised-base);
  10  10    color: var(--text-base);
      11 +  transition: all var(--duration-normal) var(--ease-smooth);
- 11  12  
+ 11  12
  12  13    &[data-size="normal"] {
  13  14      height: 18px;
- 14  15  
+ 14  15
 
 ```
-
 
 ### 📄 `packages/ui/src/components/text-field.css`
 
@@ -933,7 +906,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      53 +      transition:
      54 +        border-color var(--duration-normal) var(--ease-smooth),
      55 +        box-shadow var(--duration-normal) var(--ease-smooth);
- 53  56  
+ 53  56
  54  57        &:focus-within:not(:has([data-readonly])) {
  55     -        border-color: transparent;
  56     -        /* border/shadow-xs/select */
@@ -946,12 +919,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      58 +        border-color: var(--border-accent-focus);
      59 +        box-shadow: var(--glow-accent-focus);
  63  60        }
- 64  61  
+ 64  61
  65  62        &:has([data-invalid]) {
- 66  63  
+ 66  63
 
 ```
-
 
 ### 📄 `packages/ui/src/components/toast.css`
 
@@ -964,7 +936,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  40  40    pointer-events: auto;
  41     -  transition: all 150ms ease-out;
      41 +  transition: all var(--duration-fast) var(--ease-smooth);
- 42  42  
+ 42  42
  43  43    border-radius: var(--radius-lg);
  44     -  border: 1px solid var(--border-weak-base);
      44 +  border: 1px solid var(--border-accent-base);
@@ -974,13 +946,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  46  48    color: var(--text-invert-base);
  47     -  box-shadow: var(--shadow-md);
      49 +  box-shadow: var(--popover-shadow);
- 48  50  
+ 48  50
  49  51    [data-slot="toast-inner"] {
  50  52      display: flex;
- 51  53  
+ 51  53
 
 ```
-
 
 ### 📄 `packages/ui/src/components/tooltip.css`
 
@@ -1000,7 +971,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  25  26    padding: 4px 10px;
  26     -  border: 1px solid var(--border-weak-base, rgba(0, 0, 0, 0.07));
      27 +  border: 1px solid var(--border-accent-base);
- 27  28  
+ 27  28
  28     -  box-shadow: var(--shadow-md);
      29 +  box-shadow: var(--popover-shadow);
  29  30    pointer-events: none !important;
@@ -1010,11 +981,10 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      33 +    transform var(--duration-fast) var(--ease-smooth);
  31  34    transform: translate3d(0, 0, 0);
  32  35    transform-origin: var(--kb-tooltip-content-transform-origin);
- 33  36  
- 34  37  
+ 33  36
+ 34  37
 
 ```
-
 
 ### 📄 `packages/ui/src/styles/aurora.css`
 
@@ -1050,11 +1020,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      24 +   Typography + spacing (theme.css):
      25 +     --font-family-display, --text-xs through --text-4xl,
      26 +     --space-*, --gap-*, --padding-*, --max-prose-width
-  4  27  
+  4  27
   5     -   This is NOT a color theme — it's a full component redesign.
   6     -   Every element: radius, spacing, shadows, glass, glow, motion.
   7  28     ================================================================ */
-  8  29  
+  8  29
   9     -/* ============================================================
  10     -   0. AURORA FOUNDATIONS — Variables, fonts, reduced-motion
  11     -   ============================================================ */
@@ -2225,10 +2195,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      34 +    "JetBrains Mono Nerd Font Mono", "JetBrains Mono", "GeistMono Nerd Font Mono", "SF Mono", "Fira Code",
      35 +    "CaskaydiaCove Nerd Font Mono", "IBM Plex Mono", ui-monospace, monospace;
 1173  36  }
-1174  37  
+1174  37
 
 ```
-
 
 ### 📄 `packages/ui/src/styles/base.css`
 
@@ -2275,10 +2244,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
     431 +    scroll-behavior: auto !important;
     432 +  }
     433 +}
-398 434  
+398 434
 
 ```
-
 
 ### 📄 `packages/ui/src/styles/theme.css`
 
@@ -2298,7 +2266,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
       8 +    "Geist", "Inter", "SF Pro Display", system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
       9 +  /* Math-capable fallback (KaTeX/MathJax will use their own fonts; this covers inline math Unicode) */
      10 +  --font-family-math: "Cambria Math", "STIX Two Math", "Latin Modern Math", math, serif;
-  6  11  
+  6  11
      12 +  /* ─── LEGACY FONT SIZES (kept for backward compat) ─── */
   7  13    --font-size-small: 13px;
   8  14    --font-size-base: 14px;
@@ -2342,7 +2310,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      51 +  --letter-spacing-wider: 0.05em;
  19  52    --letter-spacing-tightest: -0.3199999928474426;
  20  53    --paragraph-spacing-base: 0;
- 21  54  
+ 21  54
      55 +  /* ─── PROSE WIDTH ─── */
      56 +  --max-prose-width: 72ch;
      57 +
@@ -2383,12 +2351,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      92 +  --padding-card-sm: var(--space-3);
      93 +  --padding-card-lg: var(--space-6);
      94 +  --padding-input: var(--space-2-5) var(--space-3);
- 23  95  
+ 23  95
  24  96    --breakpoint-sm: 40rem;
  25  97    --breakpoint-md: 48rem;
 @@ -42,10 +114,61 @@
  42 114    --container-7xl: 80rem;
- 43 115  
+ 43 115
  44 116    --radius-xs: 0.125rem;
  45     -  --radius-sm: 0.25rem;
  46     -  --radius-md: 0.375rem;
@@ -2449,13 +2417,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
     169 +  --thinking-color: var(--icon-interactive-base);
     170 +  --thinking-glow: none;
     171 +  --progress-gradient: var(--border-active);
- 49 172  
+ 49 172
  50 173    --shadow-xs:
  51 174      0 1px 2px -0.5px light-dark(hsl(0 0% 0% / 0.05), hsl(0 0% 0% / 0.08)),
- 52 175  
+ 52 175
 
 ```
-
 
 ### 📄 `packages/ui/src/theme/desktop-theme.schema.json`
 
@@ -2481,10 +2448,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  82  94          }
  83  95        }
  84  96      },
- 85  97  
+ 85  97
 
 ```
-
 
 ### 📄 `packages/ui/src/theme/index.ts`
 
@@ -2497,12 +2463,11 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
   9   9    CssVarRef,
      10 +  TokenValue,
  10  11  } from "./types"
- 11  12  
+ 11  12
  12  13  export {
- 13  14  
+ 13  14
 
 ```
-
 
 ### 📄 `packages/ui/src/theme/resolve.ts`
 
@@ -2513,13 +2478,13 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
       1 +import { generateNeutralScale, generateScale, hexToOklch, hexToRgb, oklchToHex, withAlpha } from "./color"
   1   2  import type { ColorValue, DesktopTheme, HexColor, ResolvedTheme, ThemeVariant } from "./types"
   2     -import { generateNeutralScale, generateScale, hexToOklch, oklchToHex, withAlpha } from "./color"
-  3   3  
+  3   3
   4   4  export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): ResolvedTheme {
   5   5    const { seeds, overrides = {} } = variant
 @@ -14,6 +14,14 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
  14  14    const diffAdd = generateScale(seeds.diffAdd, isDark)
  15  15    const diffDelete = generateScale(seeds.diffDelete, isDark)
- 16  16  
+ 16  16
      17 +  // Accent seeds with fallbacks
      18 +  const accentSeed = seeds.accent ?? seeds.interactive
      19 +  const accentSecondarySeed = seeds.accentSecondary ?? seeds.info
@@ -2529,12 +2494,12 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      23 +  const accentTertiary = generateScale(accentTertiarySeed, isDark)
      24 +
  17  25    const neutralAlpha = generateNeutralAlphaScale(neutral, isDark)
- 18  26  
+ 18  26
  19  27    const tokens: ResolvedTheme = {}
 @@ -290,6 +298,207 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
 290 298    tokens["avatar-text-cyan"] = isDark ? "#369eff" : "#0894b3"
 291 299    tokens["avatar-text-lime"] = isDark ? "#c4f042" : "#5d770d"
-292 300  
+292 300
     301 +  // ─── ACCENT TOKENS ───
     302 +  tokens["accent-base"] = accent[8]
     303 +  tokens["accent-hover"] = accent[9]
@@ -2739,10 +2704,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 293 502    for (const [key, value] of Object.entries(overrides)) {
 294 503      tokens[key] = value
 295 504    }
-296 505  
+296 505
 
 ```
-
 
 ### 📄 `packages/ui/src/theme/themes/aurora.json`
 
@@ -2773,10 +2737,9 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
  63  69      },
  64  70      "overrides": {
  65  71        "background-base": "#0A0A0F",
- 66  72  
+ 66  72
 
 ```
-
 
 ### 📄 `packages/ui/src/theme/types.ts`
 
@@ -2794,13 +2757,13 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      23 +  /** Tertiary accent (e.g. attention, warm highlights). Falls back to `warning`. */
      24 +  accentTertiary?: HexColor
  19  25  }
- 20  26  
+ 20  26
  21  27  export interface ThemeVariant {
  22  28    seeds: ThemeSeedColors
  23     -  overrides?: Record<string, ColorValue>
      29 +  overrides?: Record<string, TokenValue>
  24  30  }
- 25  31  
+ 25  31
  26  32  export interface DesktopTheme {
 @@ -43,6 +49,12 @@ export type TokenCategory =
  43  49    | "markdown"
@@ -2812,25 +2775,26 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
      55 +  | "motion"
      56 +  | "radius"
      57 +  | "message"
- 46  58  
+ 46  58
  47  59  export type ThemeToken = string
- 48  60  
+ 48  60
 @@ -50,4 +62,7 @@ export type CssVarRef = `var(--${string})`
- 50  62  
+ 50  62
  51  63  export type ColorValue = HexColor | CssVarRef
- 52  64  
+ 52  64
  53     -export type ResolvedTheme = Record<ThemeToken, ColorValue>
      65 +/** Any CSS-valid token value — hex colors, rgba(), box-shadow strings, easing functions, etc. */
      66 +export type TokenValue = string
      67 +
      68 +export type ResolvedTheme = Record<ThemeToken, TokenValue>
- 54  69  
+ 54  69
 
 ```
 
 ## 🤖 Comprehensive Review Checklist
 
 ### ✅ Code Quality & Standards
+
 - [ ] **Syntax & Formatting**: Consistent indentation, proper spacing
 - [ ] **Naming Conventions**: Clear, descriptive variable/function names
 - [ ] **Code Structure**: Logical organization, appropriate function size
@@ -2838,6 +2802,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 - [ ] **Type Safety**: Proper typing (if applicable)
 
 ### 🔍 Logic & Functionality
+
 - [ ] **Algorithm Correctness**: Logic implements requirements correctly
 - [ ] **Edge Case Handling**: Boundary conditions properly addressed
 - [ ] **Error Handling**: Appropriate try-catch blocks and error messages
@@ -2845,6 +2810,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 - [ ] **Memory Management**: Proper cleanup, no memory leaks
 
 ### 🐛 Potential Issues & Bugs
+
 - [ ] **Runtime Errors**: No null/undefined dereferencing
 - [ ] **Type Mismatches**: Consistent data types throughout
 - [ ] **Race Conditions**: Proper async/await handling
@@ -2852,6 +2818,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 - [ ] **Off-by-one Errors**: Array/loop bounds correctly handled
 
 ### 🔒 Security Considerations
+
 - [ ] **Input Validation**: User inputs properly sanitized
 - [ ] **XSS Prevention**: No unsafe HTML injection
 - [ ] **Authentication**: Proper access controls if applicable
@@ -2859,6 +2826,7 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 - [ ] **Dependency Security**: No known vulnerable packages
 
 ### 📱 User Experience & Accessibility
+
 - [ ] **Responsive Design**: Works on different screen sizes
 - [ ] **Loading States**: Proper feedback during operations
 - [ ] **Error Messages**: User-friendly error communication
@@ -2868,28 +2836,34 @@ packages/ui/src/assets/icons/provider/evroc.svg    |    3 +
 ### 💡 Improvement Suggestions
 
 #### Code Organization
+
 - [ ] Consider extracting complex logic into separate functions
 - [ ] Evaluate if constants should be moved to configuration
 - [ ] Check for code duplication opportunities
 
 #### Performance Optimizations
+
 - [ ] Identify opportunities for memoization
 - [ ] Consider lazy loading for heavy operations
 - [ ] Evaluate database query efficiency (if applicable)
 
 #### Testing Recommendations
+
 - [ ] Unit tests for core functionality
 - [ ] Integration tests for API endpoints
 - [ ] Edge case testing scenarios
 
 #### Documentation Needs
+
 - [ ] API documentation updates
 - [ ] Code comments for complex algorithms
 - [ ] README updates if public interfaces changed
 
 ### 📝 Review Notes
-*Add your specific feedback, suggestions, and observations here:*
+
+_Add your specific feedback, suggestions, and observations here:_
 
 ---
-*Individual file review generated by AI Visual Code Review v2.0*
-*Generated: 2026-02-28T14:16:31.613Z*
+
+_Individual file review generated by AI Visual Code Review v2.0_
+_Generated: 2026-02-28T14:16:31.613Z_

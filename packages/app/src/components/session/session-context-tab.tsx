@@ -287,7 +287,8 @@ export function SessionContextTab() {
             const sdk = useSDK()
             const [compacting, setCompacting] = createSignal(false)
             const usage = () => c().usage ?? 0
-            const color = () => usage() > 80 ? "var(--syntax-error)" : usage() > 60 ? "var(--syntax-warning)" : "var(--syntax-success)"
+            const color = () =>
+              usage() > 80 ? "var(--syntax-error)" : usage() > 60 ? "var(--syntax-warning)" : "var(--syntax-success)"
 
             const compact = async () => {
               if (!params.id || compacting()) return
@@ -325,10 +326,15 @@ export function SessionContextTab() {
                     disabled={compacting() || visibleUserMessages().length === 0}
                     onClick={compact}
                   >
-                    {compacting() ? language.t("command.session.compact") + "..." : language.t("command.session.compact")}
+                    {compacting()
+                      ? language.t("command.session.compact") + "..."
+                      : language.t("command.session.compact")}
                   </Button>
                 </div>
-                <div class="h-2 w-full rounded-full overflow-hidden" style={{ "background-color": "var(--surface-base)" }}>
+                <div
+                  class="h-2 w-full rounded-full overflow-hidden"
+                  style={{ "background-color": "var(--surface-base)" }}
+                >
                   <div
                     class="h-full rounded-full transition-all duration-300"
                     style={{

@@ -71,18 +71,12 @@ export default function Home() {
   return (
     <div class="mx-auto w-full max-w-lg px-6 flex flex-col items-center" style="padding-top: min(20vh, 160px)">
       {/* Logo with entrance animation */}
-      <div
-        class="opacity-0"
-        style="animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards"
-      >
+      <div class="opacity-0" style="animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards">
         <Logo class="w-40 md:w-56 opacity-20" />
       </div>
 
       {/* Server status badge */}
-      <div
-        class="opacity-0"
-        style="animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards"
-      >
+      <div class="opacity-0" style="animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards">
         <Button
           size="large"
           variant="ghost"

@@ -9,9 +9,9 @@
 
 Codex implements a **dual-input model** that lets users interact with the agent **during** an active turn, not just between turns:
 
-| Action | Keybinding | Behavior | When Turn Active |
-|--------|-----------|----------|-----------------|
-| **Queue** | `Enter` | Enqueue message for next turn boundary | Message waits in queue, displayed in UI |
+| Action    | Keybinding                      | Behavior                                  | When Turn Active                         |
+| --------- | ------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| **Queue** | `Enter`                         | Enqueue message for next turn boundary    | Message waits in queue, displayed in UI  |
 | **Steer** | `⌘Enter` / `Enter` (steer-mode) | Inject input into active turn immediately | Message sent to model in current context |
 
 ---
@@ -201,14 +201,14 @@ When `NoActiveTurn` occurs, the app-server falls back — the input that failed 
 
 ### Critical Difference
 
-| Aspect | Queue | Steer |
-|--------|-------|-------|
-| **Timing** | After turn ends | During active turn |
-| **Turn boundary** | Creates new turn | Same turn continues |
-| **Model sees it** | On next turn start | At next loop iteration |
-| **Cancels response** | No (waits) | No (appends to context) |
-| **UI display** | Queued messages widget | Injected into chat transcript |
-| **Fallback** | N/A | Falls back to queue if no active turn |
+| Aspect               | Queue                  | Steer                                 |
+| -------------------- | ---------------------- | ------------------------------------- |
+| **Timing**           | After turn ends        | During active turn                    |
+| **Turn boundary**    | Creates new turn       | Same turn continues                   |
+| **Model sees it**    | On next turn start     | At next loop iteration                |
+| **Cancels response** | No (waits)             | No (appends to context)               |
+| **UI display**       | Queued messages widget | Injected into chat transcript         |
+| **Fallback**         | N/A                    | Falls back to queue if no active turn |
 
 ---
 
@@ -285,11 +285,13 @@ Steer is gated behind `Feature::Steer` in the TUI:
 ## Implications for OpenCode
 
 ### What OpenCode Currently Has
+
 - Session/turn model with `processor.ts` handling model interaction
 - Parallel agents via `task.ts` tool
 - No mid-turn input injection
 
 ### What Queue/Steer Would Add
+
 1. **Pending input buffer** on the session/turn state
 2. **Steer RPC** that pushes to the buffer while model is running
 3. **Loop-boundary drain** that checks for pending input after each model response
@@ -298,6 +300,7 @@ Steer is gated behind `Feature::Steer` in the TUI:
 6. **Fallback path**: steer → queue if no active turn
 
 ### Key Implementation Points
+
 - `steer_input()` is a **lock-based, non-cancelling** approach — it doesn't abort the model stream
 - Pending input is consumed at the **top of the agentic loop**, not mid-stream
 - The model sees steered input as additional conversation items on its next iteration

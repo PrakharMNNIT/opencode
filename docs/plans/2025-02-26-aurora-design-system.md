@@ -26,13 +26,13 @@
 
 ### Design Requirements Gathered
 
-| Aspect | Choice |
-|--------|--------|
-| **Scope** | Unified design language (Web Console + Terminal UI) |
-| **Tone** | Luxury Minimal |
-| **Color** | Dark-first luxury with luminous accents |
-| **Motion** | Confident, tactile, functional |
-| **Reference** | Future-forward (Tesla/Rivian interiors) |
+| Aspect        | Choice                                              |
+| ------------- | --------------------------------------------------- |
+| **Scope**     | Unified design language (Web Console + Terminal UI) |
+| **Tone**      | Luxury Minimal                                      |
+| **Color**     | Dark-first luxury with luminous accents             |
+| **Motion**    | Confident, tactile, functional                      |
+| **Reference** | Future-forward (Tesla/Rivian interiors)             |
 
 ### Core Identity
 
@@ -51,13 +51,13 @@
 
 ### Design Principles
 
-| Principle | Description | Implementation |
-|-----------|-------------|----------------|
-| **Light as Material** | UI elements emit light rather than receive it | Glows, gradients, luminous borders |
-| **Depth through Transparency** | Layers visible through glassmorphism | backdrop-blur, low-opacity backgrounds |
-| **Confident Motion** | Every animation serves purpose and feels physical | Spring physics, 200-300ms durations |
-| **Chromatic Restraint** | Rich palette but used sparingly | Monochrome base, color for meaning |
-| **Unified Language** | Same DNA across Web and TUI | Shared color tokens, adapted to medium |
+| Principle                      | Description                                       | Implementation                         |
+| ------------------------------ | ------------------------------------------------- | -------------------------------------- |
+| **Light as Material**          | UI elements emit light rather than receive it     | Glows, gradients, luminous borders     |
+| **Depth through Transparency** | Layers visible through glassmorphism              | backdrop-blur, low-opacity backgrounds |
+| **Confident Motion**           | Every animation serves purpose and feels physical | Spring physics, 200-300ms durations    |
+| **Chromatic Restraint**        | Rich palette but used sparingly                   | Monochrome base, color for meaning     |
+| **Unified Language**           | Same DNA across Web and TUI                       | Shared color tokens, adapted to medium |
 
 ---
 
@@ -70,6 +70,7 @@ Three design approaches were explored before settling on Aurora:
 **Concept:** Premium materials meet precision engineering. Think machined aluminum bezels, carbon fiber textures, and surgical-grade steel accents.
 
 **Web Console:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
@@ -90,6 +91,7 @@ Three design approaches were explored before settling on Aurora:
 ```
 
 **TUI Translation:**
+
 ```
 ┌─ SESSION: Project Analysis ─────────────── ◈ ────┐
 │                                                   │
@@ -108,11 +110,13 @@ Three design approaches were explored before settling on Aurora:
 ```
 
 **Pros:**
+
 - Distinctive, memorable aesthetic
 - Strong brand identity ("the tool that feels engineered")
 - Warm accent prevents cold/sterile feeling
 
 **Cons:**
+
 - Carbon texture could feel dated if not executed perfectly
 - Copper might clash with some terminal color schemes
 - More complex to implement subtle material effects
@@ -126,6 +130,7 @@ Three design approaches were explored before settling on Aurora:
 **Concept:** Pure light and energy. No physical materials—just gradients, glows, and luminous color that feels alive. Like looking at code through a prism of pure digital light.
 
 **Web Console:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
@@ -157,6 +162,7 @@ Three design approaches were explored before settling on Aurora:
 ```
 
 **Light Theme Variant:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Background: Soft pearl (#FAFAFA) with subtle iridescence   │
@@ -167,6 +173,7 @@ Three design approaches were explored before settling on Aurora:
 ```
 
 **TUI Translation:**
+
 ```
 ╭───────────────────────────────────────────────────────╮
 │  ●  opencode                             ◐ processing │
@@ -192,17 +199,20 @@ Three design approaches were explored before settling on Aurora:
 ```
 
 **Key Differentiators:**
+
 - **Depth through light, not shadow** — Elements glow from within rather than casting shadows
 - **Living gradients** — Subtle color shifts that feel organic, not static
 - **Ethereal presence** — UI feels like it exists in digital space, weightless
 
 **Pros:**
+
 - Truly unique aesthetic (few tools look like this)
 - Perfectly digital - no physical material metaphors
 - Light/dark themes can share the same luminous DNA
 - Scalable: subtle for everyday use, dramatic for hero moments
 
 **Cons:**
+
 - Risk of "gaming aesthetic" if not carefully restrained
 - Gradient animations need to be VERY subtle or becomes distracting
 - Performance consideration for animated gradients
@@ -228,46 +238,46 @@ Since Approach B (Aurora) was selected immediately, a third approach was not ful
 
 :root[data-theme="aurora-dark"] {
   /* ─── VOID BACKGROUNDS ─── */
-  --void-deepest:      #050508;  /* True dark, almost black */
-  --void-deep:         #0A0A0F;  /* Primary background */
-  --void-base:         #0F0F14;  /* Card backgrounds */
-  --void-elevated:     #14141A;  /* Elevated surfaces */
-  --void-hover:        #1A1A22;  /* Hover states */
+  --void-deepest: #050508; /* True dark, almost black */
+  --void-deep: #0a0a0f; /* Primary background */
+  --void-base: #0f0f14; /* Card backgrounds */
+  --void-elevated: #14141a; /* Elevated surfaces */
+  --void-hover: #1a1a22; /* Hover states */
 
   /* ─── SURFACE GLASS ─── */
-  --glass-subtle:      rgba(255, 255, 255, 0.02);
-  --glass-light:       rgba(255, 255, 255, 0.04);
-  --glass-medium:      rgba(255, 255, 255, 0.06);
-  --glass-strong:      rgba(255, 255, 255, 0.08);
+  --glass-subtle: rgba(255, 255, 255, 0.02);
+  --glass-light: rgba(255, 255, 255, 0.04);
+  --glass-medium: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.08);
 
   /* ─── LUMINOUS SPECTRUM ─── */
-  --aurora-cyan:       #00D4FF;  /* Primary accent */
-  --aurora-cyan-soft:  #00A3CC;  /* Cyan muted */
-  --aurora-cyan-glow:  rgba(0, 212, 255, 0.15);
+  --aurora-cyan: #00d4ff; /* Primary accent */
+  --aurora-cyan-soft: #00a3cc; /* Cyan muted */
+  --aurora-cyan-glow: rgba(0, 212, 255, 0.15);
 
-  --aurora-violet:     #A78BFA;  /* Secondary accent */
-  --aurora-violet-soft:#8B6ED9;
-  --aurora-violet-glow:rgba(167, 139, 250, 0.15);
+  --aurora-violet: #a78bfa; /* Secondary accent */
+  --aurora-violet-soft: #8b6ed9;
+  --aurora-violet-glow: rgba(167, 139, 250, 0.15);
 
-  --aurora-rose:       #FF6B9D;  /* Tertiary / attention */
-  --aurora-rose-soft:  #D94A7B;
-  --aurora-rose-glow:  rgba(255, 107, 157, 0.15);
+  --aurora-rose: #ff6b9d; /* Tertiary / attention */
+  --aurora-rose-soft: #d94a7b;
+  --aurora-rose-glow: rgba(255, 107, 157, 0.15);
 
-  --aurora-amber:      #FFBB33;  /* Warning / warm accent */
-  --aurora-green:      #4ADE80;  /* Success */
-  --aurora-red:        #F87171;  /* Error / danger */
+  --aurora-amber: #ffbb33; /* Warning / warm accent */
+  --aurora-green: #4ade80; /* Success */
+  --aurora-red: #f87171; /* Error / danger */
 
   /* ─── TEXT HIERARCHY ─── */
-  --text-primary:      #F5F5F7;  /* Bright white */
-  --text-secondary:    #A1A1AA;  /* Muted gray */
-  --text-tertiary:     #71717A;  /* Subtle gray */
-  --text-disabled:     #3F3F46;  /* Very dim */
+  --text-primary: #f5f5f7; /* Bright white */
+  --text-secondary: #a1a1aa; /* Muted gray */
+  --text-tertiary: #71717a; /* Subtle gray */
+  --text-disabled: #3f3f46; /* Very dim */
 
   /* ─── BORDER LUMINANCE ─── */
-  --border-subtle:     rgba(255, 255, 255, 0.06);
-  --border-default:    rgba(255, 255, 255, 0.10);
-  --border-strong:     rgba(255, 255, 255, 0.15);
-  --border-glow:       var(--aurora-cyan);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --border-glow: var(--aurora-cyan);
 }
 ```
 
@@ -280,46 +290,46 @@ Since Approach B (Aurora) was selected immediately, a third approach was not ful
 
 :root[data-theme="aurora-light"] {
   /* ─── PEARL BACKGROUNDS ─── */
-  --void-deepest:      #FFFFFF;
-  --void-deep:         #FAFAFA;
-  --void-base:         #F4F4F5;
-  --void-elevated:     #FFFFFF;
-  --void-hover:        #E4E4E7;
+  --void-deepest: #ffffff;
+  --void-deep: #fafafa;
+  --void-base: #f4f4f5;
+  --void-elevated: #ffffff;
+  --void-hover: #e4e4e7;
 
   /* ─── SURFACE FROST ─── */
-  --glass-subtle:      rgba(0, 0, 0, 0.02);
-  --glass-light:       rgba(0, 0, 0, 0.04);
-  --glass-medium:      rgba(0, 0, 0, 0.06);
-  --glass-strong:      rgba(0, 0, 0, 0.08);
+  --glass-subtle: rgba(0, 0, 0, 0.02);
+  --glass-light: rgba(0, 0, 0, 0.04);
+  --glass-medium: rgba(0, 0, 0, 0.06);
+  --glass-strong: rgba(0, 0, 0, 0.08);
 
   /* ─── LUMINOUS SPECTRUM (deeper for contrast) ─── */
-  --aurora-cyan:       #0891B2;  /* Deeper cyan */
-  --aurora-cyan-soft:  #06B6D4;
-  --aurora-cyan-glow:  rgba(8, 145, 178, 0.10);
+  --aurora-cyan: #0891b2; /* Deeper cyan */
+  --aurora-cyan-soft: #06b6d4;
+  --aurora-cyan-glow: rgba(8, 145, 178, 0.1);
 
-  --aurora-violet:     #7C3AED;  /* Richer violet */
-  --aurora-violet-soft:#8B5CF6;
-  --aurora-violet-glow:rgba(124, 58, 237, 0.10);
+  --aurora-violet: #7c3aed; /* Richer violet */
+  --aurora-violet-soft: #8b5cf6;
+  --aurora-violet-glow: rgba(124, 58, 237, 0.1);
 
-  --aurora-rose:       #DB2777;  /* Deeper rose */
-  --aurora-rose-soft:  #EC4899;
-  --aurora-rose-glow:  rgba(219, 39, 119, 0.10);
+  --aurora-rose: #db2777; /* Deeper rose */
+  --aurora-rose-soft: #ec4899;
+  --aurora-rose-glow: rgba(219, 39, 119, 0.1);
 
-  --aurora-amber:      #D97706;
-  --aurora-green:      #16A34A;
-  --aurora-red:        #DC2626;
+  --aurora-amber: #d97706;
+  --aurora-green: #16a34a;
+  --aurora-red: #dc2626;
 
   /* ─── TEXT HIERARCHY ─── */
-  --text-primary:      #18181B;
-  --text-secondary:    #52525B;
-  --text-tertiary:     #A1A1AA;
-  --text-disabled:     #D4D4D8;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+  --text-disabled: #d4d4d8;
 
   /* ─── BORDER LUMINANCE ─── */
-  --border-subtle:     rgba(0, 0, 0, 0.06);
-  --border-default:    rgba(0, 0, 0, 0.10);
-  --border-strong:     rgba(0, 0, 0, 0.15);
-  --border-glow:       var(--aurora-cyan);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.1);
+  --border-strong: rgba(0, 0, 0, 0.15);
+  --border-glow: var(--aurora-cyan);
 }
 ```
 
@@ -335,9 +345,9 @@ export const auroraDark = {
   backgroundMenu: RGBA.fromHex("#1A1A22"),
 
   // Aurora spectrum
-  primary: RGBA.fromHex("#00D4FF"),      // Cyan
-  secondary: RGBA.fromHex("#A78BFA"),    // Violet
-  accent: RGBA.fromHex("#FF6B9D"),       // Rose
+  primary: RGBA.fromHex("#00D4FF"), // Cyan
+  secondary: RGBA.fromHex("#A78BFA"), // Violet
+  accent: RGBA.fromHex("#FF6B9D"), // Rose
 
   // Semantic
   success: RGBA.fromHex("#4ADE80"),
@@ -355,13 +365,13 @@ export const auroraDark = {
   borderSubtle: RGBA.fromHex("#14141A"),
 
   // Syntax highlighting (aurora-themed)
-  syntaxKeyword: RGBA.fromHex("#A78BFA"),   // Violet
-  syntaxFunction: RGBA.fromHex("#00D4FF"),  // Cyan
-  syntaxString: RGBA.fromHex("#4ADE80"),    // Green
-  syntaxNumber: RGBA.fromHex("#FF6B9D"),    // Rose
-  syntaxComment: RGBA.fromHex("#71717A"),   // Muted
-  syntaxVariable: RGBA.fromHex("#F5F5F7"),  // White
-  syntaxType: RGBA.fromHex("#FFBB33"),      // Amber
+  syntaxKeyword: RGBA.fromHex("#A78BFA"), // Violet
+  syntaxFunction: RGBA.fromHex("#00D4FF"), // Cyan
+  syntaxString: RGBA.fromHex("#4ADE80"), // Green
+  syntaxNumber: RGBA.fromHex("#FF6B9D"), // Rose
+  syntaxComment: RGBA.fromHex("#71717A"), // Muted
+  syntaxVariable: RGBA.fromHex("#F5F5F7"), // White
+  syntaxType: RGBA.fromHex("#FFBB33"), // Amber
   syntaxOperator: RGBA.fromHex("#A1A1AA"),
   syntaxPunctuation: RGBA.fromHex("#71717A"),
 
@@ -386,13 +396,11 @@ export const auroraDark = {
 
 :root {
   /* ─── PRIMARY: Code & Interface ─── */
-  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code",
-               "Cascadia Code", monospace;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", monospace;
 
   /* ─── DISPLAY: Headers & Hero Text ─── */
   /* Option A: Geometric (Future-forward) */
-  --font-display: "Geist", "Inter", "SF Pro Display",
-                  system-ui, sans-serif;
+  --font-display: "Geist", "Inter", "SF Pro Display", system-ui, sans-serif;
 
   /* Option B: More distinctive (if we want stronger brand) */
   /* --font-display: "Space Grotesk", "Outfit", sans-serif; */
@@ -408,36 +416,36 @@ export const auroraDark = {
 /* ─── MODULAR SCALE: 1.250 (Major Third) ─── */
 
 :root {
-  --text-xs:    0.64rem;   /* 10.24px - Labels, captions */
-  --text-sm:    0.8rem;    /* 12.8px  - Small UI text */
-  --text-base:  1rem;      /* 16px    - Body text */
-  --text-md:    1.25rem;   /* 20px    - Large body */
-  --text-lg:    1.563rem;  /* 25px    - Section headers */
-  --text-xl:    1.953rem;  /* 31.25px - Page headers */
-  --text-2xl:   2.441rem;  /* 39px    - Hero subheads */
-  --text-3xl:   3.052rem;  /* 48.8px  - Hero headlines */
-  --text-4xl:   3.815rem;  /* 61px    - Display text */
+  --text-xs: 0.64rem; /* 10.24px - Labels, captions */
+  --text-sm: 0.8rem; /* 12.8px  - Small UI text */
+  --text-base: 1rem; /* 16px    - Body text */
+  --text-md: 1.25rem; /* 20px    - Large body */
+  --text-lg: 1.563rem; /* 25px    - Section headers */
+  --text-xl: 1.953rem; /* 31.25px - Page headers */
+  --text-2xl: 2.441rem; /* 39px    - Hero subheads */
+  --text-3xl: 3.052rem; /* 48.8px  - Hero headlines */
+  --text-4xl: 3.815rem; /* 61px    - Display text */
 
   /* ─── LINE HEIGHTS ─── */
-  --leading-none:   1;
-  --leading-tight:  1.25;
-  --leading-snug:   1.375;
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
-  --leading-loose:  1.75;
+  --leading-loose: 1.75;
 
   /* ─── LETTER SPACING ─── */
   --tracking-tighter: -0.05em;
-  --tracking-tight:   -0.025em;
-  --tracking-normal:  0;
-  --tracking-wide:    0.025em;
-  --tracking-wider:   0.05em;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
 
   /* ─── FONT WEIGHTS ─── */
-  --weight-normal:  400;
-  --weight-medium:  500;
+  --weight-normal: 400;
+  --weight-medium: 500;
   --weight-semibold: 600;
-  --weight-bold:    700;
+  --weight-bold: 700;
 }
 ```
 
@@ -493,7 +501,7 @@ export const auroraDark = {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   line-height: var(--leading-normal);
-  font-variant-ligatures: contextual;  /* Enable code ligatures */
+  font-variant-ligatures: contextual; /* Enable code ligatures */
 }
 
 .text-label {
@@ -515,58 +523,58 @@ export const auroraDark = {
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  --space-px:   1px;
-  --space-0:    0;
-  --space-0.5:  0.125rem;  /* 2px */
-  --space-1:    0.25rem;   /* 4px */
-  --space-1.5:  0.375rem;  /* 6px */
-  --space-2:    0.5rem;    /* 8px */
-  --space-2.5:  0.625rem;  /* 10px */
-  --space-3:    0.75rem;   /* 12px */
-  --space-3.5:  0.875rem;  /* 14px */
-  --space-4:    1rem;      /* 16px */
-  --space-5:    1.25rem;   /* 20px */
-  --space-6:    1.5rem;    /* 24px */
-  --space-7:    1.75rem;   /* 28px */
-  --space-8:    2rem;      /* 32px */
-  --space-9:    2.25rem;   /* 36px */
-  --space-10:   2.5rem;    /* 40px */
-  --space-11:   2.75rem;   /* 44px */
-  --space-12:   3rem;      /* 48px */
-  --space-14:   3.5rem;    /* 56px */
-  --space-16:   4rem;      /* 64px */
-  --space-20:   5rem;      /* 80px */
-  --space-24:   6rem;      /* 96px */
-  --space-28:   7rem;      /* 112px */
-  --space-32:   8rem;      /* 128px */
+  --space-px: 1px;
+  --space-0: 0;
+  --space-0.5: 0.125rem; /* 2px */
+  --space-1: 0.25rem; /* 4px */
+  --space-1.5: 0.375rem; /* 6px */
+  --space-2: 0.5rem; /* 8px */
+  --space-2.5: 0.625rem; /* 10px */
+  --space-3: 0.75rem; /* 12px */
+  --space-3.5: 0.875rem; /* 14px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-7: 1.75rem; /* 28px */
+  --space-8: 2rem; /* 32px */
+  --space-9: 2.25rem; /* 36px */
+  --space-10: 2.5rem; /* 40px */
+  --space-11: 2.75rem; /* 44px */
+  --space-12: 3rem; /* 48px */
+  --space-14: 3.5rem; /* 56px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
+  --space-24: 6rem; /* 96px */
+  --space-28: 7rem; /* 112px */
+  --space-32: 8rem; /* 128px */
 
   /* ─── SEMANTIC SPACING ─── */
-  --gap-xs:     var(--space-1);   /* 4px - Inline elements */
-  --gap-sm:     var(--space-2);   /* 8px - Tight groups */
-  --gap-md:     var(--space-4);   /* 16px - Default gap */
-  --gap-lg:     var(--space-6);   /* 24px - Section spacing */
-  --gap-xl:     var(--space-8);   /* 32px - Major sections */
-  --gap-2xl:    var(--space-12);  /* 48px - Page sections */
+  --gap-xs: var(--space-1); /* 4px - Inline elements */
+  --gap-sm: var(--space-2); /* 8px - Tight groups */
+  --gap-md: var(--space-4); /* 16px - Default gap */
+  --gap-lg: var(--space-6); /* 24px - Section spacing */
+  --gap-xl: var(--space-8); /* 32px - Major sections */
+  --gap-2xl: var(--space-12); /* 48px - Page sections */
 
   /* ─── COMPONENT PADDING ─── */
-  --padding-button:    var(--space-2) var(--space-4);
+  --padding-button: var(--space-2) var(--space-4);
   --padding-button-sm: var(--space-1.5) var(--space-3);
   --padding-button-lg: var(--space-3) var(--space-6);
 
-  --padding-card:      var(--space-5);
-  --padding-card-sm:   var(--space-3);
-  --padding-card-lg:   var(--space-6);
+  --padding-card: var(--space-5);
+  --padding-card-sm: var(--space-3);
+  --padding-card-lg: var(--space-6);
 
-  --padding-input:     var(--space-2.5) var(--space-3);
+  --padding-input: var(--space-2.5) var(--space-3);
 
   /* ─── BORDER RADIUS ─── */
-  --radius-none:   0;
-  --radius-sm:     0.25rem;   /* 4px - Small elements */
-  --radius-md:     0.5rem;    /* 8px - Buttons, inputs */
-  --radius-lg:     0.75rem;   /* 12px - Cards */
-  --radius-xl:     1rem;      /* 16px - Large cards */
-  --radius-2xl:    1.5rem;    /* 24px - Modals */
-  --radius-full:   9999px;    /* Pills, avatars */
+  --radius-none: 0;
+  --radius-sm: 0.25rem; /* 4px - Small elements */
+  --radius-md: 0.5rem; /* 8px - Buttons, inputs */
+  --radius-lg: 0.75rem; /* 12px - Cards */
+  --radius-xl: 1rem; /* 16px - Large cards */
+  --radius-2xl: 1.5rem; /* 24px - Modals */
+  --radius-full: 9999px; /* Pills, avatars */
 }
 ```
 
@@ -581,36 +589,36 @@ export const auroraDark = {
 
 :root {
   /* ─── DURATION ─── */
-  --duration-instant:  50ms;
-  --duration-fast:     150ms;
-  --duration-normal:   250ms;
-  --duration-slow:     350ms;
-  --duration-slower:   500ms;
-  --duration-slowest:  700ms;
+  --duration-instant: 50ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 500ms;
+  --duration-slowest: 700ms;
 
   /* ─── EASING (CSS) ─── */
-  --ease-linear:       linear;
-  --ease-in:           cubic-bezier(0.4, 0, 1, 1);
-  --ease-out:          cubic-bezier(0, 0, 0.2, 1);
-  --ease-in-out:       cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ─── SPRING EASING (For Motion library) ─── */
-  --spring-bounce:     cubic-bezier(0.34, 1.56, 0.64, 1);
-  --spring-smooth:     cubic-bezier(0.22, 1, 0.36, 1);
-  --spring-snappy:     cubic-bezier(0.16, 1, 0.3, 1);
+  --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring-snappy: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ─── SEMANTIC TRANSITIONS ─── */
-  --transition-colors:    color var(--duration-fast) var(--ease-out),
-                          background-color var(--duration-fast) var(--ease-out),
-                          border-color var(--duration-fast) var(--ease-out);
+  --transition-colors:
+    color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 
-  --transition-opacity:   opacity var(--duration-normal) var(--ease-out);
+  --transition-opacity: opacity var(--duration-normal) var(--ease-out);
 
   --transition-transform: transform var(--duration-normal) var(--spring-smooth);
 
-  --transition-all:       all var(--duration-normal) var(--spring-smooth);
+  --transition-all: all var(--duration-normal) var(--spring-smooth);
 
-  --transition-glow:      box-shadow var(--duration-slow) var(--ease-out);
+  --transition-glow: box-shadow var(--duration-slow) var(--ease-out);
 }
 ```
 
@@ -638,8 +646,12 @@ export const auroraDark = {
 ```css
 /* ─── ENTRY ANIMATIONS ─── */
 @keyframes aurora-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes aurora-scale-in {
@@ -666,7 +678,8 @@ export const auroraDark = {
 
 /* ─── GLOW PULSE (for loading/processing) ─── */
 @keyframes aurora-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     box-shadow: 0 0 0 0 var(--aurora-cyan-glow);
   }
@@ -688,7 +701,8 @@ export const auroraDark = {
 
 /* ─── GRADIENT DRIFT (for hero backgrounds) ─── */
 @keyframes aurora-drift {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -912,7 +926,7 @@ This is the MOST IMPORTANT component—the main chat input:
 
 ### 7.5 Message Bubbles
 
-```
+````
 ┌─────────────────────────────────────────────────────────────┐
 │  AURORA MESSAGE BUBBLES                                     │
 ├─────────────────────────────────────────────────────────────┤
@@ -960,7 +974,7 @@ This is the MOST IMPORTANT component—the main chat input:
 │  • Typing indicator: 3 dots with staggered pulse           │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
-```
+````
 
 ---
 
@@ -1057,7 +1071,7 @@ This is the MOST IMPORTANT component—the main chat input:
 
 ## Part 8: TUI (Terminal) Component Translations
 
-The terminal can't do true 3D or blur, but we can create the *feeling* of Aurora through:
+The terminal can't do true 3D or blur, but we can create the _feeling_ of Aurora through:
 
 ### 8.1 Aurora TUI Character Palette
 
@@ -1112,7 +1126,7 @@ The terminal can't do true 3D or blur, but we can create the *feeling* of Aurora
 
 ### 8.2 TUI Layout Templates
 
-```
+````
 ┌─────────────────────────────────────────────────────────────┐
 │  AURORA TUI — MAIN SESSION VIEW                             │
 ├─────────────────────────────────────────────────────────────┤
@@ -1152,7 +1166,7 @@ COLOR MAPPING:
 • Progress filled:      aurora-cyan
 • Progress empty:       border-subtle
 • Footer:               text-muted
-```
+````
 
 ### 8.3 TUI Dialog Example
 
@@ -1623,53 +1637,57 @@ Show a realistic diff of a TypeScript React component being refactored.
 
 ### Quick Reference Card
 
-| Aspect | Specification |
-|--------|---------------|
-| **Primary Accent** | `#00D4FF` (Electric Cyan) |
-| **Secondary** | `#A78BFA` (Soft Violet) |
-| **Tertiary** | `#FF6B9D` (Rose) |
-| **Dark Background** | `#0A0A0F` (Void) |
-| **Light Background** | `#FAFAFA` (Pearl) |
-| **Border Style** | Subtle glow, not hard edges |
-| **Glass Effect** | `rgba(255,255,255,0.04)` + `blur(12px)` |
-| **Border Radius** | `8px` buttons, `12px` cards, `24px` modals |
-| **Animation Duration** | 150-350ms |
-| **Easing** | Spring-based (`cubic-bezier(0.22, 1, 0.36, 1)`) |
-| **Code Font** | JetBrains Mono |
-| **UI Font** | Geist / Inter |
+| Aspect                 | Specification                                   |
+| ---------------------- | ----------------------------------------------- |
+| **Primary Accent**     | `#00D4FF` (Electric Cyan)                       |
+| **Secondary**          | `#A78BFA` (Soft Violet)                         |
+| **Tertiary**           | `#FF6B9D` (Rose)                                |
+| **Dark Background**    | `#0A0A0F` (Void)                                |
+| **Light Background**   | `#FAFAFA` (Pearl)                               |
+| **Border Style**       | Subtle glow, not hard edges                     |
+| **Glass Effect**       | `rgba(255,255,255,0.04)` + `blur(12px)`         |
+| **Border Radius**      | `8px` buttons, `12px` cards, `24px` modals      |
+| **Animation Duration** | 150-350ms                                       |
+| **Easing**             | Spring-based (`cubic-bezier(0.22, 1, 0.36, 1)`) |
+| **Code Font**          | JetBrains Mono                                  |
+| **UI Font**            | Geist / Inter                                   |
 
 ### Component Mapping: Web → TUI
 
-| Web Component | TUI Equivalent |
-|---------------|----------------|
-| Cyan glow border | Double-line border `═══` |
-| Glassmorphism card | Rounded box `╭─╮ │ ╰─╯` |
-| Hover lift effect | Highlight color change |
-| Loading shimmer | Block gradient `░▒▓█` |
-| Pulsing glow | Braille spinner `⠋⠙⠹...` or `◌◍◎●` |
-| User cyan tint | Cyan foreground + `┃` pipe |
-| Assistant violet border | Violet `│` left margin |
+| Web Component           | TUI Equivalent                     |
+| ----------------------- | ---------------------------------- |
+| Cyan glow border        | Double-line border `═══`           |
+| Glassmorphism card      | Rounded box `╭─╮ │ ╰─╯`            |
+| Hover lift effect       | Highlight color change             |
+| Loading shimmer         | Block gradient `░▒▓█`              |
+| Pulsing glow            | Braille spinner `⠋⠙⠹...` or `◌◍◎●` |
+| User cyan tint          | Cyan foreground + `┃` pipe         |
+| Assistant violet border | Violet `│` left margin             |
 
 ### Implementation Phases (Recommended)
 
 #### Phase 1: Theme Foundation
+
 - [ ] Create `aurora-dark.json` and `aurora-light.json` theme files
 - [ ] Add to TUI theme selector
 - [ ] Update CSS custom properties for web console
 
 #### Phase 2: Core Components
+
 - [ ] Buttons (primary, secondary, ghost, danger)
 - [ ] Input fields with focus glow
 - [ ] Cards with glass effect
 - [ ] Modals with backdrop blur
 
 #### Phase 3: Chat Interface
+
 - [ ] Message bubbles (user/assistant)
 - [ ] Prompt input (hero component)
 - [ ] Loading/streaming states
 - [ ] Code blocks with Aurora syntax theme
 
 #### Phase 4: Motion Polish
+
 - [ ] Spring animations library integration
 - [ ] Enter/exit transitions
 - [ ] Micro-interactions
@@ -1680,15 +1698,18 @@ Show a realistic diff of a TypeScript React component being refactored.
 Based on analysis of the codebase, these are the key files to modify:
 
 **TUI Theme System:**
+
 - `packages/opencode/src/cli/cmd/tui/context/theme.tsx` — Theme provider and color types
 - `packages/opencode/src/cli/cmd/tui/context/theme/` — Theme JSON files (add aurora-dark.json, aurora-light.json)
 
 **TUI Components:**
+
 - `packages/opencode/src/cli/cmd/tui/routes/session/index.tsx` — Main session view
 - `packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx` — Prompt input component
 - `packages/opencode/src/cli/cmd/tui/component/dialog-*.tsx` — All dialog components
 
 **Web Console:**
+
 - `packages/console/app/src/style/token/color.css` — CSS color tokens
 - `packages/console/app/src/routes/index.css` — Landing page styles
 - `packages/console/app/src/component/` — Shared components
@@ -1772,7 +1793,7 @@ The Aurora redesign is successful when:
 
 ## Part 11: Accessibility & Review Amendments
 
-*This section addresses feedback from the UI/UX Pro Max review and adds critical accessibility requirements.*
+_This section addresses feedback from the UI/UX Pro Max review and adds critical accessibility requirements._
 
 ### 11.1 Motion Sickness Prevention (CRITICAL)
 
@@ -1808,6 +1829,7 @@ The Aurora redesign is successful when:
 ```
 
 **Guidelines:**
+
 - ❌ **NEVER** use infinite animations on backgrounds or decorative elements
 - ✅ Continuous animation ONLY permitted during active loading states
 - ✅ Aurora drift effect should be opt-in, disabled by default
@@ -1824,7 +1846,7 @@ The Aurora redesign is successful when:
 ```css
 /* Add to spacing system */
 :root {
-  --max-prose-width: 70ch;  /* 65-75 characters optimal */
+  --max-prose-width: 70ch; /* 65-75 characters optimal */
 }
 
 /* Apply to text containers */
@@ -1861,20 +1883,20 @@ The Aurora redesign is successful when:
 ```css
 :root[data-theme="aurora-light"] {
   /* ─── ADJUSTED GLASS OPACITIES ─── */
-  --glass-subtle:      rgba(0, 0, 0, 0.03);   /* was 0.02 */
-  --glass-light:       rgba(0, 0, 0, 0.06);   /* was 0.04 */
-  --glass-medium:      rgba(0, 0, 0, 0.09);   /* was 0.06 */
-  --glass-strong:      rgba(0, 0, 0, 0.12);   /* was 0.08 */
+  --glass-subtle: rgba(0, 0, 0, 0.03); /* was 0.02 */
+  --glass-light: rgba(0, 0, 0, 0.06); /* was 0.04 */
+  --glass-medium: rgba(0, 0, 0, 0.09); /* was 0.06 */
+  --glass-strong: rgba(0, 0, 0, 0.12); /* was 0.08 */
 
   /* ─── STRONGER BORDERS ─── */
-  --border-subtle:     rgba(0, 0, 0, 0.08);   /* was 0.06 */
-  --border-default:    rgba(0, 0, 0, 0.12);   /* was 0.10 */
-  --border-strong:     rgba(0, 0, 0, 0.18);   /* was 0.15 */
+  --border-subtle: rgba(0, 0, 0, 0.08); /* was 0.06 */
+  --border-default: rgba(0, 0, 0, 0.12); /* was 0.10 */
+  --border-strong: rgba(0, 0, 0, 0.18); /* was 0.15 */
 
   /* ─── SUBTLE SHADOWS (light mode only) ─── */
-  --shadow-sm:         0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md:         0 2px 4px rgba(0, 0, 0, 0.08);
-  --shadow-lg:         0 4px 8px rgba(0, 0, 0, 0.10);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Apply shadows to cards in light mode only */
@@ -1885,13 +1907,13 @@ The Aurora redesign is successful when:
 
 **Contrast Verification:**
 
-| Text | Background | Ratio | Status |
-|------|------------|-------|--------|
-| `#18181B` | `#FAFAFA` | 16.2:1 | ✅ Pass |
-| `#52525B` | `#FAFAFA` | 7.4:1 | ✅ Pass |
-| `#A1A1AA` | `#FAFAFA` | 3.0:1 | ⚠️ Large text only |
-| `#F5F5F7` | `#0A0A0F` | 19.6:1 | ✅ Pass |
-| `#A1A1AA` | `#0A0A0F` | 8.5:1 | ✅ Pass |
+| Text      | Background | Ratio  | Status             |
+| --------- | ---------- | ------ | ------------------ |
+| `#18181B` | `#FAFAFA`  | 16.2:1 | ✅ Pass            |
+| `#52525B` | `#FAFAFA`  | 7.4:1  | ✅ Pass            |
+| `#A1A1AA` | `#FAFAFA`  | 3.0:1  | ⚠️ Large text only |
+| `#F5F5F7` | `#0A0A0F`  | 19.6:1 | ✅ Pass            |
+| `#A1A1AA` | `#0A0A0F`  | 8.5:1  | ✅ Pass            |
 
 ---
 
@@ -1924,6 +1946,7 @@ a {
 ```
 
 **Icon Standards:**
+
 - ✅ **Required:** Lucide Icons (React: `lucide-react`, Web: `lucide`)
 - ✅ **Acceptable:** Heroicons, Phosphor Icons
 - ❌ **Forbidden:** Emoji as UI icons (OS rendering inconsistency)
@@ -1936,24 +1959,28 @@ a {
 Before implementation, verify:
 
 #### Color & Contrast
+
 - [ ] All body text has 4.5:1 minimum contrast ratio
 - [ ] All large text (18px+) has 3:1 minimum contrast ratio
 - [ ] Focus indicators are clearly visible (2px cyan outline)
 - [ ] Error states use red AND icon/text (not color alone)
 
 #### Motion & Animation
+
 - [ ] `prefers-reduced-motion` media query implemented
 - [ ] No infinite animations on decorative elements
 - [ ] Loading animations can be paused or are under 5s
 - [ ] No flashing content (3 flashes per second limit)
 
 #### Interaction
+
 - [ ] All interactive elements have `cursor: pointer`
 - [ ] Touch targets are minimum 44x44px
 - [ ] Keyboard navigation follows visual order
 - [ ] Focus states are distinct from hover states
 
 #### Typography
+
 - [ ] Minimum 16px body text (mobile)
 - [ ] Line height minimum 1.5 for body text
 - [ ] Line length limited to 70ch for prose
@@ -1963,15 +1990,15 @@ Before implementation, verify:
 
 ### Review Response Summary
 
-| Feedback Item | Severity | Action Taken |
-|---------------|----------|--------------|
-| Motion sickness / `prefers-reduced-motion` | CRITICAL | Added §11.1 with full CSS implementation |
-| Line length 65-75ch | HIGH | Added §11.2 with `--max-prose-width: 70ch` |
-| Light mode glass contrast | CRITICAL | Added §11.3 with adjusted opacity values |
-| `cursor-pointer` mandate | MEDIUM | Added §11.4 with interactive patterns |
-| SVG icons only | MEDIUM | Added §11.4 with Lucide Icons mandate |
-| WCAG compliance | — | Added §11.5 checklist |
+| Feedback Item                              | Severity | Action Taken                               |
+| ------------------------------------------ | -------- | ------------------------------------------ |
+| Motion sickness / `prefers-reduced-motion` | CRITICAL | Added §11.1 with full CSS implementation   |
+| Line length 65-75ch                        | HIGH     | Added §11.2 with `--max-prose-width: 70ch` |
+| Light mode glass contrast                  | CRITICAL | Added §11.3 with adjusted opacity values   |
+| `cursor-pointer` mandate                   | MEDIUM   | Added §11.4 with interactive patterns      |
+| SVG icons only                             | MEDIUM   | Added §11.4 with Lucide Icons mandate      |
+| WCAG compliance                            | —        | Added §11.5 checklist                      |
 
 ---
 
-*Review incorporated from: UI/UX Pro Max analysis (2025-02-26)*
+_Review incorporated from: UI/UX Pro Max analysis (2025-02-26)_

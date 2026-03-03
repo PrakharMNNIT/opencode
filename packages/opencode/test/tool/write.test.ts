@@ -166,7 +166,8 @@ describe("tool.write", () => {
           // On Unix systems, check permissions
           if (process.platform !== "win32") {
             const stats = await fs.stat(filepath)
-            expect(stats.mode & 0o777).toBe(0o644)
+            // Expect either 644 or 664 depending on umask
+            expect([0o644, 0o664]).toContain(stats.mode & 0o777)
           }
         },
       })

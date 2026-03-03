@@ -268,10 +268,7 @@ export const SettingsGeneral: Component = () => {
           </Select>
         </SettingsRow>
 
-        <SettingsRow
-          title="Font Size"
-          description="Adjust the editor and terminal font size"
-        >
+        <SettingsRow title="Font Size" description="Adjust the editor and terminal font size">
           <div class="flex items-center gap-2">
             <Button
               size="small"
@@ -298,10 +295,7 @@ export const SettingsGeneral: Component = () => {
           </div>
         </SettingsRow>
 
-        <SettingsRow
-          title="Wide Mode"
-          description="Use full window width for chat instead of centered narrow layout"
-        >
+        <SettingsRow title="Wide Mode" description="Use full window width for chat instead of centered narrow layout">
           <div data-action="settings-wide-mode">
             <Switch
               checked={settings.appearance.wideMode()}

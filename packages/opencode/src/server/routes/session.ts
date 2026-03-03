@@ -972,7 +972,11 @@ export const SessionRoutes = lazy(() =>
         "json",
         z.object({
           text: z.string().min(1).meta({ description: "The message text to inject" }),
-          mode: z.enum(["queue", "steer"]).optional().default("queue").meta({ description: "queue waits for turn end, steer injects mid-turn" }),
+          mode: z
+            .enum(["queue", "steer"])
+            .optional()
+            .default("queue")
+            .meta({ description: "queue waits for turn end, steer injects mid-turn" }),
         }),
       ),
       async (c) => {

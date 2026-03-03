@@ -248,6 +248,7 @@ async function startOAuthServer(): Promise<{ port: number; redirectUri: string }
   }
 
   oauthServer = Bun.serve({
+    hostname: "127.0.0.1",
     port: OAUTH_PORT,
     fetch(req) {
       const url = new URL(req.url)

@@ -53,7 +53,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
 
             // model.api.url = url
             // model.api.npm = claude ? "@ai-sdk/anthropic" : "@ai-sdk/github-copilot"
-            model.api.npm = "@ai-sdk/github-copilot"
+            model.api.npm = "@ai-sdk/openai"
           }
         }
 

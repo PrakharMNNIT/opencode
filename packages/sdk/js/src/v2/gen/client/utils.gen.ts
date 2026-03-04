@@ -11,8 +11,8 @@ export const createQuerySerializer = <T = unknown>({ parameters = {}, ...args }:
   const querySerializer = (queryParams: T) => {
     const search: string[] = []
     if (queryParams && typeof queryParams === "object") {
-      for (const name in queryParams) {
-        const value = queryParams[name]
+      for (const name of Object.keys(queryParams as object)) {
+        const value = (queryParams as any)[name]
 
         if (value === undefined || value === null) {
           continue

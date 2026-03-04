@@ -185,58 +185,62 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
     })
 
     // Apply the changes
-    const updates: Array<{ file: string; event: "add" | "change" | "unlink" }> = []
+    const results = await Promise.all(
+      fileChanges.map(async (change) => {
+        const fileUpdates: Array<{ file: string; event: "add" | "change" | "unlink" }> = []
+        const edited = change.type === "delete" ? undefined : (change.movePath ?? change.filePath)
 
-    for (const change of fileChanges) {
-      const edited = change.type === "delete" ? undefined : (change.movePath ?? change.filePath)
-      switch (change.type) {
-        case "add":
-          // Create parent directories (recursive: true is safe on existing/root dirs)
-          await fs.mkdir(path.dirname(change.filePath), { recursive: true })
-          await fs.writeFile(change.filePath, change.newContent, "utf-8")
-          updates.push({ file: change.filePath, event: "add" })
-          break
-
-        case "update":
-          await fs.writeFile(change.filePath, change.newContent, "utf-8")
-          updates.push({ file: change.filePath, event: "change" })
-          break
-
-        case "move":
-          if (change.movePath) {
+        switch (change.type) {
+          case "add":
             // Create parent directories (recursive: true is safe on existing/root dirs)
-            await fs.mkdir(path.dirname(change.movePath), { recursive: true })
-            await fs.writeFile(change.movePath, change.newContent, "utf-8")
+            await fs.mkdir(path.dirname(change.filePath), { recursive: true })
+            await fs.writeFile(change.filePath, change.newContent, "utf-8")
+            fileUpdates.push({ file: change.filePath, event: "add" })
+            break
+
+          case "update":
+            await fs.writeFile(change.filePath, change.newContent, "utf-8")
+            fileUpdates.push({ file: change.filePath, event: "change" })
+            break
+
+          case "move":
+            if (change.movePath) {
+              // Create parent directories (recursive: true is safe on existing/root dirs)
+              await fs.mkdir(path.dirname(change.movePath), { recursive: true })
+              await fs.writeFile(change.movePath, change.newContent, "utf-8")
+              await fs.unlink(change.filePath)
+              fileUpdates.push({ file: change.filePath, event: "unlink" })
+              fileUpdates.push({ file: change.movePath, event: "add" })
+            }
+            break
+
+          case "delete":
             await fs.unlink(change.filePath)
-            updates.push({ file: change.filePath, event: "unlink" })
-            updates.push({ file: change.movePath, event: "add" })
-          }
-          break
+            fileUpdates.push({ file: change.filePath, event: "unlink" })
+            break
+        }
 
-        case "delete":
-          await fs.unlink(change.filePath)
-          updates.push({ file: change.filePath, event: "unlink" })
-          break
-      }
+        if (edited) {
+          await Bus.publish(File.Event.Edited, {
+            file: edited,
+          })
+        }
 
-      if (edited) {
-        await Bus.publish(File.Event.Edited, {
-          file: edited,
-        })
-      }
-    }
+        return fileUpdates
+      }),
+    )
+
+    const updates = results.flat()
 
     // Publish file change events
-    for (const update of updates) {
-      await Bus.publish(FileWatcher.Event.Updated, update)
-    }
+    await Promise.all(updates.map((update) => Bus.publish(FileWatcher.Event.Updated, update)))
 
     // Notify LSP of file changes and collect diagnostics
-    for (const change of fileChanges) {
-      if (change.type === "delete") continue
-      const target = change.movePath ?? change.filePath
-      await LSP.touchFile(target, true)
-    }
+    await Promise.all(
+      fileChanges
+        .filter((change) => change.type !== "delete")
+        .map((change) => LSP.touchFile(change.movePath ?? change.filePath, true)),
+    )
     const diagnostics = await LSP.diagnostics()
 
     // Generate output summary

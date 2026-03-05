@@ -225,10 +225,10 @@ export namespace Config {
 
     // Apply flag overrides for compaction settings
     if (Flag.OPENCODE_DISABLE_AUTOCOMPACT) {
-      result.compaction = { ...result.compaction, auto: false }
+      result.compaction = { ...result.compaction, auto: false, thinking_strategy: result.compaction?.thinking_strategy ?? "none" }
     }
     if (Flag.OPENCODE_DISABLE_PRUNE) {
-      result.compaction = { ...result.compaction, prune: false }
+      result.compaction = { ...result.compaction, prune: false, thinking_strategy: result.compaction?.thinking_strategy ?? "none" }
     }
 
     result.plugin = deduplicatePlugins(result.plugin ?? [])

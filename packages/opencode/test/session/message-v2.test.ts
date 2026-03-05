@@ -815,6 +815,211 @@ describe("session.message-v2.toModelMessage", () => {
     ])
   })
 
+  test("strips reasoning from last assistant message when stripLastReasoning is true", () => {
+    const userID = "m-user"
+    const assistantID = "m-assistant"
+
+    const input: MessageV2.WithParts[] = [
+      {
+        info: userInfo(userID),
+        parts: [
+          {
+            ...basePart(userID, "u1"),
+            type: "text",
+            text: "hello",
+          },
+        ] as MessageV2.Part[],
+      },
+      {
+        info: assistantInfo(assistantID, userID),
+        parts: [
+          {
+            ...basePart(assistantID, "a1"),
+            type: "reasoning",
+            text: "deep thought",
+            time: { start: 0 },
+          },
+          {
+            ...basePart(assistantID, "a2"),
+            type: "text",
+            text: "answer",
+          },
+        ] as MessageV2.Part[],
+      },
+    ]
+
+    const result = MessageV2.toModelMessages(input, model, { stripLastReasoning: true })
+    expect(result).toStrictEqual([
+      {
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "answer" }],
+      },
+    ])
+  })
+
+  test("does not strip reasoning when stripLastReasoning is false", () => {
+    const assistantID = "m-assistant"
+
+    const input: MessageV2.WithParts[] = [
+      {
+        info: assistantInfo(assistantID, "m-parent"),
+        parts: [
+          {
+            ...basePart(assistantID, "a1"),
+            type: "reasoning",
+            text: "thinking",
+            time: { start: 0 },
+          },
+          {
+            ...basePart(assistantID, "a2"),
+            type: "text",
+            text: "answer",
+          },
+        ] as MessageV2.Part[],
+      },
+    ]
+
+    const result = MessageV2.toModelMessages(input, model, { stripLastReasoning: false })
+    expect(result).toStrictEqual([
+      {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "thinking", providerOptions: undefined },
+          { type: "text", text: "answer" },
+        ],
+      },
+    ])
+  })
+
+  test("removes last assistant message entirely when only reasoning + step-start remain after strip", () => {
+    const userID = "m-user"
+    const assistantID = "m-assistant"
+
+    const input: MessageV2.WithParts[] = [
+      {
+        info: userInfo(userID),
+        parts: [
+          {
+            ...basePart(userID, "u1"),
+            type: "text",
+            text: "hello",
+          },
+        ] as MessageV2.Part[],
+      },
+      {
+        info: assistantInfo(assistantID, userID),
+        parts: [
+          {
+            ...basePart(assistantID, "a1"),
+            type: "step-start",
+          },
+          {
+            ...basePart(assistantID, "a2"),
+            type: "reasoning",
+            text: "only thinking, no text output",
+            time: { start: 0 },
+          },
+        ] as MessageV2.Part[],
+      },
+    ]
+
+    const result = MessageV2.toModelMessages(input, model, { stripLastReasoning: true })
+    expect(result).toStrictEqual([
+      {
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+      },
+    ])
+  })
+
+  test("only strips reasoning from last assistant, preserves earlier ones", () => {
+    const userID = "m-user"
+    const assistant1 = "m-assistant-1"
+    const assistant2 = "m-assistant-2"
+
+    const input: MessageV2.WithParts[] = [
+      {
+        info: userInfo(userID),
+        parts: [
+          {
+            ...basePart(userID, "u1"),
+            type: "text",
+            text: "first",
+          },
+        ] as MessageV2.Part[],
+      },
+      {
+        info: assistantInfo(assistant1, userID),
+        parts: [
+          {
+            ...basePart(assistant1, "a1"),
+            type: "reasoning",
+            text: "earlier thinking",
+            time: { start: 0 },
+          },
+          {
+            ...basePart(assistant1, "a2"),
+            type: "text",
+            text: "earlier answer",
+          },
+        ] as MessageV2.Part[],
+      },
+      {
+        info: userInfo("m-user-2"),
+        parts: [
+          {
+            ...basePart("m-user-2", "u2"),
+            type: "text",
+            text: "second",
+          },
+        ] as MessageV2.Part[],
+      },
+      {
+        info: assistantInfo(assistant2, "m-user-2"),
+        parts: [
+          {
+            ...basePart(assistant2, "b1"),
+            type: "reasoning",
+            text: "latest thinking",
+            time: { start: 0 },
+          },
+          {
+            ...basePart(assistant2, "b2"),
+            type: "text",
+            text: "latest answer",
+          },
+        ] as MessageV2.Part[],
+      },
+    ]
+
+    const result = MessageV2.toModelMessages(input, model, { stripLastReasoning: true })
+    expect(result).toStrictEqual([
+      {
+        role: "user",
+        content: [{ type: "text", text: "first" }],
+      },
+      {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "earlier thinking", providerOptions: undefined },
+          { type: "text", text: "earlier answer" },
+        ],
+      },
+      {
+        role: "user",
+        content: [{ type: "text", text: "second" }],
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "latest answer" }],
+      },
+    ])
+  })
+
   test("splits assistant messages on step-start boundaries", () => {
     const assistantID = "m-assistant"
 

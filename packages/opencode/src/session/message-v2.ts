@@ -496,7 +496,7 @@ export namespace MessageV2 {
   export function toModelMessages(
     input: WithParts[],
     model: Provider.Model,
-    options?: { stripMedia?: boolean },
+    options?: { stripMedia?: boolean; stripLastReasoning?: boolean },
   ): ModelMessage[] {
     const result: UIMessage[] = []
     const toolNames = new Set<string>()
@@ -712,6 +712,28 @@ export namespace MessageV2 {
               ],
             })
           }
+        }
+      }
+    }
+
+    // Strip reasoning/thinking parts from the last assistant message when enabled.
+    // Claude API enforces that thinking blocks in the latest assistant message
+    // must be byte-identical to the original response. Since OpenCode reconstructs
+    // them from stored parts, they may not match exactly.
+    //
+    // Strategy "strip": Always strip — prevents errors proactively.
+    // Strategy "compact": Don't strip — let API error, then auto-compact to recover.
+    // Strategy "none" (default): Don't strip — original behavior.
+    //
+    // Only strip when explicitly requested via options.stripLastReasoning = true.
+    if (options?.stripLastReasoning === true) {
+      const lastAssistantIdx = result.findLastIndex((msg) => msg.role === "assistant")
+      if (lastAssistantIdx !== -1) {
+        const filtered = result[lastAssistantIdx].parts.filter((part) => part.type !== "reasoning")
+        if (filtered.length > 0 && !filtered.every((p) => p.type === "step-start")) {
+          result[lastAssistantIdx].parts = filtered
+        } else {
+          result.splice(lastAssistantIdx, 1)
         }
       }
     }

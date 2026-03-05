@@ -708,6 +708,10 @@ export namespace SessionPrompt {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
       }
 
+      const config = await Config.get()
+      const thinkingStrategy = config.compaction?.thinking_strategy ?? "none"
+      const stripLastReasoning = thinkingStrategy === "strip"
+
       const result = await processor.process({
         user: lastUser,
         agent,
@@ -715,7 +719,7 @@ export namespace SessionPrompt {
         sessionID,
         system,
         messages: [
-          ...MessageV2.toModelMessages(msgs, model),
+          ...MessageV2.toModelMessages(msgs, model, { stripLastReasoning }),
           ...(isLastStep
             ? [
                 {

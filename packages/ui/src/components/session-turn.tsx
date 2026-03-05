@@ -8,6 +8,7 @@ import { getDirectory, getFilename } from "@opencode-ai/util/path"
 import { createEffect, createMemo, createSignal, For, on, ParentProps, Show } from "solid-js"
 import { Dynamic } from "solid-js/web"
 import { AssistantParts, Message, Part, PART_MAPPING } from "./message-part"
+import { Button } from "./button"
 import { Card } from "./card"
 import { Accordion } from "./accordion"
 import { StickyAccordionHeader } from "./sticky-accordion-header"
@@ -137,6 +138,11 @@ function heading(text: string) {
   }
 }
 
+function isThinkingBlockError(text: string) {
+  const lower = text.toLowerCase()
+  return lower.includes("thinking") && lower.includes("cannot be modified")
+}
+
 export function SessionTurn(
   props: ParentProps<{
     sessionID: string
@@ -148,6 +154,7 @@ export function SessionTurn(
     queued?: boolean
     status?: SessionStatus
     onUserInteracted?: () => void
+    onErrorRetry?: (action: "strip" | "compact") => void
     classes?: {
       root?: string
       content?: string
@@ -533,9 +540,38 @@ export function SessionTurn(
                   </div>
                 </Show>
                 <Show when={error()}>
-                  <Card variant="error" class="error-card">
-                    {errorText()}
-                  </Card>
+                  <Show
+                    when={isThinkingBlockError(errorText()) && props.onErrorRetry}
+                    fallback={
+                      <Card variant="error" class="error-card">
+                        {errorText()}
+                      </Card>
+                    }
+                  >
+                    <Card variant="error" class="error-card">
+                      <div data-slot="session-turn-error-thinking">
+                        <span>{errorText()}</span>
+                        <div data-slot="session-turn-error-actions">
+                          <Button
+                            size="small"
+                            variant="secondary"
+                            onClick={() => props.onErrorRetry?.("strip")}
+                          >
+                            <Icon name="circle-check" size="small" />
+                            Retry (strip thinking)
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="secondary"
+                            onClick={() => props.onErrorRetry?.("compact")}
+                          >
+                            <Icon name="collapse" size="small" />
+                            Retry (compact session)
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </Show>
                 </Show>
               </div>
             )}

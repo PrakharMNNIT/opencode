@@ -1487,6 +1487,10 @@ export type Config = {
      * Token buffer for compaction. Leaves enough window to avoid overflow during compaction.
      */
     reserved?: number
+    /**
+     * Strategy for handling thinking blocks that cause API errors. 'none' (default) sends thinking blocks as-is (original behavior). 'strip' removes thinking from last message before sending (prevents errors proactively). 'compact' preserves thinking but auto-compacts on error (retries with summarized context).
+     */
+    thinking_strategy?: "none" | "strip" | "compact"
   }
   experimental?: {
     disable_paste_summary?: boolean
@@ -1506,6 +1510,10 @@ export type Config = {
      * Continue the agent loop when a tool call is denied
      */
     continue_loop_on_deny?: boolean
+    /**
+     * Enable plan mode — AI plans before executing, asks for confirmation
+     */
+    plan_mode?: boolean
     /**
      * Timeout in milliseconds for model context protocol (MCP) requests
      */
@@ -3732,6 +3740,7 @@ export type SessionSteerListData = {
   }
   query?: {
     directory?: string
+    workspace?: string
   }
   url: "/session/{sessionID}/steer"
 }
@@ -3782,6 +3791,7 @@ export type SessionSteerData = {
   }
   query?: {
     directory?: string
+    workspace?: string
   }
   url: "/session/{sessionID}/steer"
 }
@@ -3827,6 +3837,7 @@ export type SessionSteerRemoveData = {
   }
   query?: {
     directory?: string
+    workspace?: string
   }
   url: "/session/{sessionID}/steer/{steerID}"
 }

@@ -367,6 +367,21 @@ export namespace SessionProcessor {
                 error,
               })
             } else {
+              // Detect thinking block modification error (Claude API constraint).
+              // When using "compact" strategy, auto-compact to recover instead of failing.
+              const errorMsg = MessageV2.APIError.isInstance(error) ? error.data.message : ""
+              if (errorMsg.includes("thinking") && errorMsg.includes("cannot be modified")) {
+                const config = await Config.get()
+                const strategy = config.compaction?.thinking_strategy ?? "none"
+                if (strategy === "compact") {
+                  log.info("thinking block error detected with compact strategy, triggering compaction", {
+                    sessionID: input.sessionID,
+                  })
+                  needsCompaction = true
+                  break
+                }
+              }
+
               const retry = SessionRetry.retryable(error)
               if (retry !== undefined) {
                 attempt++

@@ -661,116 +661,153 @@ export function MessageTimeline(props: {
                       </div>
                     )}
                   </Show>
-                </div>
+              </div>
+            </div>
+          </Show>
+
+          <div
+            role="log"
+            class="flex flex-col gap-12 items-start justify-start pb-16 transition-[margin]"
+            classList={{
+              "w-full": true,
+              "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
+              "mt-0.5": props.centered,
+              "mt-0": !props.centered,
+            }}
+          >
+            <Show when={props.turnStart > 0 || props.historyMore}>
+              <div class="w-full flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="large"
+                  class="text-12-medium opacity-50"
+                  disabled={props.historyLoading}
+                  onClick={props.onLoadEarlier}
+                >
+                  {props.historyLoading
+                    ? language.t("session.messages.loadingEarlier")
+                    : language.t("session.messages.loadEarlier")}
+                </Button>
               </div>
             </Show>
-
-            <div
-              role="log"
-              class="flex flex-col gap-12 items-start justify-start pb-16 transition-[margin]"
-              classList={{
-                "w-full": true,
-                "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
-                "mt-0.5": props.centered,
-                "mt-0": !props.centered,
-              }}
-            >
-              <Show when={props.turnStart > 0 || props.historyMore}>
-                <div class="w-full flex justify-center">
-                  <Button
-                    variant="ghost"
-                    size="large"
-                    class="text-12-medium opacity-50"
-                    disabled={props.historyLoading}
-                    onClick={props.onLoadEarlier}
+            <For each={rendered()}>
+              {(messageID) => {
+                const active = createMemo(() => activeMessageID() === messageID)
+                const queued = createMemo(() => {
+                  if (active()) return false
+                  const activeID = activeMessageID()
+                  if (activeID) return messageID > activeID
+                  return false
+                })
+                const comments = createMemo(() => messageComments(sync.data.part[messageID] ?? []), [], {
+                  equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+                })
+                const commentCount = createMemo(() => comments().length)
+                return (
+                  <div
+                    id={props.anchor(messageID)}
+                    data-message-id={messageID}
+                    ref={(el) => {
+                      props.onRegisterMessage(el, messageID)
+                      onCleanup(() => props.onUnregisterMessage(messageID))
+                    }}
+                    classList={{
+                      "min-w-0 w-full max-w-full": true,
+                      "md:max-w-200 2xl:max-w-[1000px]": props.centered,
+                    }}
                   >
-                    {props.historyLoading
-                      ? language.t("session.messages.loadingEarlier")
-                      : language.t("session.messages.loadEarlier")}
-                  </Button>
-                </div>
-              </Show>
-              <For each={rendered()}>
-                {(messageID) => {
-                  const active = createMemo(() => activeMessageID() === messageID)
-                  const queued = createMemo(() => {
-                    if (active()) return false
-                    const activeID = activeMessageID()
-                    if (activeID) return messageID > activeID
-                    return false
-                  })
-                  const comments = createMemo(() => messageComments(sync.data.part[messageID] ?? []), [], {
-                    equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
-                  })
-                  const commentCount = createMemo(() => comments().length)
-                  return (
-                    <div
-                      id={props.anchor(messageID)}
-                      data-message-id={messageID}
-                      ref={(el) => {
-                        props.onRegisterMessage(el, messageID)
-                        onCleanup(() => props.onUnregisterMessage(messageID))
-                      }}
-                      classList={{
-                        "min-w-0 w-full max-w-full": true,
-                        "md:max-w-200 2xl:max-w-[1000px]": props.centered,
-                      }}
-                    >
-                      <Show when={commentCount() > 0}>
-                        <div class="w-full px-4 md:px-5 pb-2">
-                          <div class="ml-auto max-w-[82%] overflow-x-auto no-scrollbar">
-                            <div class="flex w-max min-w-full justify-end gap-2">
-                              <Index each={comments()}>
-                                {(commentAccessor: () => MessageComment) => {
-                                  const comment = createMemo(() => commentAccessor())
-                                  return (
-                                    <div class="shrink-0 max-w-[260px] rounded-[6px] border border-border-weak-base bg-background-stronger px-2.5 py-2">
-                                      <div class="flex items-center gap-1.5 min-w-0 text-11-medium text-text-strong">
-                                        <FileIcon
-                                          node={{ path: comment().path, type: "file" }}
-                                          class="size-3.5 shrink-0"
-                                        />
-                                        <span class="truncate">{getFilename(comment().path)}</span>
-                                        <Show when={comment().selection}>
-                                          {(selection) => (
-                                            <span class="shrink-0 text-text-weak">
-                                              {selection().startLine === selection().endLine
-                                                ? `:${selection().startLine}`
-                                                : `:${selection().startLine}-${selection().endLine}`}
-                                            </span>
-                                          )}
-                                        </Show>
-                                      </div>
-                                      <div class="pt-1 text-12-regular text-text-strong whitespace-pre-wrap break-words">
-                                        {comment().comment}
-                                      </div>
+                    <Show when={commentCount() > 0}>
+                      <div class="w-full px-4 md:px-5 pb-2">
+                        <div class="ml-auto max-w-[82%] overflow-x-auto no-scrollbar">
+                          <div class="flex w-max min-w-full justify-end gap-2">
+                            <Index each={comments()}>
+                              {(commentAccessor: () => MessageComment) => {
+                                const comment = createMemo(() => commentAccessor())
+                                return (
+                                  <div class="shrink-0 max-w-[260px] rounded-[6px] border border-border-weak-base bg-background-stronger px-2.5 py-2">
+                                    <div class="flex items-center gap-1.5 min-w-0 text-11-medium text-text-strong">
+                                      <FileIcon
+                                        node={{ path: comment().path, type: "file" }}
+                                        class="size-3.5 shrink-0"
+                                      />
+                                      <span class="truncate">{getFilename(comment().path)}</span>
+                                      <Show when={comment().selection}>
+                                        {(selection) => (
+                                          <span class="shrink-0 text-text-weak">
+                                            {selection().startLine === selection().endLine
+                                              ? `:${selection().startLine}`
+                                              : `:${selection().startLine}-${selection().endLine}`}
+                                          </span>
+                                        )}
+                                      </Show>
                                     </div>
-                                  )
-                                }}
-                              </Index>
-                            </div>
+                                    <div class="pt-1 text-12-regular text-text-strong whitespace-pre-wrap break-words">
+                                      {comment().comment}
+                                    </div>
+                                  </div>
+                                )
+                              }}
+                            </Index>
                           </div>
                         </div>
-                      </Show>
-                      <SessionTurn
-                        sessionID={sessionID() ?? ""}
-                        messageID={messageID}
-                        active={active()}
-                        queued={queued()}
-                        status={active() ? sessionStatus() : undefined}
-                        showReasoningSummaries={settings.general.showReasoningSummaries()}
-                        shellToolDefaultOpen={settings.general.shellToolPartsExpanded()}
-                        editToolDefaultOpen={settings.general.editToolPartsExpanded()}
-                        classes={{
-                          root: "min-w-0 w-full relative",
-                          content: "flex flex-col justify-between !overflow-visible",
-                          container: "w-full px-4 md:px-5",
-                        }}
-                      />
-                    </div>
-                  )
-                }}
-              </For>
+                      </div>
+                    </Show>
+                    <SessionTurn
+                      sessionID={sessionID() ?? ""}
+                      messageID={messageID}
+                      active={active()}
+                      queued={queued()}
+                      status={active() ? sessionStatus() : undefined}
+                      showReasoningSummaries={settings.general.showReasoningSummaries()}
+                      shellToolDefaultOpen={settings.general.shellToolPartsExpanded()}
+                      editToolDefaultOpen={settings.general.editToolPartsExpanded()}
+                      onErrorRetry={(action) => {
+                        const id = sessionID()
+                        if (!id) return
+
+                        if (action === "strip") {
+                          sdk.client.config
+                            .update({ config: { compaction: { thinking_strategy: "strip" } } })
+                            .then(() =>
+                              sdk.client.session.summarize({ sessionID: id }),
+                            )
+                            .then(() =>
+                              showToast({
+                                variant: "success",
+                                title: "Strategy updated",
+                                description: "Switched to strip thinking. Session compacting...",
+                              }),
+                            )
+                            .catch((err) =>
+                              showToast({ title: "Retry failed", description: errorMessage(err) }),
+                            )
+                        }
+
+                        if (action === "compact") {
+                          sdk.client.session
+                            .summarize({ sessionID: id })
+                            .then(() =>
+                              showToast({
+                                variant: "success",
+                                title: "Compacting session",
+                                description: "Session will be summarized to remove stale thinking blocks.",
+                              }),
+                            )
+                            .catch((err) =>
+                              showToast({ title: "Compact failed", description: errorMessage(err) }),
+                            )
+                        }
+                      }}
+                      classes={{
+                        root: "min-w-0 w-full relative",
+                        content: "flex flex-col justify-between !overflow-visible",
+                        container: "w-full px-4 md:px-5",
+                      }}
+                    />
+                  </div>
+                )
+              }}
+            </For>
             </div>
           </div>
         </ScrollView>

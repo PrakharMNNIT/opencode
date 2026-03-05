@@ -1949,3 +1949,57 @@ describe("OPENCODE_CONFIG_CONTENT token substitution", () => {
     }
   })
 })
+
+describe("compaction.thinking_strategy", () => {
+  test("defaults to 'none' when not specified", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await writeConfig(dir, {
+          compaction: {},
+        })
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const config = await Config.get()
+        expect(config.compaction?.thinking_strategy).toBe("none")
+      },
+    })
+  })
+
+  test("accepts valid thinking_strategy values", async () => {
+    for (const value of ["none", "strip", "compact"] as const) {
+      await using tmp = await tmpdir({
+        init: async (dir) => {
+          await writeConfig(dir, {
+            compaction: { thinking_strategy: value },
+          })
+        },
+      })
+      await Instance.provide({
+        directory: tmp.path,
+        fn: async () => {
+          const config = await Config.get()
+          expect(config.compaction?.thinking_strategy).toBe(value)
+        },
+      })
+    }
+  })
+
+  test("rejects invalid thinking_strategy values", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await writeConfig(dir, {
+          compaction: { thinking_strategy: "invalid" },
+        })
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        await expect(Config.get()).rejects.toThrow()
+      },
+    })
+  })
+})

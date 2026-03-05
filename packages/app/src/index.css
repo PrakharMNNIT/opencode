@@ -447,17 +447,7 @@ body::before {
 }
 
 /* ============================================================
-   22. SETTINGS DIALOG — Immune to user font-size scaling
-   Font-size changes should affect session/content, not settings UI
-   ============================================================ */
-.settings-dialog {
-  --font-size-small: 13px;
-  --font-size-base: 14px;
-  --font-size-large: 16px;
-}
-
-/* ============================================================
-   23. EMPTY STATE — Radial gradient atmosphere
+   22. EMPTY STATE — Radial gradient atmosphere
    ============================================================ */
 [data-component="session-turn"] .size-full:has(> .text-20-medium) {
   background: radial-gradient(

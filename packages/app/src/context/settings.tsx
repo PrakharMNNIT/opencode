@@ -119,9 +119,12 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     createEffect(() => {
       if (typeof document === "undefined") return
       const size = store.appearance?.fontSize ?? defaultSettings.appearance.fontSize
-      document.documentElement.style.setProperty("--font-size-base", `${size}px`)
-      document.documentElement.style.setProperty("--font-size-small", `${size - 1}px`)
-      document.documentElement.style.setProperty("--font-size-large", `${size + 2}px`)
+      // Scope font-size vars to #root so portaled dialogs (settings, etc.)
+      // are not affected — Kobalte portals render outside #root in <body>.
+      const root = document.getElementById("root") ?? document.documentElement
+      root.style.setProperty("--font-size-base", `${size}px`)
+      root.style.setProperty("--font-size-small", `${size - 1}px`)
+      root.style.setProperty("--font-size-large", `${size + 2}px`)
     })
 
     return {

@@ -67,7 +67,7 @@ function getConfig() {
       return {
         ...base,
         appId: "ai.opencode.desktop.dev",
-        productName: "OpenCode Dev",
+        productName: "OpenCode Prax-Dev",
         rpm: { packageName: "opencode-dev" },
       }
     }

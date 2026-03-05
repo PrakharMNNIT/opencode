@@ -15,7 +15,7 @@ export const DialogSettings: Component = () => {
 
   return (
     <Dialog size="x-large" transition>
-      <Tabs orientation="vertical" variant="settings" defaultValue="general" class="h-full settings-dialog">
+      <Tabs orientation="vertical" variant="settings" defaultValue="general" class="h-full">
         <Tabs.List>
           <div class="flex flex-col justify-between h-full w-full">
             <div class="flex flex-col gap-3 w-full pt-3">

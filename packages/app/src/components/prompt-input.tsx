@@ -1064,43 +1064,134 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
 
     // Handle Shift+Enter BEFORE IME check - Shift+Enter is never used for IME input
+    // When AI is working and there's text, Shift+Enter steers (injects mid-turn)
+    // Otherwise, Shift+Enter inserts a newline as normal
     if (event.key === "Enter" && event.shiftKey) {
-      if (working() && params.id) {
-        const text = prompt.current().filter(p => p.type === "text").map(p => p.content).join("").trim()
+      if (working() && params.id && prompt.dirty() && store.mode !== "shell") {
+        const text = prompt
+          .current()
+          .filter((p) => p.type === "text")
+          .map((p) => p.content)
+          .join("")
+          .trim()
         if (text) {
-          fetch(`${sdk.url}/session/${params.id}/steer`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, mode: "steer" }),
-          }).then(res => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            showToast({ title: "Steering", description: "Will be injected at the next step of the current turn" })
-            prompt.set([{ type: "text", content: "", start: 0, end: 0 }], 0)
-            editorRef.innerHTML = ""
-          }).catch(err => showToast({ title: "Failed to steer", description: err?.message }))
           event.preventDefault()
+          sdk.client.session
+            .steer({ sessionID: params.id, text, mode: "steer" })
+            .then((res) => {
+              if (res.error) throw new Error("Failed to steer")
+              showToast({
+                title: language.t("prompt.action.steered") ?? "Steering",
+                description:
+                  language.t("prompt.action.steered.description") ?? "Will be injected at the next step",
+              })
+              prompt.reset()
+              const editor = editorRef
+              if (editor) editor.innerHTML = ""
+            })
+            .catch((err) =>
+              showToast({
+                title: language.t("common.requestFailed") ?? "Failed to steer",
+                description: err?.message,
+              }),
+            )
           return
         }
       }
-      handleSubmit(event)
+      addPart({ type: "text", content: "\n", start: 0, end: 0 })
+      event.preventDefault()
+      return
     }
 
-    // Plain Enter: submit or queue when busy (Shift+Enter steer is handled above)
-    if (event.key === "Enter" && !event.shiftKey) {
-      if (working() && params.id && prompt.dirty()) {
-        const text = prompt.current().filter(p => p.type === "text").map(p => p.content).join("").trim()
-        if (text) {
-          fetch(`${sdk.url}/session/${params.id}/steer`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, mode: "queue" }),
-          }).then(res => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            showToast({ title: "Message queued", description: "Will be sent when the model finishes its current response" })
-            prompt.set([{ type: "text", content: "", start: 0, end: 0 }], 0)
-            editorRef.innerHTML = ""
-          }).catch(err => showToast({ title: "Failed to queue message", description: err?.message }))
+    if (event.key === "Enter" && isImeComposing(event)) {
+      return
+    }
+
+    const ctrl = event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+
+    if (store.popover) {
+      if (event.key === "Tab") {
+        selectPopoverActive()
+        event.preventDefault()
+        return
+      }
+      const nav = event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Enter"
+      const ctrlNav = ctrl && (event.key === "n" || event.key === "p")
+      if (nav || ctrlNav) {
+        if (store.popover === "at") {
+          atOnKeyDown(event)
           event.preventDefault()
+          return
+        }
+        if (store.popover === "slash") {
+          slashOnKeyDown(event)
+        }
+        event.preventDefault()
+        return
+      }
+    }
+
+    if (ctrl && event.code === "KeyG") {
+      if (store.popover) {
+        closePopover()
+        event.preventDefault()
+        return
+      }
+      if (working()) {
+        abort()
+        event.preventDefault()
+      }
+      return
+    }
+
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      if (event.altKey || event.ctrlKey || event.metaKey) return
+      const { collapsed } = getCaretState()
+      if (!collapsed) return
+
+      const cursorPosition = getCursorPosition(editorRef)
+      const textContent = prompt
+        .current()
+        .map((part) => ("content" in part ? part.content : ""))
+        .join("")
+      const direction = event.key === "ArrowUp" ? "up" : "down"
+      if (!canNavigateHistoryAtCursor(direction, textContent, cursorPosition, store.historyIndex >= 0)) return
+      if (navigateHistory(direction)) {
+        event.preventDefault()
+      }
+      return
+    }
+
+    // Note: Shift+Enter is handled earlier, before IME check
+    if (event.key === "Enter" && !event.shiftKey) {
+      // When AI is working and there's text, queue instead of submit (not in shell mode)
+      if (working() && params.id && prompt.dirty() && store.mode !== "shell") {
+        const text = prompt
+          .current()
+          .filter((p) => p.type === "text")
+          .map((p) => p.content)
+          .join("")
+          .trim()
+        if (text) {
+          event.preventDefault()
+          sdk.client.session
+            .steer({ sessionID: params.id, text, mode: "queue" })
+            .then((res) => {
+              if (res.error) throw new Error("Failed to queue")
+              showToast({
+                title: language.t("prompt.action.queued") ?? "Message queued",
+                description: language.t("prompt.action.queued.description") ?? "Will be sent when the model finishes",
+              })
+              prompt.reset()
+              const editor = editorRef
+              if (editor) editor.innerHTML = ""
+            })
+            .catch((err) =>
+              showToast({
+                title: language.t("common.requestFailed") ?? "Failed to queue message",
+                description: err?.message,
+              }),
+            )
           return
         }
       }
@@ -1163,11 +1254,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           <div class="flex flex-col gap-1 px-3 pt-2 pb-1">
             <div class="flex items-center gap-1.5 text-11-medium text-text-weak uppercase tracking-wide">
               <Icon name="bullet-list" size="small" class="size-3" />
-              <span>Queued ({steerQueue().length})</span>
+              <span>Pending ({steerQueue().length})</span>
             </div>
             <For each={steerQueue()}>
               {(item) => (
                 <div class="flex items-center gap-1.5 group/steer">
+                  <span
+                    class="text-10-medium uppercase shrink-0 rounded px-1 py-px leading-tight"
+                    classList={{
+                      "text-syntax-keyword bg-surface-invert/5": item.mode === "steer",
+                      "text-text-weak bg-surface-invert/3": item.mode === "queue",
+                    }}
+                  >
+                    {item.mode === "steer" ? "steer" : "queue"}
+                  </span>
                   <span class="text-13-regular text-text-base truncate flex-1">{item.text}</span>
                   <button
                     type="button"
@@ -1175,11 +1275,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     onClick={() => {
                       const sessionID = params.id
                       if (!sessionID) return
-                      fetch(`${sdk.url}/session/${sessionID}/steer/${item.id}`, {
-                        method: "DELETE",
-                      }).catch(() => {})
+                      sdk.client.session.steer2.remove({ sessionID, steerID: item.id }).catch(() => {})
                     }}
-                    aria-label="Remove queued message"
+                    aria-label={language.t("prompt.attachment.remove") ?? "Remove"}
                   >
                     <Icon name="close" size="small" class="size-3" />
                   </button>
@@ -1195,7 +1293,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             if (!(target instanceof HTMLElement)) return
             if (
               target.closest(
-                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-action="prompt-permissions"]',
+                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-action="prompt-steer"], [data-action="prompt-permissions"]',
               )
             ) {
               return
@@ -1285,11 +1383,73 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 </Button>
               </TooltipKeybind>
 
+              <Show when={working() && prompt.dirty()}>
+                <Tooltip
+                  placement="top"
+                  value={
+                    <div class="flex items-center gap-2">
+                      <span>Steer</span>
+                      <span class="text-icon-base text-12-medium text-[10px]!">⇧⏎</span>
+                    </div>
+                  }
+                >
+                  <IconButton
+                    data-action="prompt-steer"
+                    type="button"
+                    icon="align-right"
+                    variant="ghost"
+                    class="size-8"
+                    style={{
+                      opacity: buttonsSpring(),
+                      transform: `scale(${0.95 + buttonsSpring() * 0.05})`,
+                      filter: `blur(${(1 - buttonsSpring()) * 2}px)`,
+                    }}
+                    onClick={() => {
+                      const sessionID = params.id
+                      if (!sessionID) return
+                      const text = prompt
+                        .current()
+                        .filter((p) => p.type === "text")
+                        .map((p) => p.content)
+                        .join("")
+                        .trim()
+                      if (!text) return
+                      sdk.client.session
+                        .steer({ sessionID, text, mode: "steer" })
+                        .then((res) => {
+                          if (res.error) throw new Error("Failed to steer")
+                          showToast({
+                            title: language.t("prompt.action.steered") ?? "Steering",
+                            description:
+                              language.t("prompt.action.steered.description") ??
+                              "Will be injected at the next step",
+                          })
+                          prompt.reset()
+                          const editor = editorRef
+                          if (editor) editor.innerHTML = ""
+                        })
+                        .catch((err) =>
+                          showToast({
+                            title: language.t("common.requestFailed") ?? "Failed to steer",
+                            description: err?.message,
+                          }),
+                        )
+                    }}
+                    aria-label="Steer"
+                  />
+                </Tooltip>
+              </Show>
               <Tooltip
                 placement="top"
                 inactive={!prompt.dirty() && !working()}
                 value={
                   <Switch>
+                    <Match when={working() && prompt.dirty()}>
+                      <div class="flex items-center gap-2">
+                        <span>Queue</span>
+                        <Icon name="enter" size="small" class="text-icon-base" />
+                      </div>
+                    </Match>
                     <Match when={working()}>
                       <div class="flex items-center gap-2">
                         <span>{language.t("prompt.action.stop")}</span>
@@ -1310,7 +1470,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   type="submit"
                   disabled={store.mode !== "normal" || (!prompt.dirty() && !working() && commentCount() === 0)}
                   tabIndex={store.mode === "normal" ? undefined : -1}
-                  icon={working() ? "stop" : "arrow-up"}
+                  icon={working() ? (prompt.dirty() ? "arrow-up" : "stop") : "arrow-up"}
                   variant="primary"
                   class="size-8"
                   style={{
@@ -1318,7 +1478,13 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     transform: `scale(${0.95 + buttonsSpring() * 0.05})`,
                     filter: `blur(${(1 - buttonsSpring()) * 2}px)`,
                   }}
-                  aria-label={working() ? language.t("prompt.action.stop") : language.t("prompt.action.send")}
+                  aria-label={
+                    working()
+                      ? prompt.dirty()
+                        ? language.t("prompt.action.queued") ?? "Queue"
+                        : language.t("prompt.action.stop")
+                      : language.t("prompt.action.send")
+                  }
                 />
               </Tooltip>
             </div>

@@ -257,6 +257,7 @@ export namespace SessionPrompt {
 
   export function cancel(sessionID: string) {
     log.info("cancel", { sessionID })
+    SessionSteer.clear(sessionID)
     const s = state()
     const match = s[sessionID]
     if (!match) {

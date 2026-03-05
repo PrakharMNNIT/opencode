@@ -78,8 +78,17 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     if (!sessionID) return Promise.resolve()
 
     globalSync.todo.set(sessionID, [])
-    const [, setStore] = globalSync.child(sdk.directory)
+    const [store, setStore] = globalSync.child(sdk.directory)
     setStore("todo", sessionID, [])
+
+    // Clear steer queue: remove each item via SDK and optimistically clear local state
+    const steerItems = store.steer_queue[sessionID]
+    if (steerItems && steerItems.length > 0) {
+      setStore("steer_queue", sessionID, [])
+      for (const item of steerItems) {
+        sdk.client.session.steer2.remove({ sessionID, steerID: item.id }).catch(() => {})
+      }
+    }
 
     const queued = pending.get(sessionID)
     if (queued) {
@@ -126,6 +135,36 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     if (text.trim().length === 0 && images.length === 0 && input.commentCount() === 0) {
       if (input.working()) abort()
       return
+    }
+
+    // When AI is working and there's text, queue instead of submitting directly
+    if (input.working() && params.id && mode !== "shell") {
+      const textOnly = currentPrompt
+        .filter((p) => p.type === "text")
+        .map((p) => ("content" in p ? p.content : ""))
+        .join("")
+        .trim()
+      if (textOnly) {
+        sdk.client.session
+          .steer({ sessionID: params.id, text: textOnly, mode: "queue" })
+          .then((res) => {
+            if (res.error) throw new Error("Failed to queue")
+            showToast({
+              title: language.t("prompt.action.queued") ?? "Message queued",
+              description: language.t("prompt.action.queued.description") ?? "Will be sent when the model finishes",
+            })
+            prompt.reset()
+            const editor = input.editor()
+            if (editor) editor.innerHTML = ""
+          })
+          .catch((err) =>
+            showToast({
+              title: language.t("common.requestFailed") ?? "Failed to queue message",
+              description: err?.message,
+            }),
+          )
+        return
+      }
     }
 
     const currentModel = local.model.current()

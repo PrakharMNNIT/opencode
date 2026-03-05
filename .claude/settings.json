@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(hdiutil detach /dev/disk4)",
+      "Read(//Applications/**)",
+      "Bash(pgrep -f \"OpenCode\")",
+      "Read(//Users/praxlannister/Documents/workspace/opencode/packages/desktop-electron/$HOME/Library/Logs/ai.opencode.desktop.prax-dev/**)",
+      "Bash(# Check what processes PID 39224 spawned ps -o pid,ppid,command -p 39224 # Check children of the main Electron process pgrep -P 39224)",
+      "Bash(while read pid)",
+      "Bash(do ps -o pid,command -p $pid)"
+    ]
+  }
+}

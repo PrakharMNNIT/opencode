@@ -1,47 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout prax-dev)",
-      "Bash(git branch prax-dev-backup)",
-      "Bash(git merge dev)",
-      "Bash(git merge --no-ff dev)",
-      "Bash(git add packages/sdk/js/src/v2/gen/sdk.gen.ts)",
-      "Bash(git commit --no-edit)",
-      "Bash(git stash pop stash@{0})",
-      "Read(//Users/praxlannister/Documents/workspace/opencode/**)",
-      "Bash(git add packages/app/src/pages/session/message-timeline.tsx packages/opencode/src/session/compaction.ts packages/opencode/src/session/message-v2.ts packages/opencode/src/session/processor.ts packages/ui/src/components/session-turn.tsx)",
-      "Bash(while read f)",
-      "Bash(do echo \"=== $f ===\")",
-      "Bash(done)",
-      "Bash(git add packages/opencode/src/session/message-v2.ts packages/app/src/pages/session/message-timeline.tsx packages/app/src/components/settings-general.tsx packages/app/src/components/session/session-context-tab.tsx docs/09-temp/thinking-block-fix-design.md)",
-      "Bash(grep -rn \"hey-api\\\\|openapi-ts\\\\|gen\" packages/sdk/js/openapi-ts.config.* packages/sdk/js/hey-api.*)",
-      "Bash(ls packages/sdk/js/*.config.*)",
-      "Bash(bun dev generate)",
-      "Bash(bun install)",
-      "Bash(git push origin prax-dev)",
-      "Bash(git add packages/ui/src/components/session-turn.tsx)",
-      "Bash(git commit --amend --no-edit)",
-      "Bash(git fetch upstream dev)",
-      "Bash(git stash)",
-      "Bash(git merge --no-ff upstream/dev -m \"Merge upstream/dev into prax-dev\")",
-      "Bash(git stash pop)",
-      "Bash(git checkout HEAD -- packages/sdk/js/src/v2/gen/sdk.gen.ts)",
-      "Read(//tmp/**)",
-      "Bash(git add /Users/praxlannister/Documents/workspace/opencode/packages/sdk/js/src/v2/gen/sdk.gen.ts)",
-      "Bash(npx tsgo --noEmit)",
-      "Bash(bun run package:mac)",
-      "Bash(ls -lh /Users/praxlannister/Documents/workspace/opencode/packages/desktop-electron/dist/*.dmg)",
-      "Bash(hdiutil attach \"/Users/praxlannister/Documents/workspace/opencode/packages/desktop-electron/dist/opencode-electron-mac-arm64.dmg\" -nobrowse)",
-      "Read(//Volumes/OpenCode Dev 1.2.17-arm64/**)",
-      "Bash(cp -R \"/Volumes/OpenCode Dev 1.2.17-arm64/OpenCode Dev.app\" /Applications/)",
-      "Bash(hdiutil detach \"/Volumes/OpenCode Dev 1.2.17-arm64\")",
-      "Bash(cp -R \"/Volumes/OpenCode Prax-Dev 1.2.17-arm64/OpenCode Prax-Dev.app\" /Applications/)",
-      "Bash(hdiutil detach \"/Volumes/OpenCode Prax-Dev 1.2.17-arm64\")",
-      "Bash(grep -l \"settings-dialog\" /Users/praxlannister/Documents/workspace/opencode/packages/desktop-electron/out/renderer/assets/*.css)"
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Agent(*)"
     ],
     "additionalDirectories": [
       "/private/tmp",
-      "/Applications/OpenCode Dev.app"
+      "/Applications/OpenCode Dev.app",
+      "/Applications/OpenCode Prax-Dev.app"
     ]
   }
 }

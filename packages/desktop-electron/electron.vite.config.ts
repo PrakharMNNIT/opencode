@@ -27,8 +27,17 @@ export default defineConfig({
   },
   renderer: {
     plugins: [appPlugin],
-    publicDir: "../app/public",
+    publicDir: "../../../app/public",
     root: "src/renderer",
+    resolve: {
+      dedupe: [
+        "solid-js",
+        "solid-js/web",
+        "solid-js/store",
+        "@solidjs/router",
+        "@solidjs/meta",
+      ],
+    },
     build: {
       rollupOptions: {
         input: {

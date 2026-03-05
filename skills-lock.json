@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "deep-research": {
+      "source": "shubhamsaboo/awesome-llm-apps",
+      "sourceType": "github",
+      "computedHash": "2d3df26fe507ef612bfbde09ed1c8691e17769b430c91fddd5743cd37f4c5672"
+    },
+    "research": {
+      "source": "tavily-ai/skills",
+      "sourceType": "github",
+      "computedHash": "cc0993d70b83bd356398569fb5204745d41ca30e0c7886f5df57b8ba4f4e588a"
+    }
+  }
+}

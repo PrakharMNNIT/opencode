@@ -333,7 +333,7 @@ export function SessionContextTab() {
                 if (msg.role !== "assistant") continue
                 const err = msg.error
                 if (!err || err.name === "MessageAbortedError") continue
-                const text = ("data" in err ? err.data?.message ?? "" : "").toLowerCase()
+                const text = String("data" in err ? err.data?.message ?? "" : "").toLowerCase()
                 if (text.includes("thinking") && text.includes("cannot be modified")) return true
                 break
               }

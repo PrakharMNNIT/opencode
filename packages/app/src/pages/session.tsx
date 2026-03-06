@@ -22,6 +22,7 @@ import { createAutoScroll } from "@opencode-ai/ui/hooks"
 import { Mark } from "@opencode-ai/ui/logo"
 
 import { useSync } from "@/context/sync"
+import { useSettings } from "@/context/settings"
 import { useLayout } from "@/context/layout"
 import { checksum, base64Encode } from "@opencode-ai/util/encode"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
@@ -328,7 +329,8 @@ export default function Page() {
     if (desktopReviewOpen()) return `${layout.session.width()}px`
     return `calc(100% - ${layout.fileTree.width()}px)`
   })
-  const centered = createMemo(() => isDesktop() && !desktopReviewOpen())
+  const settings = useSettings()
+  const centered = createMemo(() => isDesktop() && !desktopReviewOpen() && !settings.appearance.wideMode())
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab

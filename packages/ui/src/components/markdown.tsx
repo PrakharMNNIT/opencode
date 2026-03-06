@@ -419,8 +419,23 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
       renderSlot.innerHTML = svg
       container.setAttribute("data-rendered", "true")
 
-      // Add toggle button if not already present
-      if (!container.querySelector('[data-slot="mermaid-toggle"]')) {
+      // Add action buttons if not already present
+      if (!container.querySelector('[data-slot="mermaid-actions"]')) {
+        const actions = document.createElement("div")
+        actions.setAttribute("data-slot", "mermaid-actions")
+
+        const copyBtn = document.createElement("button")
+        copyBtn.type = "button"
+        copyBtn.setAttribute("data-component", "icon-button")
+        copyBtn.setAttribute("data-variant", "secondary")
+        copyBtn.setAttribute("data-size", "small")
+        copyBtn.setAttribute("data-slot", "mermaid-copy")
+        copyBtn.setAttribute("aria-label", "Copy source")
+        copyBtn.setAttribute("data-tooltip", "Copy source")
+        copyBtn.appendChild(createIcon(iconPaths.copy, "copy-icon"))
+        copyBtn.appendChild(createIcon(iconPaths.check, "check-icon"))
+        actions.appendChild(copyBtn)
+
         const toggle = document.createElement("button")
         toggle.type = "button"
         toggle.setAttribute("data-component", "icon-button")
@@ -432,7 +447,9 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
         toggle.setAttribute("data-tooltip", "View source")
         toggle.appendChild(createIcon(iconPaths.code, "toggle-code-icon"))
         toggle.appendChild(createIcon(iconPaths.diagram, "toggle-diagram-icon"))
-        container.appendChild(toggle)
+        actions.appendChild(toggle)
+
+        container.appendChild(actions)
       }
     } catch {
       // Render failed — show source as fallback
@@ -447,10 +464,37 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
 }
 
 function setupMermaidToggle(root: HTMLDivElement) {
-  const handleClick = (event: MouseEvent) => {
+  const copyTimeouts = new Map<HTMLButtonElement, ReturnType<typeof setTimeout>>()
+
+  const handleClick = async (event: MouseEvent) => {
     const target = event.target
     if (!(target instanceof Element)) return
 
+    // Handle copy button
+    const copyBtn = target.closest('[data-slot="mermaid-copy"]')
+    if (copyBtn instanceof HTMLButtonElement) {
+      const container = copyBtn.closest('[data-component="mermaid-diagram"]')
+      const encoded = container?.getAttribute("data-mermaid")
+      if (!encoded) return
+      let source: string
+      try {
+        source = decodeURIComponent(escape(atob(encoded)))
+      } catch {
+        return
+      }
+      await navigator.clipboard?.writeText(source)
+      copyBtn.setAttribute("data-copied", "true")
+      copyBtn.setAttribute("data-tooltip", "Copied!")
+      const existing = copyTimeouts.get(copyBtn)
+      if (existing) clearTimeout(existing)
+      copyTimeouts.set(copyBtn, setTimeout(() => {
+        copyBtn.removeAttribute("data-copied")
+        copyBtn.setAttribute("data-tooltip", "Copy source")
+      }, 2000))
+      return
+    }
+
+    // Handle toggle button
     const toggle = target.closest('[data-slot="mermaid-toggle"]')
     if (!(toggle instanceof HTMLButtonElement)) return
 
@@ -478,7 +522,10 @@ function setupMermaidToggle(root: HTMLDivElement) {
   }
 
   root.addEventListener("click", handleClick)
-  return () => root.removeEventListener("click", handleClick)
+  return () => {
+    root.removeEventListener("click", handleClick)
+    for (const t of copyTimeouts.values()) clearTimeout(t)
+  }
 }
 
 // Re-render all mermaid diagrams in a container (used on theme change)

@@ -165,25 +165,19 @@ let mermaidPromise: Promise<typeof import("mermaid")> | undefined
 
 function getMermaid() {
   if (!mermaidPromise) {
-    mermaidPromise = import("mermaid").then((m) => {
-      m.default.initialize({
-        startOnLoad: false,
-        theme: "dark",
-        fontFamily: "var(--font-family-sans)",
-        darkMode: true,
-        themeVariables: {
+    mermaidPromise = import("mermaid")
+      .then((m) => {
+        m.default.initialize({
+          startOnLoad: false,
+          theme: "dark",
           darkMode: true,
-          background: "transparent",
-          primaryColor: "hsl(var(--color-blue-600))",
-          primaryTextColor: "var(--text-strong)",
-          primaryBorderColor: "var(--border-base)",
-          lineColor: "var(--text-dimmed)",
-          secondaryColor: "hsl(var(--color-purple-600))",
-          tertiaryColor: "hsl(var(--color-green-600))",
-        },
+        })
+        return m
       })
-      return m
-    })
+      .catch((err) => {
+        mermaidPromise = undefined
+        throw err
+      })
   }
   return mermaidPromise
 }

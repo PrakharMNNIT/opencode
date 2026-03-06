@@ -223,6 +223,32 @@ body::before {
   border-radius: 20px !important;
 }
 
+/* When a tray is attached below, flatten the shell's bottom edge
+   so it flows seamlessly into the tray. */
+[data-dock-surface="shell"]:has(~ [data-dock-surface="tray"][data-dock-attach="top"]) {
+  border-bottom-color: transparent !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+/* Tray tucked under shell: remove top border, match shell border color,
+   flatten top corners, and tighten the overlap for a flush junction. */
+[data-dock-surface="tray"][data-dock-attach="top"] {
+  margin-top: -1px !important;
+  border-top-color: transparent !important;
+  border-color: color-mix(in srgb, var(--border-base) 35%, transparent) !important;
+  border-top-color: transparent !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-left-radius: 20px !important;
+  border-bottom-right-radius: 20px !important;
+}
+
+/* Reduce excess top padding in the tray now that overlap is tighter */
+[data-dock-surface="tray"][data-dock-attach="top"] > div:first-child {
+  padding-top: 0.5rem !important;
+}
+
 /* Send button glow */
 [data-dock-surface="shell"] [data-component="icon-button"][data-variant="primary"],
 [data-dock-surface="shell"] [data-component="button"][data-variant="primary"] {

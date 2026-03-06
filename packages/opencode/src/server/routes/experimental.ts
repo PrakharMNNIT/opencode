@@ -11,6 +11,9 @@ import { zodToJsonSchema } from "zod-to-json-schema"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 import { WorkspaceRoutes } from "./workspace"
+import { Agent } from "../../agent/agent"
+import { Provider } from "../../provider/provider"
+import { LLM } from "../../session/llm"
 
 export const ExperimentalRoutes = lazy(() =>
   new Hono()
@@ -265,6 +268,84 @@ export const ExperimentalRoutes = lazy(() =>
       }),
       async (c) => {
         return c.json(await MCP.resources())
+      },
+    )
+    .post(
+      "/enhance",
+      describeRoute({
+        summary: "Enhance prompt",
+        description:
+          "Rewrite a user prompt to be clearer, more specific, and more effective for an AI coding assistant.",
+        operationId: "experimental.enhance",
+        responses: {
+          200: {
+            description: "Enhanced prompt text",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({ text: z.string() }).meta({ ref: "EnhanceResult" }),
+                ),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      validator(
+        "json",
+        z.object({
+          text: z.string().min(1),
+          providerID: z.string().optional(),
+          modelID: z.string().optional(),
+        }),
+      ),
+      async (c) => {
+        const body = c.req.valid("json")
+        const agent = await Agent.get("enhance")
+        if (!agent) return c.json({ text: body.text })
+
+        const defaults = await Provider.defaultModel()
+        const providerID = body.providerID ?? defaults.providerID
+        const model = await (async () => {
+          if (agent.model)
+            return Provider.getModel(agent.model.providerID, agent.model.modelID)
+          const small = await Provider.getSmallModel(providerID)
+          if (small) return small
+          return Provider.getModel(providerID, body.modelID ?? defaults.modelID)
+        })()
+        if (!model) return c.json({ text: body.text })
+
+        const result = await LLM.stream({
+          agent,
+          user: {
+            role: "user",
+            id: "",
+            sessionID: "",
+            time: { created: Date.now() },
+            agent: "enhance",
+            model: { providerID: model.providerID, modelID: model.id },
+            variant: "default",
+          },
+          system: [],
+          small: true,
+          tools: {},
+          model,
+          abort: new AbortController().signal,
+          sessionID: "",
+          retries: 2,
+          messages: [
+            {
+              role: "user",
+              content: body.text,
+            },
+          ],
+        })
+        const text = await result.text.catch(() => undefined)
+        if (!text) return c.json({ text: body.text })
+        const cleaned = text
+          .replace(/<think>[\s\S]*?<\/think>\s*/g, "")
+          .trim()
+        return c.json({ text: cleaned || body.text })
       },
     ),
 )

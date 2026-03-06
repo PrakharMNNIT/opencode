@@ -235,6 +235,45 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const working = createMemo(() => status()?.type !== "idle")
   const steerQueue = createMemo(() => sync.data.steer_queue[params.id ?? ""] ?? [])
   const [steerPending, setSteerPending] = createSignal(false)
+  const [enhancing, setEnhancing] = createSignal(false)
+
+  const enhancePrompt = async () => {
+    const textParts = prompt.current().filter((p): p is ContentPart & { type: "text" } => p.type === "text")
+    const text = textParts.map((p) => p.content).join("").trim()
+    if (!text || enhancing()) return
+    setEnhancing(true)
+    try {
+      const res = await fetch(`${sdk.url}/experimental/enhance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      })
+      if (!res.ok) throw new Error("Enhance failed")
+      const data = (await res.json()) as { text: string }
+      if (data.text && data.text !== text) {
+        const nonText = prompt.current().filter((p) => p.type !== "text")
+        const enhanced: ContentPart = { type: "text", content: data.text, start: 0, end: data.text.length }
+        prompt.set([...nonText, enhanced], data.text.length)
+        if (editorRef) {
+          editorRef.textContent = data.text
+          requestAnimationFrame(() => {
+            const range = document.createRange()
+            const sel = window.getSelection()
+            range.selectNodeContents(editorRef)
+            range.collapse(false)
+            sel?.removeAllRanges()
+            sel?.addRange(range)
+          })
+        }
+      }
+    } catch {
+      showToast({
+        title: language.t("common.requestFailed") ?? "Failed to enhance prompt",
+      })
+    } finally {
+      setEnhancing(false)
+    }
+  }
 
   /** Clear text parts after steer/queue, preserving non-text attachments. */
   const clearText = () => {
@@ -1422,6 +1461,36 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   <Icon name="plus" class="size-4.5" />
                 </Button>
               </TooltipKeybind>
+
+              <Show when={prompt.dirty() && !working()}>
+                <Tooltip
+                  placement="top"
+                  value={language.t("prompt.action.enhance") ?? "Enhance prompt"}
+                >
+                  <Button
+                    data-action="prompt-enhance"
+                    type="button"
+                    variant="ghost"
+                    class="size-8 p-0"
+                    style={{
+                      opacity: buttonsSpring(),
+                      transform: `scale(${0.95 + buttonsSpring() * 0.05})`,
+                      filter: `blur(${(1 - buttonsSpring()) * 2}px)`,
+                    }}
+                    onClick={enhancePrompt}
+                    disabled={enhancing() || store.mode !== "normal"}
+                    aria-label={language.t("prompt.action.enhance") ?? "Enhance prompt"}
+                  >
+                    <Icon
+                      name="sparkle"
+                      class="size-4.5"
+                      classList={{
+                        "animate-pulse": enhancing(),
+                      }}
+                    />
+                  </Button>
+                </Tooltip>
+              </Show>
 
               <Show when={working() && prompt.dirty()}>
                 <Tooltip

@@ -408,6 +408,27 @@ function renderMathInText(text: string): string {
   return result
 }
 
+const GFM_ALERT_TYPES: Record<string, { label: string }> = {
+  NOTE: { label: "Note" },
+  TIP: { label: "Tip" },
+  IMPORTANT: { label: "Important" },
+  WARNING: { label: "Warning" },
+  CAUTION: { label: "Caution" },
+}
+
+function renderGfmAlerts(html: string): string {
+  return html.replace(
+    /<blockquote>\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(?:<br\s*\/?>)?\s*([\s\S]*?)<\/blockquote>/gi,
+    (match, type, body) => {
+      const key = type.toUpperCase()
+      const alert = GFM_ALERT_TYPES[key]
+      if (!alert) return match
+      const cleanBody = body.replace(/<\/p>\s*$/, "")
+      return `<div data-component="gfm-alert" data-alert-type="${key.toLowerCase()}"><div data-slot="gfm-alert-title">${alert.label}</div><div data-slot="gfm-alert-body">${cleanBody}</div></div>`
+    },
+  )
+}
+
 function renderMathExpressions(html: string): string {
   // Split on code/pre/kbd tags to avoid processing their contents
   const codeBlockPattern = /(<(?:pre|code|kbd)[^>]*>[\s\S]*?<\/(?:pre|code|kbd)>)/gi
@@ -439,6 +460,14 @@ async function highlightCodeBlocks(html: string): Promise<string> {
       .replace(/&amp;/g, "&")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+
+    // Mermaid blocks: emit render container instead of syntax-highlighted code
+    if (lang === "mermaid") {
+      const encoded = btoa(unescape(encodeURIComponent(code)))
+      const mermaidHtml = `<div data-component="mermaid-diagram" data-mermaid="${encoded}"><div data-slot="mermaid-render"><div data-slot="mermaid-loading">Loading diagram\u2026</div></div><div data-slot="mermaid-source" hidden><pre><code class="language-mermaid">${escapedCode}</code></pre></div></div>`
+      result = result.replace(fullMatch, () => mermaidHtml)
+      continue
+    }
 
     let language = lang || "text"
     if (!(language in bundledLanguages)) {
@@ -479,6 +508,16 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
       }),
       markedShiki({
         async highlight(code, lang) {
+          // Mermaid blocks: emit a container with render target + hidden source
+          if (lang === "mermaid") {
+            const encoded = btoa(unescape(encodeURIComponent(code)))
+            const escaped = code
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+            return `<div data-component="mermaid-diagram" data-mermaid="${encoded}"><div data-slot="mermaid-render"><div data-slot="mermaid-loading">Loading diagram\u2026</div></div><div data-slot="mermaid-source" hidden><pre><code class="language-mermaid">${escaped}</code></pre></div></div>`
+          }
+
           const highlighter = await getSharedHighlighter({ themes: ["OpenCode"], langs: [] })
           if (!(lang in bundledLanguages)) {
             lang = "text"
@@ -501,11 +540,17 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
         async parse(markdown: string): Promise<string> {
           const html = await nativeParser(markdown)
           const withMath = renderMathExpressions(html)
-          return highlightCodeBlocks(withMath)
+          const withAlerts = renderGfmAlerts(withMath)
+          return highlightCodeBlocks(withAlerts)
         },
       }
     }
 
-    return jsParser
+    return {
+      async parse(markdown: string): Promise<string> {
+        const html = await jsParser.parse(markdown)
+        return renderGfmAlerts(html)
+      },
+    }
   },
 })

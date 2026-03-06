@@ -37,6 +37,8 @@ const config = {
 const iconPaths = {
   copy: '<path d="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z" stroke="currentColor" stroke-linecap="round"/>',
   check: '<path d="M5 11.9657L8.37838 14.7529L15 5.83398" stroke="currentColor" stroke-linecap="square"/>',
+  code: '<path d="M7 5L3 10L7 15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 5L17 10L13 15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>',
+  diagram: '<path d="M3 3H17V17H3V3Z" stroke="currentColor" stroke-linecap="round"/><path d="M3 10H17" stroke="currentColor"/><path d="M10 3V17" stroke="currentColor"/>',
 }
 
 function sanitize(html: string) {
@@ -159,9 +161,131 @@ function markCodeLinks(root: HTMLDivElement) {
   }
 }
 
+let mermaidPromise: Promise<typeof import("mermaid")> | undefined
+
+function getMermaid() {
+  if (!mermaidPromise) {
+    mermaidPromise = import("mermaid").then((m) => {
+      m.default.initialize({
+        startOnLoad: false,
+        theme: "dark",
+        fontFamily: "var(--font-family-sans)",
+        darkMode: true,
+        themeVariables: {
+          darkMode: true,
+          background: "transparent",
+          primaryColor: "hsl(var(--color-blue-600))",
+          primaryTextColor: "var(--text-strong)",
+          primaryBorderColor: "var(--border-base)",
+          lineColor: "var(--text-dimmed)",
+          secondaryColor: "hsl(var(--color-purple-600))",
+          tertiaryColor: "hsl(var(--color-green-600))",
+        },
+      })
+      return m
+    })
+  }
+  return mermaidPromise
+}
+
+let mermaidCounter = 0
+
+async function renderMermaidDiagrams(root: HTMLDivElement) {
+  const diagrams = Array.from(root.querySelectorAll<HTMLElement>('[data-component="mermaid-diagram"]'))
+  if (diagrams.length === 0) return
+
+  const pending = diagrams.filter((d) => !d.hasAttribute("data-rendered"))
+  if (pending.length === 0) return
+
+  const mermaid = await getMermaid()
+
+  for (const container of pending) {
+    const encoded = container.getAttribute("data-mermaid")
+    if (!encoded) continue
+
+    const renderSlot = container.querySelector<HTMLElement>('[data-slot="mermaid-render"]')
+    if (!renderSlot) continue
+
+    let source: string
+    try {
+      source = decodeURIComponent(escape(atob(encoded)))
+    } catch {
+      continue
+    }
+
+    try {
+      const id = `mermaid-${++mermaidCounter}`
+      const { svg } = await mermaid.default.render(id, source)
+      renderSlot.innerHTML = svg
+      container.setAttribute("data-rendered", "true")
+
+      // Add toggle button if not already present
+      if (!container.querySelector('[data-slot="mermaid-toggle"]')) {
+        const toggle = document.createElement("button")
+        toggle.type = "button"
+        toggle.setAttribute("data-component", "icon-button")
+        toggle.setAttribute("data-variant", "secondary")
+        toggle.setAttribute("data-size", "small")
+        toggle.setAttribute("data-slot", "mermaid-toggle")
+        toggle.setAttribute("data-view", "diagram")
+        toggle.setAttribute("aria-label", "View source")
+        toggle.setAttribute("data-tooltip", "View source")
+        toggle.appendChild(createIcon(iconPaths.code, "toggle-code-icon"))
+        toggle.appendChild(createIcon(iconPaths.diagram, "toggle-diagram-icon"))
+        container.appendChild(toggle)
+      }
+    } catch {
+      // Render failed — show source as fallback
+      const sourceSlot = container.querySelector<HTMLElement>('[data-slot="mermaid-source"]')
+      if (renderSlot && sourceSlot) {
+        renderSlot.hidden = true
+        sourceSlot.hidden = false
+      }
+      container.setAttribute("data-rendered", "error")
+    }
+  }
+}
+
+function setupMermaidToggle(root: HTMLDivElement) {
+  const handleClick = (event: MouseEvent) => {
+    const target = event.target
+    if (!(target instanceof Element)) return
+
+    const toggle = target.closest('[data-slot="mermaid-toggle"]')
+    if (!(toggle instanceof HTMLButtonElement)) return
+
+    const container = toggle.closest('[data-component="mermaid-diagram"]')
+    if (!container) return
+
+    const renderSlot = container.querySelector<HTMLElement>('[data-slot="mermaid-render"]')
+    const sourceSlot = container.querySelector<HTMLElement>('[data-slot="mermaid-source"]')
+    if (!renderSlot || !sourceSlot) return
+
+    const showingDiagram = toggle.getAttribute("data-view") === "diagram"
+    if (showingDiagram) {
+      renderSlot.hidden = true
+      sourceSlot.hidden = false
+      toggle.setAttribute("data-view", "source")
+      toggle.setAttribute("aria-label", "View diagram")
+      toggle.setAttribute("data-tooltip", "View diagram")
+    } else {
+      renderSlot.hidden = false
+      sourceSlot.hidden = true
+      toggle.setAttribute("data-view", "diagram")
+      toggle.setAttribute("aria-label", "View source")
+      toggle.setAttribute("data-tooltip", "View source")
+    }
+  }
+
+  root.addEventListener("click", handleClick)
+  return () => root.removeEventListener("click", handleClick)
+}
+
 function decorate(root: HTMLDivElement, labels: CopyLabels) {
   const blocks = Array.from(root.querySelectorAll("pre"))
   for (const block of blocks) {
+    // Skip pre elements inside mermaid source slots
+    if (block.closest('[data-slot="mermaid-source"]')) continue
     ensureCodeWrapper(block, labels)
   }
   markCodeLinks(root)
@@ -260,6 +384,7 @@ export function Markdown(
 
   let copySetupTimer: ReturnType<typeof setTimeout> | undefined
   let copyCleanup: (() => void) | undefined
+  let mermaidToggleCleanup: (() => void) | undefined
 
   createEffect(() => {
     const container = root()
@@ -282,6 +407,15 @@ export function Markdown(
     morphdom(container, temp, {
       childrenOnly: true,
       onBeforeElUpdated: (fromEl, toEl) => {
+        // Preserve already-rendered mermaid diagrams
+        if (
+          fromEl instanceof HTMLElement &&
+          fromEl.getAttribute("data-rendered") === "true" &&
+          toEl instanceof HTMLElement &&
+          fromEl.getAttribute("data-mermaid") === toEl.getAttribute("data-mermaid")
+        ) {
+          return false
+        }
         if (fromEl.isEqualNode(toEl)) return false
         return true
       },
@@ -294,12 +428,19 @@ export function Markdown(
         copy: i18n.t("ui.message.copy"),
         copied: i18n.t("ui.message.copied"),
       })
+
+      if (!mermaidToggleCleanup) {
+        mermaidToggleCleanup = setupMermaidToggle(container)
+      }
+
+      renderMermaidDiagrams(container)
     }, 150)
   })
 
   onCleanup(() => {
     if (copySetupTimer) clearTimeout(copySetupTimer)
     if (copyCleanup) copyCleanup()
+    if (mermaidToggleCleanup) mermaidToggleCleanup()
   })
 
   return (

@@ -190,7 +190,54 @@ function getMermaid() {
 
 let mermaidCounter = 0
 
+const mermaidKeywords =
+  /^(?:graph\s|flowchart\s|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline|quadrantChart|sankey|xychart|block-beta|packet-beta)/
+
+function upgradeBareCodeBlocks(root: HTMLDivElement) {
+  // Find bare mermaid code blocks from cached HTML that predate the placeholder system.
+  // Check both explicit language-mermaid classes AND content-based heuristics
+  // (Shiki renders unknown langs as "text" so there's no class to match).
+  const preEls = Array.from(root.querySelectorAll("pre"))
+  for (const pre of preEls) {
+    if (pre.closest('[data-component="mermaid-diagram"]')) continue
+
+    const code = pre.querySelector("code")
+    if (!code) continue
+
+    const hasMermaidClass = code.className.includes("language-mermaid")
+    const source = (code.textContent ?? "").trim()
+    if (!source) continue
+
+    if (!hasMermaidClass && !mermaidKeywords.test(source)) continue
+
+    const encoded = btoa(unescape(encodeURIComponent(source)))
+    const container = document.createElement("div")
+    container.setAttribute("data-component", "mermaid-diagram")
+    container.setAttribute("data-mermaid", encoded)
+
+    const renderSlot = document.createElement("div")
+    renderSlot.setAttribute("data-slot", "mermaid-render")
+    renderSlot.innerHTML = '<div data-slot="mermaid-loading">Loading diagram\u2026</div>'
+
+    const sourceSlot = document.createElement("div")
+    sourceSlot.setAttribute("data-slot", "mermaid-source")
+    sourceSlot.hidden = true
+    const clonedPre = pre.cloneNode(true) as HTMLPreElement
+    sourceSlot.appendChild(clonedPre)
+
+    container.appendChild(renderSlot)
+    container.appendChild(sourceSlot)
+
+    const wrapper = pre.closest('[data-component="markdown-code"]')
+    const target = wrapper ?? pre
+    target.parentNode?.replaceChild(container, target)
+  }
+}
+
 async function renderMermaidDiagrams(root: HTMLDivElement) {
+  // First, upgrade any bare mermaid code blocks from cached content
+  upgradeBareCodeBlocks(root)
+
   const diagrams = Array.from(root.querySelectorAll<HTMLElement>('[data-component="mermaid-diagram"]'))
   if (diagrams.length === 0) return
 

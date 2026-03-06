@@ -149,11 +149,18 @@ export function createPromptSubmit(input: PromptSubmitInput) {
           .steer({ sessionID: params.id, text: textOnly, mode: "queue" })
           .then((res) => {
             if (res.error) throw new Error("Failed to queue")
+            const kept = prompt.current().filter((p) => p.type !== "text")
             showToast({
               title: language.t("prompt.action.queued") ?? "Message queued",
-              description: language.t("prompt.action.queued.description") ?? "Will be sent when the model finishes",
+              description: kept.length > 0
+                ? (language.t("prompt.action.attachmentsKept") ?? "Text queued — attachments still attached")
+                : (language.t("prompt.action.queued.description") ?? "Will be sent when the model finishes"),
             })
-            prompt.reset()
+            if (kept.length > 0) {
+              prompt.set(kept, 0)
+            } else {
+              prompt.reset()
+            }
             const editor = input.editor()
             if (editor) editor.innerHTML = ""
           })
@@ -163,6 +170,14 @@ export function createPromptSubmit(input: PromptSubmitInput) {
               description: err?.message,
             }),
           )
+        return
+      }
+      // Bug 4: images/attachments only (no text) while working — block submission
+      if (images.length > 0 || currentPrompt.some((p) => p.type !== "text")) {
+        showToast({
+          title: language.t("prompt.action.waitForModel") ?? "Wait for model to finish",
+          description: language.t("prompt.action.waitForModel.description") ?? "Images and files can't be queued — send after the model finishes",
+        })
         return
       }
     }

@@ -336,6 +336,7 @@ export namespace SessionPrompt {
             time: { created: Date.now() },
             agent: lastUser.agent,
             model: lastUser.model,
+            variant: lastUser.variant,
           }
           await Session.updateMessage(steerMsg)
           await Session.updatePart({
@@ -361,6 +362,7 @@ export namespace SessionPrompt {
             time: { created: Date.now() },
             agent: lastUser.agent,
             model: lastUser.model,
+            variant: lastUser.variant,
           }
           await Session.updateMessage(queueMsg)
           await Session.updatePart({
@@ -375,6 +377,42 @@ export namespace SessionPrompt {
 
         log.info("exiting loop", { sessionID })
         break
+      }
+
+      // Mid-turn steer injection: when AI paused for tool calls,
+      // check for steer messages and inject them so the AI sees
+      // the user's guidance alongside tool results in the next step.
+      if (
+        lastAssistant?.finish === "tool-calls" &&
+        lastUser.id < lastAssistant.id
+      ) {
+        const steered = SessionSteer.takeByMode(sessionID, "steer")
+        if (steered.length > 0) {
+          log.info("steer: mid-turn inject between tool calls", {
+            sessionID,
+            count: steered.length,
+          })
+          const text = steered.map((m) => m.text).join("\n\n")
+          const steerMsg: MessageV2.User = {
+            id: Identifier.ascending("message"),
+            sessionID,
+            role: "user",
+            time: { created: Date.now() },
+            agent: lastUser.agent,
+            model: lastUser.model,
+            variant: lastUser.variant,
+          }
+          await Session.updateMessage(steerMsg)
+          await Session.updatePart({
+            id: Identifier.ascending("part"),
+            messageID: steerMsg.id,
+            sessionID,
+            type: "text",
+            text,
+          } satisfies MessageV2.TextPart)
+          // Fall through to step++ — the next AI inference sees:
+          // [history] → [assistant tool calls] → [tool results] → [steer user msg]
+        }
       }
 
       step++

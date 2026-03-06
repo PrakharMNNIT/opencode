@@ -10,7 +10,7 @@ import { showToast } from "@opencode-ai/ui/toast"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSettings, monoFontFamily } from "@/context/settings"
-import { useSDK } from "@/context/sdk"
+import { useGlobalSDK } from "@/context/global-sdk"
 import { playSound, SOUND_OPTIONS } from "@/utils/sound"
 import { Link } from "./link"
 
@@ -314,7 +314,7 @@ export const SettingsGeneral: Component = () => {
     </div>
   )
 
-  const sdk = useSDK()
+  const sdk = useGlobalSDK()
   const [thinkingStrategy, setThinkingStrategy] = createSignal<"none" | "strip" | "compact">("none")
 
   // Load current thinking strategy from backend config

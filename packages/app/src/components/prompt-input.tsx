@@ -234,6 +234,19 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
   const working = createMemo(() => status()?.type !== "idle")
   const steerQueue = createMemo(() => sync.data.steer_queue[params.id ?? ""] ?? [])
+  const [steerPending, setSteerPending] = createSignal(false)
+
+  /** Clear text parts after steer/queue, preserving non-text attachments. */
+  const clearText = () => {
+    const kept = prompt.current().filter((p) => p.type !== "text")
+    if (kept.length > 0) {
+      prompt.set(kept, 0)
+      return true
+    }
+    prompt.reset()
+    return false
+  }
+
   const imageAttachments = createMemo(() =>
     prompt.current().filter((part): part is ImageAttachmentPart => part.type === "image"),
   )
@@ -1075,17 +1088,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           .join("")
           .trim()
         if (text) {
+          if (steerPending()) return
           event.preventDefault()
+          setSteerPending(true)
           sdk.client.session
             .steer({ sessionID: params.id, text, mode: "steer" })
             .then((res) => {
               if (res.error) throw new Error("Failed to steer")
+              const kept = clearText()
               showToast({
                 title: language.t("prompt.action.steered") ?? "Steering",
-                description:
-                  language.t("prompt.action.steered.description") ?? "Will be injected at the next step",
+                description: kept
+                  ? (language.t("prompt.action.attachmentsKept") ?? "Text steered — attachments still attached")
+                  : (language.t("prompt.action.steered.description") ?? "Will be injected at the next step"),
               })
-              prompt.reset()
               const editor = editorRef
               if (editor) editor.innerHTML = ""
             })
@@ -1095,6 +1111,16 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 description: err?.message,
               }),
             )
+            .finally(() => setSteerPending(false))
+          return
+        }
+        // Bug 4: images/attachments only (no text) while working — block submission
+        if (prompt.dirty()) {
+          event.preventDefault()
+          showToast({
+            title: language.t("prompt.action.waitForModel") ?? "Wait for model to finish",
+            description: language.t("prompt.action.waitForModel.description") ?? "Images and files can't be steered — send after the model finishes",
+          })
           return
         }
       }
@@ -1173,16 +1199,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           .join("")
           .trim()
         if (text) {
+          if (steerPending()) return
           event.preventDefault()
+          setSteerPending(true)
           sdk.client.session
             .steer({ sessionID: params.id, text, mode: "queue" })
             .then((res) => {
               if (res.error) throw new Error("Failed to queue")
+              const kept = clearText()
               showToast({
                 title: language.t("prompt.action.queued") ?? "Message queued",
-                description: language.t("prompt.action.queued.description") ?? "Will be sent when the model finishes",
+                description: kept
+                  ? (language.t("prompt.action.attachmentsKept") ?? "Text queued — attachments still attached")
+                  : (language.t("prompt.action.queued.description") ?? "Will be sent when the model finishes"),
               })
-              prompt.reset()
               const editor = editorRef
               if (editor) editor.innerHTML = ""
             })
@@ -1192,6 +1222,16 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 description: err?.message,
               }),
             )
+            .finally(() => setSteerPending(false))
+          return
+        }
+        // Bug 4: images/attachments only (no text) while working — block submission
+        if (prompt.dirty()) {
+          event.preventDefault()
+          showToast({
+            title: language.t("prompt.action.waitForModel") ?? "Wait for model to finish",
+            description: language.t("prompt.action.waitForModel.description") ?? "Images and files can't be queued — send after the model finishes",
+          })
           return
         }
       }
@@ -1406,7 +1446,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     }}
                     onClick={() => {
                       const sessionID = params.id
-                      if (!sessionID) return
+                      if (!sessionID || steerPending()) return
                       const text = prompt
                         .current()
                         .filter((p) => p.type === "text")
@@ -1414,17 +1454,18 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                         .join("")
                         .trim()
                       if (!text) return
+                      setSteerPending(true)
                       sdk.client.session
                         .steer({ sessionID, text, mode: "steer" })
                         .then((res) => {
                           if (res.error) throw new Error("Failed to steer")
+                          const kept = clearText()
                           showToast({
                             title: language.t("prompt.action.steered") ?? "Steering",
-                            description:
-                              language.t("prompt.action.steered.description") ??
-                              "Will be injected at the next step",
+                            description: kept
+                              ? (language.t("prompt.action.attachmentsKept") ?? "Text steered — attachments still attached")
+                              : (language.t("prompt.action.steered.description") ?? "Will be injected at the next step"),
                           })
-                          prompt.reset()
                           const editor = editorRef
                           if (editor) editor.innerHTML = ""
                         })
@@ -1434,6 +1475,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                             description: err?.message,
                           }),
                         )
+                        .finally(() => setSteerPending(false))
                     }}
                     aria-label="Steer"
                   />

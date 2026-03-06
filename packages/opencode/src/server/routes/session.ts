@@ -977,6 +977,25 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
         const entry = SessionSteer.push(sessionID, body.text, body.mode)
+
+        // If session is idle after push, auto-start a loop to process
+        // stranded items. Handles the race where the loop exits just
+        // before this push arrives.
+        // NOTE: A narrow TOCTOU window remains — if the loop has decided
+        // to exit but cancel() hasn't fired yet, status is still "busy"
+        // and this check won't trigger. The item will be stranded until
+        // the next manual submit. An event-driven approach (listening for
+        // QueueChanged inside the loop exit path) would close this fully.
+        if (SessionStatus.get(sessionID).type === "idle") {
+          SessionPrompt.loop({ sessionID }).catch(() => {
+            // Loop failed (e.g., no user messages in session). Clear the
+            // stranded item. Note: this also clears on transient errors
+            // (rate limits, timeouts) — consistent with cancel() behavior
+            // which also calls SessionSteer.clear().
+            SessionSteer.clear(sessionID)
+          })
+        }
+
         return c.json(entry)
       },
     )

@@ -161,7 +161,8 @@ function markCodeLinks(root: HTMLDivElement) {
   }
 }
 
-let mermaidPromise: Promise<typeof import("mermaid")> | undefined
+let mermaidLoadPromise: Promise<typeof import("mermaid")> | undefined
+let lastThemeFingerprint = ""
 
 function resolveColor(prop: string): string | undefined {
   const raw = getComputedStyle(document.documentElement).getPropertyValue(prop).trim()
@@ -170,7 +171,6 @@ function resolveColor(prop: string): string | undefined {
   // Values may be raw HSL channels (e.g. "217 91% 60%"), full hsl(), or named colors.
   const el = document.createElement("div")
   el.style.color = ""
-  // Try the raw value first, then wrap in hsl() for channel-only values
   for (const candidate of [raw, `hsl(${raw})`]) {
     el.style.color = candidate
     if (el.style.color) break
@@ -182,19 +182,119 @@ function resolveColor(prop: string): string | undefined {
   return resolved || undefined
 }
 
+function isDarkMode(): boolean {
+  return document.documentElement.dataset.colorScheme === "dark" ||
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+}
+
 function getMermaidThemeVars(): Record<string, string> {
   const vars: Record<string, string> = {}
-  const map: [string, string][] = [
-    ["primaryColor", "--color-blue-600"],
-    ["primaryTextColor", "--text-strong"],
-    ["primaryBorderColor", "--border-base"],
-    ["lineColor", "--text-dimmed"],
-    ["secondaryColor", "--color-purple-600"],
-    ["tertiaryColor", "--color-green-600"],
-    ["textColor", "--text-base"],
-    ["mainBkg", "--surface-inset-base"],
-    ["nodeBorder", "--border-base"],
-  ]
+  const dark = isDarkMode()
+  // Separate mappings for dark and light mode.
+  // Dark mode needs brighter tokens (scale indices 6-10) because
+  // surface tokens (scale index 2) are nearly black and invisible.
+  // Light mode uses subtle surface tokens which contrast well against white.
+  const map: [string, string][] = dark
+    ? [
+        // ─── DARK MODE: use border/icon/text-level tokens for visible contrast ───
+        // General
+        ["primaryColor", "--border-interactive-base"],       // interactive[6] — visible blue
+        ["primaryTextColor", "--text-strong"],                // near-white
+        ["primaryBorderColor", "--text-interactive-base"],    // interactive[10] — bright blue
+        ["lineColor", "--text-strong"],                       // near-white lines/arrows
+        ["secondaryColor", "--border-info-base"],             // info[5] — visible purple
+        ["tertiaryColor", "--border-success-base"],           // success[5] — visible green
+        ["textColor", "--text-strong"],                       // near-white text
+        ["mainBkg", "--surface-inset-base"],                  // dark bg (correct)
+        ["nodeBorder", "--border-base"],                      // visible border
+        ["nodeTextColor", "--text-strong"],                   // near-white
+        // Flowchart
+        ["clusterBkg", "--surface-base"],
+        ["clusterBorder", "--border-base"],
+        ["edgeLabelBackground", "--background-base"],
+        ["defaultLinkColor", "--text-strong"],                // bright arrows
+        // Sequence diagram
+        ["actorBkg", "--surface-inset-base"],
+        ["actorBorder", "--border-base"],
+        ["actorTextColor", "--text-strong"],
+        ["signalColor", "--text-strong"],                     // bright signal lines
+        ["signalTextColor", "--text-strong"],
+        ["activationBorderColor", "--text-interactive-base"], // bright blue
+        ["activationBkgColor", "--border-interactive-base"],  // mid-tone blue
+        ["sequenceNumberColor", "--text-strong"],
+        ["labelBoxBkgColor", "--surface-inset-base"],
+        ["labelBoxBorderColor", "--border-base"],
+        ["labelTextColor", "--text-strong"],
+        ["loopTextColor", "--text-strong"],
+        // Notes
+        ["noteBkgColor", "--surface-warning-base"],
+        ["noteBorderColor", "--border-warning-base"],
+        ["noteTextColor", "--text-strong"],
+        // Class / State / ER
+        ["classText", "--text-strong"],
+        ["labelColor", "--text-strong"],
+        ["altBackground", "--surface-base"],
+        // Gantt
+        ["sectionBkgColor", "--surface-base"],
+        ["taskBkgColor", "--border-interactive-base"],        // visible blue fill
+        ["taskTextColor", "--text-strong"],
+        ["taskBorderColor", "--text-interactive-base"],       // bright blue
+        ["gridColor", "--border-base"],
+        ["todayLineColor", "--text-interactive-base"],
+        // ER diagram
+        ["fill0", "--border-interactive-base"],
+        ["fill1", "--border-info-base"],
+      ]
+    : [
+        // ─── LIGHT MODE: surface tokens are visible against white/light backgrounds ───
+        // General
+        ["primaryColor", "--surface-interactive-base"],       // interactive[2] — subtle blue
+        ["primaryTextColor", "--text-strong"],                // near-black
+        ["primaryBorderColor", "--border-interactive-base"],  // interactive[6] — mid blue
+        ["lineColor", "--text-base"],                         // dark gray text
+        ["secondaryColor", "--surface-info-base"],            // info[2] — subtle purple
+        ["tertiaryColor", "--surface-success-base"],          // success[2] — subtle green
+        ["textColor", "--text-base"],
+        ["mainBkg", "--surface-inset-base"],
+        ["nodeBorder", "--border-base"],
+        ["nodeTextColor", "--text-strong"],
+        // Flowchart
+        ["clusterBkg", "--surface-base"],
+        ["clusterBorder", "--border-weak-base"],
+        ["edgeLabelBackground", "--background-base"],
+        ["defaultLinkColor", "--text-base"],
+        // Sequence diagram
+        ["actorBkg", "--surface-inset-base"],
+        ["actorBorder", "--border-base"],
+        ["actorTextColor", "--text-strong"],
+        ["signalColor", "--text-base"],
+        ["signalTextColor", "--text-strong"],
+        ["activationBorderColor", "--border-interactive-base"],
+        ["activationBkgColor", "--surface-interactive-base"],
+        ["sequenceNumberColor", "--text-on-interactive-base"],
+        ["labelBoxBkgColor", "--surface-inset-base"],
+        ["labelBoxBorderColor", "--border-base"],
+        ["labelTextColor", "--text-base"],
+        ["loopTextColor", "--text-base"],
+        // Notes
+        ["noteBkgColor", "--surface-warning-base"],
+        ["noteBorderColor", "--border-warning-base"],
+        ["noteTextColor", "--text-strong"],
+        // Class / State / ER
+        ["classText", "--text-strong"],
+        ["labelColor", "--text-strong"],
+        ["altBackground", "--surface-base"],
+        // Gantt
+        ["sectionBkgColor", "--surface-base"],
+        ["taskBkgColor", "--surface-interactive-base"],
+        ["taskTextColor", "--text-strong"],
+        ["taskBorderColor", "--border-interactive-base"],
+        ["gridColor", "--border-weak-base"],
+        ["todayLineColor", "--border-interactive-base"],
+        // ER diagram
+        ["fill0", "--surface-interactive-base"],
+        ["fill1", "--surface-info-base"],
+      ]
   for (const [key, cssVar] of map) {
     const color = resolveColor(cssVar)
     if (color) vars[key] = color
@@ -202,26 +302,43 @@ function getMermaidThemeVars(): Record<string, string> {
   return vars
 }
 
-function getMermaid() {
-  if (!mermaidPromise) {
-    mermaidPromise = import("mermaid")
+function getThemeFingerprint(): string {
+  const scheme = document.documentElement.dataset.colorScheme ?? "unknown"
+  const themeId = document.documentElement.dataset.theme ?? "unknown"
+  return `${themeId}:${scheme}`
+}
+
+function configureMermaid(m: typeof import("mermaid")) {
+  const dark = isDarkMode()
+  const themeVars = getMermaidThemeVars()
+  const hasCustomColors = Object.keys(themeVars).length > 0
+  m.default.initialize({
+    startOnLoad: false,
+    theme: hasCustomColors ? "base" : (dark ? "dark" : "default"),
+    ...(hasCustomColors && { themeVariables: { darkMode: dark, ...themeVars } }),
+  })
+  lastThemeFingerprint = getThemeFingerprint()
+}
+
+async function getMermaid() {
+  if (!mermaidLoadPromise) {
+    mermaidLoadPromise = import("mermaid")
       .then((m) => {
-        const themeVars = getMermaidThemeVars()
-        const hasCustomColors = Object.keys(themeVars).length > 0
-        m.default.initialize({
-          startOnLoad: false,
-          theme: hasCustomColors ? "base" : "dark",
-          darkMode: true,
-          ...(hasCustomColors && { themeVariables: { darkMode: true, ...themeVars } }),
-        })
+        configureMermaid(m)
         return m
       })
       .catch((err) => {
-        mermaidPromise = undefined
+        mermaidLoadPromise = undefined
         throw err
       })
   }
-  return mermaidPromise
+  const m = await mermaidLoadPromise
+  // Re-initialize if theme changed since last configure
+  const currentFp = getThemeFingerprint()
+  if (currentFp !== lastThemeFingerprint) {
+    configureMermaid(m)
+  }
+  return m
 }
 
 let mermaidCounter = 0
@@ -364,6 +481,47 @@ function setupMermaidToggle(root: HTMLDivElement) {
   return () => root.removeEventListener("click", handleClick)
 }
 
+// Re-render all mermaid diagrams in a container (used on theme change)
+async function rerenderMermaidDiagrams(root: HTMLDivElement) {
+  const rendered = Array.from(root.querySelectorAll<HTMLElement>('[data-component="mermaid-diagram"][data-rendered="true"]'))
+  if (rendered.length === 0) return
+  const mermaid = await getMermaid()
+  for (const container of rendered) {
+    const encoded = container.getAttribute("data-mermaid")
+    if (!encoded) continue
+    const renderSlot = container.querySelector<HTMLElement>('[data-slot="mermaid-render"]')
+    if (!renderSlot) continue
+    let source: string
+    try {
+      source = decodeURIComponent(escape(atob(encoded)))
+    } catch {
+      continue
+    }
+    try {
+      const id = `mermaid-${++mermaidCounter}`
+      const { svg } = await mermaid.default.render(id, source)
+      renderSlot.innerHTML = svg
+    } catch {
+      // Keep existing render on error
+    }
+  }
+}
+
+function setupMermaidThemeObserver(root: HTMLDivElement) {
+  let lastFp = getThemeFingerprint()
+  const observer = new MutationObserver(() => {
+    const currentFp = getThemeFingerprint()
+    if (currentFp === lastFp) return
+    lastFp = currentFp
+    rerenderMermaidDiagrams(root)
+  })
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-color-scheme", "data-theme"],
+  })
+  return () => observer.disconnect()
+}
+
 function decorate(root: HTMLDivElement, labels: CopyLabels) {
   const blocks = Array.from(root.querySelectorAll("pre"))
   for (const block of blocks) {
@@ -468,6 +626,7 @@ export function Markdown(
   let copySetupTimer: ReturnType<typeof setTimeout> | undefined
   let copyCleanup: (() => void) | undefined
   let mermaidToggleCleanup: (() => void) | undefined
+  let mermaidThemeCleanup: (() => void) | undefined
 
   createEffect(() => {
     const container = root()
@@ -515,6 +674,9 @@ export function Markdown(
       if (!mermaidToggleCleanup) {
         mermaidToggleCleanup = setupMermaidToggle(container)
       }
+      if (!mermaidThemeCleanup) {
+        mermaidThemeCleanup = setupMermaidThemeObserver(container)
+      }
 
       renderMermaidDiagrams(container)
     }, 150)
@@ -524,6 +686,7 @@ export function Markdown(
     if (copySetupTimer) clearTimeout(copySetupTimer)
     if (copyCleanup) copyCleanup()
     if (mermaidToggleCleanup) mermaidToggleCleanup()
+    if (mermaidThemeCleanup) mermaidThemeCleanup()
   })
 
   return (

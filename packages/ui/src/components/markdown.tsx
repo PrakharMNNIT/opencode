@@ -163,14 +163,56 @@ function markCodeLinks(root: HTMLDivElement) {
 
 let mermaidPromise: Promise<typeof import("mermaid")> | undefined
 
+function resolveColor(prop: string): string | undefined {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(prop).trim()
+  if (!raw) return undefined
+  // Resolve the CSS value to an rgb() string that mermaid can parse.
+  // Values may be raw HSL channels (e.g. "217 91% 60%"), full hsl(), or named colors.
+  const el = document.createElement("div")
+  el.style.color = ""
+  // Try the raw value first, then wrap in hsl() for channel-only values
+  for (const candidate of [raw, `hsl(${raw})`]) {
+    el.style.color = candidate
+    if (el.style.color) break
+  }
+  if (!el.style.color) return undefined
+  document.body.appendChild(el)
+  const resolved = getComputedStyle(el).color
+  el.remove()
+  return resolved || undefined
+}
+
+function getMermaidThemeVars(): Record<string, string> {
+  const vars: Record<string, string> = {}
+  const map: [string, string][] = [
+    ["primaryColor", "--color-blue-600"],
+    ["primaryTextColor", "--text-strong"],
+    ["primaryBorderColor", "--border-base"],
+    ["lineColor", "--text-dimmed"],
+    ["secondaryColor", "--color-purple-600"],
+    ["tertiaryColor", "--color-green-600"],
+    ["textColor", "--text-base"],
+    ["mainBkg", "--surface-inset-base"],
+    ["nodeBorder", "--border-base"],
+  ]
+  for (const [key, cssVar] of map) {
+    const color = resolveColor(cssVar)
+    if (color) vars[key] = color
+  }
+  return vars
+}
+
 function getMermaid() {
   if (!mermaidPromise) {
     mermaidPromise = import("mermaid")
       .then((m) => {
+        const themeVars = getMermaidThemeVars()
+        const hasCustomColors = Object.keys(themeVars).length > 0
         m.default.initialize({
           startOnLoad: false,
-          theme: "dark",
+          theme: hasCustomColors ? "base" : "dark",
           darkMode: true,
+          ...(hasCustomColors && { themeVariables: { darkMode: true, ...themeVars } }),
         })
         return m
       })

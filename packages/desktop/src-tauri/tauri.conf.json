@@ -32,8 +32,16 @@
       "icons/prax-dev/icon.ico"
     ],
     "active": true,
-    "targets": ["deb", "rpm", "dmg", "nsis", "app"],
-    "externalBin": ["sidecars/opencode-cli"],
+    "targets": [
+      "deb",
+      "rpm",
+      "dmg",
+      "nsis",
+      "app"
+    ],
+    "externalBin": [
+      "sidecars/opencode-cli"
+    ],
     "linux": {
       "rpm": {
         "compression": {
@@ -55,7 +63,9 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["opencode"]
+        "schemes": [
+          "opencode"
+        ]
       }
     }
   }

@@ -1,8 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "opencode": {
-      "options": {},
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1",
+      },
     },
   },
   "mcp": {},

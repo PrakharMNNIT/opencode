@@ -8,8 +8,7 @@ import { getDirectory, getFilename } from "@opencode-ai/util/path"
 
 const MAIN_WORKTREE = "main"
 const CREATE_WORKTREE = "create"
-const ROOT_CLASS =
-  "size-full flex flex-col justify-center items-center gap-6 flex-[1_0_0] self-stretch max-w-200 mx-auto 2xl:max-w-[1000px] px-6 pb-24"
+const ROOT_CLASS = "size-full flex flex-col"
 
 interface NewSessionViewProps {
   worktree: string
@@ -50,53 +49,39 @@ export function NewSessionView(props: NewSessionViewProps) {
 
   return (
     <div class={ROOT_CLASS}>
-      {/* Greeting — large, centered, with subtle fade-in */}
-      <div
-        class="text-20-medium text-text-weaker opacity-0"
-        style="animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards"
-      >
-        {language.t("command.session.new")}
-      </div>
-
-      {/* Project info badges — compact, pill-shaped, staggered entrance */}
-      <div class="flex flex-col items-center gap-2">
-        <div
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full opacity-0"
-          style="background: var(--surface-base); border: 1px solid var(--border-weaker-base); animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards"
-        >
-          <Icon name="folder" size="small" />
-          <div class="text-12-medium text-text-weak select-text">
-            {getDirectory(projectRoot())}
-            <span class="text-text-strong">{getFilename(projectRoot())}</span>
-          </div>
-        </div>
-
-        <div
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full opacity-0"
-          style="background: var(--surface-base); border: 1px solid var(--border-weaker-base); animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards"
-        >
-          <Icon name="branch" size="small" />
-          <div class="text-12-medium text-text-weak select-text">{label(current())}</div>
-        </div>
-
-        <Show when={sync.project}>
-          {(project) => (
-            <div
-              class="flex items-center gap-2 px-3 py-1.5 rounded-full opacity-0"
-              style="background: var(--surface-base); border: 1px solid var(--border-weaker-base); animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards"
-            >
-              <Icon name="pencil-line" size="small" />
-              <div class="text-12-medium text-text-weak">
-                {language.t("session.new.lastModified")}&nbsp;
-                <span class="text-text-strong">
-                  {DateTime.fromMillis(project().time.updated ?? project().time.created)
-                    .setLocale(language.locale())
-                    .toRelative()}
-                </span>
+      <div class="h-12 shrink-0" aria-hidden />
+      <div class="flex-1 px-6 pb-30 flex items-center justify-center text-center">
+        <div class="w-full max-w-200 flex flex-col items-center text-center gap-4">
+          <div class="text-20-medium text-text-strong">{language.t("session.new.title")}</div>
+          <div class="w-full flex flex-col gap-4 items-center">
+            <div class="flex items-start justify-center gap-3 min-h-5">
+              <div class="text-12-medium text-text-weak select-text leading-5 min-w-0 max-w-160 break-words text-center">
+                {getDirectory(projectRoot())}
+                <span class="text-text-strong">{getFilename(projectRoot())}</span>
               </div>
             </div>
-          )}
-        </Show>
+            <div class="flex items-start justify-center gap-1.5 min-h-5">
+              <Icon name="branch" size="small" class="mt-0.5 shrink-0" />
+              <div class="text-12-medium text-text-weak select-text leading-5 min-w-0 max-w-160 break-words text-center">
+                {label(current())}
+              </div>
+            </div>
+            <Show when={sync.project}>
+              {(project) => (
+                <div class="flex items-start justify-center gap-3 min-h-5">
+                  <div class="text-12-medium text-text-weak leading-5 min-w-0 max-w-160 break-words text-center">
+                    {language.t("session.new.lastModified")}&nbsp;
+                    <span class="text-text-strong">
+                      {DateTime.fromMillis(project().time.updated ?? project().time.created)
+                        .setLocale(language.intl())
+                        .toRelative()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </Show>
+          </div>
+        </div>
       </div>
     </div>
   )

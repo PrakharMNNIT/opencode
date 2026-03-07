@@ -1,23 +1,21 @@
-import { type LocalProject } from "@/context/layout"
-import { ConstrainDragXAxis } from "@/utils/solid-dnd"
-import { IconButton } from "@opencode-ai/ui/icon-button"
-import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
+import { createEffect, createMemo, For, Show, type Accessor, type JSX } from "solid-js"
 import {
-  closestCenter,
   DragDropProvider,
   DragDropSensors,
   DragOverlay,
   SortableProvider,
+  closestCenter,
   type DragEvent,
 } from "@thisbeyond/solid-dnd"
-import { createMemo, For, Show, type Accessor, type JSX } from "solid-js"
+import { ConstrainDragXAxis } from "@/utils/solid-dnd"
+import { IconButton } from "@opencode-ai/ui/icon-button"
+import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
+import { type LocalProject } from "@/context/layout"
 import { sidebarExpanded } from "./sidebar-shell-helpers"
 
 export const SidebarContent = (props: {
   mobile?: boolean
   opened: Accessor<boolean>
-  collapsed?: Accessor<boolean>
-  onToggleCollapsed?: () => void
   aimMove: (event: MouseEvent) => void
   projects: Accessor<LocalProject[]>
   renderProject: (project: LocalProject) => JSX.Element
@@ -37,111 +35,92 @@ export const SidebarContent = (props: {
 }): JSX.Element => {
   const expanded = createMemo(() => sidebarExpanded(props.mobile, props.opened()))
   const placement = () => (props.mobile ? "bottom" : "right")
-  const isCollapsed = () => !props.mobile && props.collapsed?.() === true
+  let panel: HTMLDivElement | undefined
+
+  createEffect(() => {
+    const el = panel
+    if (!el) return
+    if (expanded()) {
+      el.removeAttribute("inert")
+      return
+    }
+    el.setAttribute("inert", "")
+  })
 
   return (
-    <div class="flex h-full w-full overflow-hidden">
-      <Show when={isCollapsed()}>
-        <div class="w-8 shrink-0 flex flex-col items-center pt-3 gap-2">
-          <Tooltip placement="right" value="Show projects">
-            <IconButton
-              icon="chevron-right"
-              variant="ghost"
-              size="small"
-              onClick={props.onToggleCollapsed}
-              aria-label="Show projects"
-            />
-          </Tooltip>
-          <TooltipKeybind placement="right" title={props.settingsLabel()} keybind={props.settingsKeybind() ?? ""}>
+    <div class="flex h-full w-full min-w-0 overflow-hidden">
+      <div
+        data-component="sidebar-rail"
+        class="w-16 shrink-0 bg-background-base flex flex-col items-center overflow-hidden"
+        onMouseMove={props.aimMove}
+      >
+        <div class="flex-1 min-h-0 w-full">
+          <DragDropProvider
+            onDragStart={props.handleDragStart}
+            onDragEnd={props.handleDragEnd}
+            onDragOver={props.handleDragOver}
+            collisionDetector={closestCenter}
+          >
+            <DragDropSensors />
+            <ConstrainDragXAxis />
+            <div class="h-full w-full flex flex-col items-center gap-3 px-3 py-3 overflow-y-auto no-scrollbar">
+              <SortableProvider ids={props.projects().map((p) => p.worktree)}>
+                <For each={props.projects()}>{(project) => props.renderProject(project)}</For>
+              </SortableProvider>
+              <Tooltip
+                placement={placement()}
+                value={
+                  <div class="flex items-center gap-2">
+                    <span>{props.openProjectLabel}</span>
+                    <Show when={!props.mobile && !!props.openProjectKeybind()}>
+                      <span class="text-icon-base text-12-medium">{props.openProjectKeybind()}</span>
+                    </Show>
+                  </div>
+                }
+              >
+                <IconButton
+                  icon="plus"
+                  variant="ghost"
+                  size="large"
+                  onClick={props.onOpenProject}
+                  aria-label={typeof props.openProjectLabel === "string" ? props.openProjectLabel : undefined}
+                />
+              </Tooltip>
+            </div>
+            <DragOverlay>{props.renderProjectOverlay()}</DragOverlay>
+          </DragDropProvider>
+        </div>
+        <div class="shrink-0 w-full pt-3 pb-6 flex flex-col items-center gap-2">
+          <TooltipKeybind placement={placement()} title={props.settingsLabel()} keybind={props.settingsKeybind() ?? ""}>
             <IconButton
               icon="settings-gear"
               variant="ghost"
-              size="small"
+              size="large"
               onClick={props.onOpenSettings}
               aria-label={props.settingsLabel()}
             />
           </TooltipKeybind>
+          <Tooltip placement={placement()} value={props.helpLabel()}>
+            <IconButton
+              icon="help"
+              variant="ghost"
+              size="large"
+              onClick={props.onOpenHelp}
+              aria-label={props.helpLabel()}
+            />
+          </Tooltip>
         </div>
-      </Show>
-      <Show when={!isCollapsed()}>
-        <div class="w-16 shrink-0 flex flex-col items-center overflow-hidden" onMouseMove={props.aimMove}>
-          <Show when={!props.mobile && props.onToggleCollapsed}>
-            <div class="shrink-0 w-full pt-2 flex justify-center">
-              <Tooltip placement={placement()} value="Hide projects">
-                <IconButton
-                  icon="chevron-left"
-                  variant="ghost"
-                  size="small"
-                  onClick={props.onToggleCollapsed}
-                  aria-label="Hide projects"
-                />
-              </Tooltip>
-            </div>
-          </Show>
-          <div class="flex-1 min-h-0 w-full">
-            <DragDropProvider
-              onDragStart={props.handleDragStart}
-              onDragEnd={props.handleDragEnd}
-              onDragOver={props.handleDragOver}
-              collisionDetector={closestCenter}
-            >
-              <DragDropSensors />
-              <ConstrainDragXAxis />
-              <div class="h-full w-full flex flex-col items-center gap-3 px-3 py-3 overflow-y-auto no-scrollbar">
-                <SortableProvider ids={props.projects().map((p) => p.worktree)}>
-                  <For each={props.projects()}>{(project) => props.renderProject(project)}</For>
-                </SortableProvider>
-                <Tooltip
-                  placement={placement()}
-                  value={
-                    <div class="flex items-center gap-2">
-                      <span>{props.openProjectLabel}</span>
-                      <Show when={!props.mobile && !!props.openProjectKeybind()}>
-                        <span class="text-icon-base text-12-medium">{props.openProjectKeybind()}</span>
-                      </Show>
-                    </div>
-                  }
-                >
-                  <IconButton
-                    icon="plus"
-                    variant="ghost"
-                    size="large"
-                    onClick={props.onOpenProject}
-                    aria-label={typeof props.openProjectLabel === "string" ? props.openProjectLabel : undefined}
-                  />
-                </Tooltip>
-              </div>
-              <DragOverlay>{props.renderProjectOverlay()}</DragOverlay>
-            </DragDropProvider>
-          </div>
-          <div class="shrink-0 w-full pt-3 pb-6 flex flex-col items-center gap-2">
-            <TooltipKeybind
-              placement={placement()}
-              title={props.settingsLabel()}
-              keybind={props.settingsKeybind() ?? ""}
-            >
-              <IconButton
-                icon="settings-gear"
-                variant="ghost"
-                size="large"
-                onClick={props.onOpenSettings}
-                aria-label={props.settingsLabel()}
-              />
-            </TooltipKeybind>
-            <Tooltip placement={placement()} value={props.helpLabel()}>
-              <IconButton
-                icon="help"
-                variant="ghost"
-                size="large"
-                onClick={props.onOpenHelp}
-                aria-label={props.helpLabel()}
-              />
-            </Tooltip>
-          </div>
-        </div>
-      </Show>
+      </div>
 
-      <Show when={expanded()}>{props.renderPanel()}</Show>
+      <div
+        ref={(el) => {
+          panel = el
+        }}
+        classList={{ "flex h-full min-h-0 min-w-0 overflow-hidden": true, "pointer-events-none": !expanded() }}
+        aria-hidden={!expanded()}
+      >
+        {props.renderPanel()}
+      </div>
     </div>
   )
 }

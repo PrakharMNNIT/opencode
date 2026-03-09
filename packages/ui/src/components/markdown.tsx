@@ -46,7 +46,7 @@ function sanitize(html: string) {
   return DOMPurify.sanitize(html, config)
 }
 
-function escape(text: string) {
+function escapeHtml(text: string) {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -56,7 +56,7 @@ function escape(text: string) {
 }
 
 function fallback(markdown: string) {
-  return escape(markdown).replace(/\r\n?/g, "\n").replace(/\n/g, "<br>")
+  return escapeHtml(markdown).replace(/\r\n?/g, "\n").replace(/\n/g, "<br>")
 }
 
 type CopyLabels = {
@@ -427,7 +427,7 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
 
     let source: string
     try {
-      source = decodeEntities(decodeURIComponent(escape(atob(encoded))))
+      source = decodeURIComponent(escape(atob(encoded)))
     } catch {
       continue
     }
@@ -474,7 +474,7 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
       // Render failed — show error + source as fallback
       const msg = err instanceof Error ? err.message : String(err)
       console.error("[mermaid] Render failed:", msg, "\nSource:", source.substring(0, 200))
-      renderSlot.innerHTML = `<div data-slot="mermaid-error" style="padding:8px 12px;border-radius:6px;font-size:12px;color:var(--text-on-critical-base);background:var(--surface-critical-weak);border:1px solid var(--border-critical-base)">Diagram error: ${escape(msg.split("\n")[0])}</div>`
+      renderSlot.innerHTML = `<div data-slot="mermaid-error" style="padding:8px 12px;border-radius:6px;font-size:12px;color:var(--text-on-critical-base);background:var(--surface-critical-weak);border:1px solid var(--border-critical-base)">Diagram error: ${escapeHtml(msg.split("\n")[0])}</div>`
       const sourceSlot = container.querySelector<HTMLElement>('[data-slot="mermaid-source"]')
       if (sourceSlot) sourceSlot.hidden = false
       container.setAttribute("data-rendered", "error")

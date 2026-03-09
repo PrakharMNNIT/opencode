@@ -427,7 +427,7 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
 
     let source: string
     try {
-      source = decodeURIComponent(escape(atob(encoded)))
+      source = decodeEntities(decodeURIComponent(escape(atob(encoded))))
     } catch {
       continue
     }

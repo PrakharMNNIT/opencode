@@ -332,8 +332,8 @@ if [[ "$DMG_ONLY" == false && -n "${CLI_BIN_BUILD:-}" ]]; then
   printf "  [y/N] " > /dev/tty 2>/dev/null
   read -r response < /dev/tty 2>/dev/null || response="n"
   if [[ "$response" =~ ^[Yy]$ ]]; then
-    cp "$SCRIPT_DIR/packages/opencode/$CLI_BIN_BUILD" /usr/local/bin/opencode
-    chmod +x /usr/local/bin/opencode
+    sudo cp "$SCRIPT_DIR/packages/opencode/$CLI_BIN_BUILD" /usr/local/bin/opencode
+    sudo chmod +x /usr/local/bin/opencode
     log "CLI installed: $(which opencode) → $(opencode --version 2>&1 | head -1)"
   fi
 fi

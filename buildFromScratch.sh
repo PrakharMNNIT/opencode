@@ -293,6 +293,7 @@ with open('$CONF','w') as f:
   # Find DMG
   DMG=$(find target/release/bundle/dmg -name "*.dmg" -type f 2>/dev/null | head -1)
   if [[ -n "$DMG" ]]; then
+    DMG="$SCRIPT_DIR/packages/desktop/src-tauri/$DMG"
     DMG_SIZE=$(du -sh "$DMG" | cut -f1)
     log "DMG built: $DMG ($DMG_SIZE) in ${ELAPSED}s"
   else
@@ -342,7 +343,7 @@ if [[ "$CLI_ONLY" == false && -n "${DMG:-}" ]]; then
   printf "  [y/N] " > /dev/tty 2>/dev/null
   read -r response < /dev/tty 2>/dev/null || response="n"
   if [[ "$response" =~ ^[Yy]$ ]]; then
-    open "$SCRIPT_DIR/packages/desktop/src-tauri/$DMG"
+    open "$DMG"
     log "DMG opened — drag to Applications to install"
   fi
 fi

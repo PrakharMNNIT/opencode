@@ -354,6 +354,12 @@ async function getMermaid() {
   return m
 }
 
+function decodeEntities(text: string): string {
+  const el = document.createElement("textarea")
+  el.innerHTML = text
+  return el.value
+}
+
 let mermaidCounter = 0
 
 const mermaidKeywords =
@@ -371,7 +377,7 @@ function upgradeBareCodeBlocks(root: HTMLDivElement) {
     if (!code) continue
 
     const hasMermaidClass = code.className.includes("language-mermaid")
-    const source = (code.textContent ?? "").trim()
+    const source = decodeEntities((code.textContent ?? "").trim())
     if (!source) continue
 
     if (!hasMermaidClass && !mermaidKeywords.test(source)) continue

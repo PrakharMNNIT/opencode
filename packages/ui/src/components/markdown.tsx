@@ -325,9 +325,13 @@ function configureMermaid(m: typeof import("mermaid")) {
   const dark = isDarkMode()
   const themeVars = getMermaidThemeVars()
   const hasCustomColors = Object.keys(themeVars).length > 0
+  // Use native dark/default theme as base so ALL diagram types (including xychart,
+  // block, kanban, packet) get proper backgrounds. Then overlay accent colors.
+  // Using "base" theme forces a light starting palette that newer diagrams don't override.
+  const theme = dark ? "dark" : hasCustomColors ? "base" : "default"
   m.default.initialize({
     startOnLoad: false,
-    theme: hasCustomColors ? "base" : (dark ? "dark" : "default"),
+    theme,
     ...(hasCustomColors && { themeVariables: { darkMode: dark, ...themeVars } }),
   })
   lastThemeFingerprint = getThemeFingerprint()
@@ -427,7 +431,7 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
 
     let source: string
     try {
-      source = decodeURIComponent(escape(atob(encoded)))
+      source = decodeEntities(decodeURIComponent(escape(atob(encoded))))
     } catch {
       continue
     }
@@ -559,7 +563,7 @@ async function rerenderMermaidDiagrams(root: HTMLDivElement) {
     if (!renderSlot) continue
     let source: string
     try {
-      source = decodeURIComponent(escape(atob(encoded)))
+      source = decodeEntities(decodeURIComponent(escape(atob(encoded))))
     } catch {
       continue
     }

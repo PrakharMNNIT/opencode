@@ -328,7 +328,8 @@ log "Full log: $LOG"
 # --- Auto-install if requested or prompt ---
 if [[ "$DMG_ONLY" == false && -n "${CLI_BIN_BUILD:-}" ]]; then
   info "Install CLI globally? (copies to /usr/local/bin/opencode)"
-  read -r -p "  [y/N] " response < /dev/tty 2>/dev/null || response="n"
+  printf "  [y/N] " > /dev/tty 2>/dev/null
+  read -r response < /dev/tty 2>/dev/null || response="n"
   if [[ "$response" =~ ^[Yy]$ ]]; then
     cp "$SCRIPT_DIR/packages/opencode/$CLI_BIN_BUILD" /usr/local/bin/opencode
     chmod +x /usr/local/bin/opencode
@@ -338,7 +339,8 @@ fi
 
 if [[ "$CLI_ONLY" == false && -n "${DMG:-}" ]]; then
   info "Open DMG for installation?"
-  read -r -p "  [y/N] " response < /dev/tty 2>/dev/null || response="n"
+  printf "  [y/N] " > /dev/tty 2>/dev/null
+  read -r response < /dev/tty 2>/dev/null || response="n"
   if [[ "$response" =~ ^[Yy]$ ]]; then
     open "$SCRIPT_DIR/packages/desktop/src-tauri/$DMG"
     log "DMG opened — drag to Applications to install"

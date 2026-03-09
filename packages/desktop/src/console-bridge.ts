@@ -28,6 +28,10 @@ function queue(level: string, msg: string) {
 // Skip known noisy warnings that provide no diagnostic value
 const noisy = /Do not assign mappings to elements without corresponding data/
 
+function isNoisy(args: unknown[]): boolean {
+  return args.some((a) => typeof a === "string" && noisy.test(a))
+}
+
 function forward(level: string, args: unknown[]) {
   const msg = args
     .map((a) => {
@@ -55,6 +59,7 @@ console.info = (...args: unknown[]) => {
 }
 
 console.warn = (...args: unknown[]) => {
+  if (isNoisy(args)) return
   native.warn(...args)
   forward("warn", args)
 }

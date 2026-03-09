@@ -137,26 +137,38 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       setTheme,
       setColorScheme,
       registerTheme: (theme: DesktopTheme) => setStore("themes", theme.id, theme),
-      previewTheme: (id: string) => {
-        const theme = store.themes[id]
-        if (!theme) return
-        setStore("previewThemeId", id)
-        const previewMode = store.previewScheme
-          ? store.previewScheme === "system"
-            ? getSystemMode()
-            : store.previewScheme
-          : store.mode
-        applyThemeCss(theme, id, previewMode)
-      },
-      previewColorScheme: (scheme: ColorScheme) => {
-        setStore("previewScheme", scheme)
-        const previewMode = scheme === "system" ? getSystemMode() : scheme
-        const id = store.previewThemeId ?? store.themeId
-        const theme = store.themes[id]
-        if (theme) {
-          applyThemeCss(theme, id, previewMode)
+      previewTheme: (() => {
+        let pending: ReturnType<typeof setTimeout> | undefined
+        return (id: string) => {
+          const theme = store.themes[id]
+          if (!theme) return
+          setStore("previewThemeId", id)
+          clearTimeout(pending)
+          pending = setTimeout(() => {
+            const previewMode = store.previewScheme
+              ? store.previewScheme === "system"
+                ? getSystemMode()
+                : store.previewScheme
+              : store.mode
+            applyThemeCss(theme, id, previewMode)
+          }, 80)
         }
-      },
+      })(),
+      previewColorScheme: (() => {
+        let pending: ReturnType<typeof setTimeout> | undefined
+        return (scheme: ColorScheme) => {
+          setStore("previewScheme", scheme)
+          clearTimeout(pending)
+          pending = setTimeout(() => {
+            const previewMode = scheme === "system" ? getSystemMode() : scheme
+            const id = store.previewThemeId ?? store.themeId
+            const theme = store.themes[id]
+            if (theme) {
+              applyThemeCss(theme, id, previewMode)
+            }
+          }, 80)
+        }
+      })(),
       commitPreview: () => {
         if (store.previewThemeId) {
           setTheme(store.previewThemeId)

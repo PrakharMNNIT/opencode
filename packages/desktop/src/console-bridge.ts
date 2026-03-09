@@ -8,6 +8,26 @@ const native = {
   debug: console.debug.bind(console),
 }
 
+// Batch IPC calls to avoid flooding Rust tracing on high-volume output
+// (mermaid/cytoscape can emit 50+ warnings per diagram render)
+let batch: string[] = []
+let timer: ReturnType<typeof setTimeout> | undefined
+
+function flush() {
+  if (batch.length === 0) return
+  const msg = batch.join("\n")
+  batch = []
+  commands.logWebview("info", msg).catch(() => {})
+}
+
+function queue(level: string, msg: string) {
+  batch.push(`[${level}] ${msg}`)
+  if (!timer) timer = setTimeout(() => { timer = undefined; flush() }, 100)
+}
+
+// Skip known noisy warnings that provide no diagnostic value
+const noisy = /Do not assign mappings to elements without corresponding data/
+
 function forward(level: string, args: unknown[]) {
   const msg = args
     .map((a) => {
@@ -15,7 +35,13 @@ function forward(level: string, args: unknown[]) {
       try { return JSON.stringify(a, null, 2) } catch { return String(a) }
     })
     .join(" ")
-  commands.logWebview(level, msg).catch(() => {})
+  if (noisy.test(msg)) return
+  if (level === "error") {
+    // Errors go immediately, not batched
+    commands.logWebview("error", msg).catch(() => {})
+    return
+  }
+  queue(level, msg)
 }
 
 console.log = (...args: unknown[]) => {

@@ -38,6 +38,7 @@ import { Persist, persisted } from "@/utils/persist"
 import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { useServer } from "@/context/server"
 import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
 import { createPromptAttachments, ACCEPTED_FILE_TYPES } from "./prompt-input/attachments"
 import {
@@ -110,6 +111,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const permission = usePermission()
   const language = useLanguage()
   const platform = usePlatform()
+  const server = useServer()
   let editorRef!: HTMLDivElement
   let fileInputRef: HTMLInputElement | undefined
   let scrollRef!: HTMLDivElement
@@ -243,9 +245,13 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (!text || enhancing()) return
     setEnhancing(true)
     try {
-      const res = await fetch(`${sdk.url}/experimental/enhance`, {
+      const http = server.current?.http
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (http?.password) headers["Authorization"] = `Basic ${btoa(`${http.username ?? "opencode"}:${http.password}`)}`
+      const fetcher = platform.fetch ?? fetch
+      const res = await fetcher(`${sdk.url}/experimental/enhance`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ text }),
       })
       if (!res.ok) throw new Error("Enhance failed")

@@ -40,7 +40,7 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
   )
   const ink = colors.ink ?? colors.neutral
   const backgroundOverride = overrides["background-base"]
-  const backgroundHex = getHex(backgroundOverride)
+  const backgroundHex = getHex(backgroundOverride as ColorValue | undefined)
   const overlay = noInk || (Boolean(backgroundOverride) && !backgroundHex)
   const content = (seed: HexColor, scale: HexColor[]) => {
     const value = isDark ? seed : hexToOklch(seed).l > 0.82 ? scale[10] : seed
@@ -615,11 +615,11 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
   const a3r = Math.round(accent3Rgb.r * 255)
   const a3g = Math.round(accent3Rgb.g * 255)
   const a3b = Math.round(accent3Rgb.b * 255)
-  const errRgb = hexToRgb(seeds.error)
+  const errRgb = hexToRgb(seeds?.error ?? colors.error)
   const er = Math.round(errRgb.r * 255)
   const eg_ = Math.round(errRgb.g * 255)
   const eb = Math.round(errRgb.b * 255)
-  const sucRgb = hexToRgb(seeds.success)
+  const sucRgb = hexToRgb(seeds?.success ?? colors.success)
   const sr = Math.round(sucRgb.r * 255)
   const sg = Math.round(sucRgb.g * 255)
   const sb = Math.round(sucRgb.b * 255)

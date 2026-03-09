@@ -10,7 +10,10 @@ const native = {
 
 function forward(level: string, args: unknown[]) {
   const msg = args
-    .map((a) => (typeof a === "string" ? a : JSON.stringify(a, null, 2)))
+    .map((a) => {
+      if (typeof a === "string") return a
+      try { return JSON.stringify(a, null, 2) } catch { return String(a) }
+    })
     .join(" ")
   commands.logWebview(level, msg).catch(() => {})
 }

@@ -357,7 +357,7 @@ async function getMermaid() {
 let mermaidCounter = 0
 
 const mermaidKeywords =
-  /^(?:graph\s|flowchart\s|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline|quadrantChart|sankey|xychart|block-beta|packet-beta)/
+  /^(?:graph\s|flowchart\s|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline|quadrantChart|sankey|xychart|block-beta|packet-beta|C4Context|C4Container|C4Component|C4Deployment|C4Dynamic|architecture|requirementDiagram|kanban|radar)/
 
 function upgradeBareCodeBlocks(root: HTMLDivElement) {
   // Find bare mermaid code blocks from cached HTML that predate the placeholder system.
@@ -464,13 +464,13 @@ async function renderMermaidDiagrams(root: HTMLDivElement) {
 
         container.appendChild(actions)
       }
-    } catch {
-      // Render failed — show source as fallback
+    } catch (err) {
+      // Render failed — show error + source as fallback
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error("[mermaid] Render failed:", msg, "\nSource:", source.substring(0, 200))
+      renderSlot.innerHTML = `<div data-slot="mermaid-error" style="padding:8px 12px;border-radius:6px;font-size:12px;color:var(--text-on-critical-base);background:var(--surface-critical-weak);border:1px solid var(--border-critical-base)">Diagram error: ${escape(msg.split("\n")[0])}</div>`
       const sourceSlot = container.querySelector<HTMLElement>('[data-slot="mermaid-source"]')
-      if (renderSlot && sourceSlot) {
-        renderSlot.hidden = true
-        sourceSlot.hidden = false
-      }
+      if (sourceSlot) sourceSlot.hidden = false
       container.setAttribute("data-rendered", "error")
     }
   }

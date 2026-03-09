@@ -579,17 +579,25 @@ async function rerenderMermaidDiagrams(root: HTMLDivElement) {
 
 function setupMermaidThemeObserver(root: HTMLDivElement) {
   let lastFp = getThemeFingerprint()
+  let pending: ReturnType<typeof setTimeout> | undefined
   const observer = new MutationObserver(() => {
     const currentFp = getThemeFingerprint()
     if (currentFp === lastFp) return
     lastFp = currentFp
-    rerenderMermaidDiagrams(root)
+    // Debounce: theme preview fires rapid mutations. Mermaid re-render is heavy
+    // (each diagram = sync SVG generation + cytoscape init for architecture diagrams).
+    // Wait 500ms after last mutation before re-rendering.
+    clearTimeout(pending)
+    pending = setTimeout(() => rerenderMermaidDiagrams(root), 500)
   })
   observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["data-color-scheme", "data-theme"],
   })
-  return () => observer.disconnect()
+  return () => {
+    clearTimeout(pending)
+    observer.disconnect()
+  }
 }
 
 function decorate(root: HTMLDivElement, labels: CopyLabels) {

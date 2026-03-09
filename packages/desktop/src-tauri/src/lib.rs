@@ -116,6 +116,17 @@ fn get_logs() -> String {
 
 #[tauri::command]
 #[specta::specta]
+fn log_webview(level: &str, msg: &str) {
+    match level {
+        "error" => tracing::error!(target: "webview", "{msg}"),
+        "warn" => tracing::warn!(target: "webview", "{msg}"),
+        "debug" => tracing::debug!(target: "webview", "{msg}"),
+        _ => tracing::info!(target: "webview", "{msg}"),
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
 async fn await_initialization(
     state: State<'_, ServerState>,
     init_state: State<'_, InitState>,
@@ -403,7 +414,8 @@ fn make_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             check_app_exists,
             wsl_path,
             resolve_app_path,
-            open_path
+            open_path,
+            log_webview
         ])
         .events(tauri_specta::collect_events![
             LoadingWindowComplete,

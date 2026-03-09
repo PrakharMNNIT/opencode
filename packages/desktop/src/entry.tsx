@@ -1,5 +1,7 @@
-if (location.pathname === "/loading") {
-  import("./loading")
-} else {
-  import("./")
-}
+import("./console-bridge").then(() => {
+  if (location.pathname === "/loading") {
+    import("./loading")
+  } else {
+    import("./")
+  }
+})

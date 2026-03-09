@@ -24,10 +24,27 @@ export interface ThemeSeedColors {
   accentTertiary?: HexColor
 }
 
-export interface ThemeVariant {
-  seeds: ThemeSeedColors
+export interface ThemePaletteColors {
+  neutral: HexColor
+  ink?: HexColor
+  primary: HexColor
+  success: HexColor
+  warning: HexColor
+  error: HexColor
+  info: HexColor
+  accent?: HexColor
+  interactive?: HexColor
+  diffAdd?: HexColor
+  diffDelete?: HexColor
+}
+
+type ThemeVariantBase = {
   overrides?: Record<string, TokenValue>
 }
+
+export type ThemeVariant =
+  | ({ seeds: ThemeSeedColors; palette?: never } & ThemeVariantBase)
+  | ({ palette: ThemePaletteColors; seeds?: never } & ThemeVariantBase)
 
 export interface DesktopTheme {
   $schema?: string

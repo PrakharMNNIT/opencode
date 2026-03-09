@@ -44,8 +44,8 @@ export const midnightTheme = midnightThemeJson as DesktopTheme
 export const auroraTheme = auroraThemeJson as DesktopTheme
 
 export const DEFAULT_THEMES: Record<string, DesktopTheme> = {
-  "oc-1": oc1Theme,
   "oc-2": oc2Theme,
+  "oc-1": oc1Theme,
   aura: auraTheme,
   aurora: auroraTheme,
   ayu: ayuTheme,

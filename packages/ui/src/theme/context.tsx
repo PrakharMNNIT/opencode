@@ -35,7 +35,7 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   const tokens = resolveThemeVariant(variant, isDark)
   const css = themeToCss(tokens)
 
-  if (themeId !== "oc-1") {
+  if (themeId !== "oc-2") {
     try {
       localStorage.setItem(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, css)
     } catch {}
@@ -54,7 +54,7 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
 }
 
 function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
-  if (themeId === "oc-1") return
+  if (themeId === "oc-2") return
   for (const mode of ["light", "dark"] as const) {
     const isDark = mode === "dark"
     const variant = isDark ? theme.dark : theme.light

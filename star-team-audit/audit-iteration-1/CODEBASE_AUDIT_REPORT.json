@@ -1,0 +1,221 @@
+{
+  "audit_metadata": {
+    "repo_name": "opencode/packages/desktop",
+    "total_files": 767,
+    "files_reviewed": 25,
+    "languages_detected": ["Rust", "TypeScript", "TSX", "CSS", "HTML"],
+    "audit_date": "2026-03-11",
+    "completion_percentage": 100,
+    "version": "1.2.22",
+    "loc": 5645,
+    "iteration": 1
+  },
+  "architecture_review": {
+    "pattern": "Tauri v2 desktop app with embedded sidecar server",
+    "scores": {
+      "maintainability": 7,
+      "scalability": 6,
+      "security": 5,
+      "performance": 8,
+      "testability": 3
+    },
+    "weaknesses": [
+      "No HTML sanitization layer for markdown output",
+      "Shell command construction via string interpolation",
+      "No Content Security Policy in webview",
+      "Large monolithic index.tsx (290 lines)",
+      "WSL feature half-implemented"
+    ]
+  },
+  "security_audit": [
+    {
+      "id": "BUG-1",
+      "severity": "Critical",
+      "category": "XSS",
+      "owasp": "A7",
+      "cvss": 8.7,
+      "file": "src-tauri/src/markdown.rs",
+      "line": 51,
+      "description": "comrak unsafe=true allows raw HTML/JS passthrough to webview",
+      "fix": "Set unsafe=false or add ammonia sanitizer",
+      "effort_pd": 0.5
+    },
+    {
+      "id": "BUG-6",
+      "severity": "Medium",
+      "category": "Injection",
+      "owasp": "A1",
+      "file": "src-tauri/src/lib.rs",
+      "line": 236,
+      "description": "Shell injection in wsl_path via incomplete escaping",
+      "fix": "Use shell_escape() or direct argv",
+      "effort_pd": 0.5
+    },
+    {
+      "id": "BUG-9",
+      "severity": "Low",
+      "category": "TOCTOU",
+      "file": "src-tauri/src/cli.rs",
+      "line": 140,
+      "description": "Predictable temp file path in install_cli",
+      "fix": "Use tempfile crate",
+      "effort_pd": 0.5
+    }
+  ],
+  "code_review_findings": [
+    {
+      "id": "BUG-7",
+      "severity": "Medium",
+      "category": "logic",
+      "file": "src-tauri/src/server.rs",
+      "line": 63,
+      "description": "get_wsl_config hardcoded to return false, store read commented out",
+      "fix": "Uncomment store-reading code",
+      "effort_pd": 0.5
+    },
+    {
+      "id": "BUG-13",
+      "severity": "Medium",
+      "category": "error-handling",
+      "file": "src/index.tsx",
+      "line": 281,
+      "description": "Dead error check + no ErrorBoundary in ServerGate",
+      "fix": "Remove dead check, wrap in ErrorBoundary",
+      "effort_pd": 1
+    },
+    {
+      "id": "BUG-8",
+      "severity": "Low",
+      "category": "logic",
+      "file": "src-tauri/src/lib.rs",
+      "line": 253,
+      "description": "check_linux_app stub always returns true",
+      "fix": "Implement with which command",
+      "effort_pd": 0.5
+    },
+    {
+      "id": "BUG-11",
+      "severity": "Low",
+      "category": "logic",
+      "file": "src-tauri/src/lib.rs",
+      "line": 348,
+      "description": "opencode_db_path may be wrong on macOS",
+      "fix": "Use dirs::data_dir()",
+      "effort_pd": 0.5
+    },
+    {
+      "id": "BUG-15",
+      "severity": "Low",
+      "category": "logic",
+      "file": "src/console-bridge.ts",
+      "line": 12,
+      "description": "Batch not flushed on page unload",
+      "fix": "Add pagehide listener",
+      "effort_pd": 0.25
+    },
+    {
+      "id": "BUG-17",
+      "severity": "Low",
+      "category": "logic",
+      "file": "src/loading.tsx",
+      "line": 14,
+      "description": "i18n translations captured before init",
+      "fix": "Move lines array inside component",
+      "effort_pd": 0.25
+    },
+    {
+      "id": "CQ-1",
+      "severity": "Medium",
+      "category": "quality",
+      "file": "src/index.tsx",
+      "description": "Large file (290 lines) mixing multiple concerns",
+      "fix": "Split into platform.ts, storage.ts, notifications.ts",
+      "effort_pd": 2
+    },
+    {
+      "id": "CQ-2",
+      "severity": "Medium",
+      "category": "quality",
+      "file": "src-tauri/src/cli.rs",
+      "description": "spawn_command 80+ lines, should split by platform",
+      "fix": "Extract Windows, Unix, WSL into separate functions",
+      "effort_pd": 1
+    },
+    {
+      "id": "CQ-3",
+      "severity": "Medium",
+      "category": "quality",
+      "file": "src-tauri/src/os/windows.rs",
+      "description": "resolve_windows_app_path 200+ lines, deeply nested",
+      "fix": "Extract helper functions",
+      "effort_pd": 2
+    }
+  ],
+  "qa_review": {
+    "current_coverage_percent": 8,
+    "target_coverage_percent": 50,
+    "existing_tests": 20,
+    "missing_tests": 22,
+    "frontend_coverage": 0,
+    "backend_coverage": 15
+  },
+  "docs_analysis": {
+    "gaps": [
+      "Architecture document (HLD/LLD)",
+      "IPC command reference",
+      "Security model documentation",
+      "WSL integration guide",
+      "Update mechanism docs",
+      "Error handling policy",
+      "Platform-specific behavior",
+      "Logging guide",
+      "Deep link handling",
+      "i18n contribution guide",
+      "Build matrix",
+      "Deployment/release process"
+    ]
+  },
+  "consolidated_issues": {
+    "total": 30,
+    "by_severity": { "Critical": 1, "Medium": 7, "Low": 22 },
+    "by_priority": { "P0": 1, "P1": 7, "P2": 10, "P3": 12 },
+    "total_effort_pd": 26
+  },
+  "implementation_roadmap": [
+    {
+      "sprint": 1,
+      "duration": "1 week",
+      "focus": "P0 Security Fix",
+      "tickets": ["TICKET-001", "TICKET-002"],
+      "effort_pd": 1
+    },
+    {
+      "sprint": 2,
+      "duration": "2 weeks",
+      "focus": "P1 Fixes",
+      "tickets": ["TICKET-003", "TICKET-004", "TICKET-005", "TICKET-006", "TICKET-007", "TICKET-008"],
+      "effort_pd": 6
+    },
+    {
+      "sprint": "3-4",
+      "duration": "4 weeks",
+      "focus": "P2 Quality",
+      "tickets": ["TICKET-009", "TICKET-010", "TICKET-011", "TICKET-012", "TICKET-013", "TICKET-014", "TICKET-015"],
+      "effort_pd": 8.5
+    }
+  ],
+  "future_enhancements": [
+    "HTML sanitization layer (ammonia)",
+    "Content Security Policy",
+    "Automated cargo audit in CI",
+    "Error reporting UI",
+    "WSL feature completion",
+    "Keyboard shortcut system",
+    "Offline mode",
+    "Log viewer",
+    "Auto-updater UX improvements",
+    "Multi-window support",
+    "Plugin system",
+    "Performance monitoring"
+  ]
+}

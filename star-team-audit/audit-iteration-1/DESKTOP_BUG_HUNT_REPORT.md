@@ -1,0 +1,78 @@
+# 🔬 Bug Hunter Audit Report — packages/desktop
+
+## Scan Metadata
+- **Mode:** local-sequential (parallel strategy)
+- **Target:** packages/desktop
+- **Files scanned:** 25 source files (21 filtered out: i18n, scripts, configs)
+- **Architecture:** Tauri v2 desktop app (Rust backend + SolidJS/TypeScript frontend)
+- **Tech stack:** Tauri 2, comrak, reqwest, tokio, process-wrap | SolidJS, Vite, @tauri-apps/*
+- **Scan date:** 2026-03-11
+
+## Pipeline Summary
+```
+Triage:    46 total files | 25 scannable | FILE_BUDGET: 60 | Strategy: parallel
+Recon:     mapped 25 files → CRITICAL: 4 | HIGH: 6 | MEDIUM: 15
+Hunter:    17 findings (3 Critical, 9 Medium, 5 Low) → 80 points
+Skeptic:   challenged 17 | disproved: 7, accepted: 10
+Referee:   confirmed 9 real bugs → Critical: 1 | Medium: 3 | Low: 5
+```
+
+## ✅ Confirmed Bugs
+
+### 🔴 CRITICAL (1)
+
+| # | File | Lines | Issue | CVSS | Fix |
+|---|------|-------|-------|------|-----|
+| BUG-1 | src-tauri/src/markdown.rs | 51 | **XSS via unsafe markdown rendering** — comrak `unsafe=true` allows raw HTML/JS to pass through. Attacker-controlled markdown content (AI responses, project files) can execute scripts in Tauri webview context, accessing all IPC commands. | 8.7 | Set `unsafe=false` or sanitize with ammonia crate |
+
+### 🟡 MEDIUM (3)
+
+| # | File | Lines | Issue | Fix |
+|---|------|-------|-------|-----|
+| BUG-6 | src-tauri/src/lib.rs | 236-239 | **Shell injection in `wsl_path`** — Only `"` is escaped before interpolating path into `sh -lc`. `$()`, backticks, `\n` etc. are NOT escaped. Requires Windows + WSL + webview compromise. | Use `shell_escape()` or pass args directly to `wslpath` without `sh -c` |
+| BUG-7 | src-tauri/src/server.rs | 63-72 | **WSL config always returns false** — `get_wsl_config` has store-reading code commented out. `set_wsl_config` writes to store but reads are hardcoded false. WSL feature completely broken. | Uncomment store-reading code |
+| BUG-13 | src/index.tsx | 281-283 | **Dead error check + no ErrorBoundary** — `if (serverData.state === "errored") throw` is dead code (runs when state is "pending"). No ErrorBoundary catches resource errors. Init failure → blank/frozen screen. | Remove dead check, wrap in `<ErrorBoundary>` with retry UI |
+
+### 🟢 LOW (5)
+
+| # | File | Lines | Issue | Fix |
+|---|------|-------|-------|-----|
+| BUG-8 | src-tauri/src/lib.rs | 156-158 | **`check_linux_app` stub always returns true** — macOS/Windows have proper implementations, Linux is stubbed. Shows all apps as available on Linux. | Implement with `which` command |
+| BUG-9 | src-tauri/src/cli.rs | 140-156 | **TOCTOU in `install_cli`** — Predictable temp file `/tmp/opencode-install.sh`. Practical impact limited by sticky bit. | Use `tempfile::NamedTempFile` |
+| BUG-11 | src-tauri/src/lib.rs | 348-358 | **DB path may be wrong on macOS** — Uses XDG fallback `~/.local/share` which is non-standard on macOS. May cause unnecessary loading screen. | Use `dirs::data_dir()` |
+| BUG-15 | src/console-bridge.ts | 12-16 | **Batch not flushed on unload** — Non-error messages lost during page transitions. Errors go immediately. | Add `pagehide` listener to flush |
+| BUG-17 | src/loading.tsx | 14-16 | **i18n translations captured before init** — `const lines = [t(...)]` at module scope before `initI18n()`. Non-English users see fallback text. | Move `lines` inside component body |
+
+## ❌ Dismissed Findings (8)
+
+<details><summary>Click to expand</summary>
+
+| # | Claim | Reason |
+|---|-------|--------|
+| BUG-2 | Shell injection via WSL hostname from config | Hostname is hardcoded "127.0.0.1" — no user input reaches shell |
+| BUG-3 | Shell injection via Unix shell command | Same — args from hardcoded strings and u32 port |
+| BUG-4 | Unsafe env::set_var race condition | Standard Rust pattern — no threads before main |
+| BUG-5 | SSRF via custom server URL | Desktop app — user controls own config, not server-side |
+| BUG-10 | curl\|bash without integrity verification | HTTPS provides integrity — industry-standard pattern |
+| BUG-12 | AsyncStorage length returns Promise | Correct per AsyncStorage interface design |
+| BUG-14 | Zoom state not persisted across reloads | Both signal and webview zoom reset together |
+| BUG-16 | Remote server falls through to local sidecar | Intentional design documented in code comment |
+
+</details>
+
+## 📊 Agent Accuracy Stats
+- **Hunter accuracy:** 9/17 confirmed (53%)
+- **Skeptic disprove accuracy:** 7/7 correct (100%)
+- **Skeptic accept accuracy:** 9/10 correct (90%)
+
+## 📈 Coverage Assessment
+**Full coverage achieved.** All 25 scannable source files were read and analyzed. All CRITICAL, HIGH, and MEDIUM priority files scanned.
+- CRITICAL: 4/4 ✅
+- HIGH: 6/6 ✅
+- MEDIUM: 15/15 ✅
+
+## Low-confidence Items (Manual Review Recommended)
+- **BUG-11:** Uncertain whether sidecar's DB path logic matches desktop's `opencode_db_path()` — needs cross-package verification against `packages/opencode` backend code.
+
+---
+*Report generated by Bug Hunter v3.0.0 • Scan: scan-2026-03-11-025000*

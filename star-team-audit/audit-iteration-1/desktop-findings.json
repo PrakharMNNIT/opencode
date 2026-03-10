@@ -1,0 +1,143 @@
+{
+  "version": "3.0.0",
+  "scan_id": "scan-2026-03-11-025000",
+  "scan_date": "2026-03-11T02:50:00Z",
+  "mode": "parallel",
+  "target": "packages/desktop",
+  "files_scanned": 25,
+  "threat_model_loaded": false,
+  "confirmed": [
+    {
+      "id": "BUG-1",
+      "severity": "CRITICAL",
+      "category": "security",
+      "stride": "Tampering",
+      "cwe": "CWE-79",
+      "file": "src-tauri/src/markdown.rs",
+      "lines": "51",
+      "claim": "XSS via unsafe markdown rendering — comrak unsafe=true allows raw HTML to pass through to webview, enabling script execution",
+      "reachability": "AUTHENTICATED",
+      "exploitability": "MEDIUM",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:N",
+      "cvss_score": 8.7,
+      "poc": {
+        "payload": "<img src=x onerror=\"window.__TAURI_INTERNALS__.invoke('kill_sidecar')\">",
+        "request": "IPC call: parseMarkdownCommand(payload)",
+        "expected": "HTML entities escaped, no script execution",
+        "actual": "Raw HTML passes through, onerror fires, IPC commands executable"
+      },
+      "fix": "Set options.render.unsafe=false or sanitize output with ammonia crate"
+    },
+    {
+      "id": "BUG-6",
+      "severity": "MEDIUM",
+      "category": "security",
+      "stride": "Tampering",
+      "cwe": "CWE-78",
+      "file": "src-tauri/src/lib.rs",
+      "lines": "236-239",
+      "claim": "Shell injection in wsl_path — only double-quote is escaped, shell metacharacters like $() and backticks pass through to sh -lc",
+      "reachability": "AUTHENTICATED",
+      "exploitability": "MEDIUM",
+      "fix": "Use shell_escape() or avoid sh -c by passing args directly to wslpath"
+    },
+    {
+      "id": "BUG-7",
+      "severity": "MEDIUM",
+      "category": "logic",
+      "stride": "N/A",
+      "cwe": "N/A",
+      "file": "src-tauri/src/server.rs",
+      "lines": "63-72",
+      "claim": "WSL config always returns false — get_wsl_config has store-reading code commented out, write succeeds but read is hardcoded to false",
+      "fix": "Uncomment store-reading code in get_wsl_config"
+    },
+    {
+      "id": "BUG-13",
+      "severity": "MEDIUM",
+      "category": "error-handling",
+      "stride": "N/A",
+      "cwe": "N/A",
+      "file": "src/index.tsx",
+      "lines": "281-283",
+      "claim": "Dead error check in ServerGate + no ErrorBoundary — init failure shows blank/frozen screen instead of error message",
+      "fix": "Remove dead check, wrap in ErrorBoundary, add timeout fallback"
+    },
+    {
+      "id": "BUG-8",
+      "severity": "LOW",
+      "category": "logic",
+      "stride": "N/A",
+      "cwe": "N/A",
+      "file": "src-tauri/src/lib.rs",
+      "lines": "156-158",
+      "claim": "check_linux_app stub always returns true — incomplete implementation, other platforms have proper checks",
+      "fix": "Implement with Command::new(\"which\").arg(app_name)"
+    },
+    {
+      "id": "BUG-9",
+      "severity": "LOW",
+      "category": "security",
+      "stride": "Tampering",
+      "cwe": "CWE-377",
+      "file": "src-tauri/src/cli.rs",
+      "lines": "140-156",
+      "claim": "TOCTOU in install_cli — predictable temp file path /tmp/opencode-install.sh allows race condition",
+      "reachability": "INTERNAL",
+      "exploitability": "HARD",
+      "fix": "Use tempfile::NamedTempFile or pipe script via stdin"
+    },
+    {
+      "id": "BUG-11",
+      "severity": "LOW",
+      "category": "logic",
+      "stride": "N/A",
+      "cwe": "N/A",
+      "file": "src-tauri/src/lib.rs",
+      "lines": "348-358",
+      "claim": "opencode_db_path may look in wrong location on macOS — uses XDG fallback instead of platform-native path",
+      "fix": "Use dirs::data_dir() for cross-platform support"
+    },
+    {
+      "id": "BUG-15",
+      "severity": "LOW",
+      "category": "logic",
+      "stride": "N/A",
+      "cwe": "N/A",
+      "file": "src/console-bridge.ts",
+      "lines": "12-16",
+      "claim": "Console batch not flushed on page unload — non-error diagnostic messages lost during reload",
+      "fix": "Add pagehide/visibilitychange listener to flush"
+    },
+    {
+      "id": "BUG-17",
+      "severity": "LOW",
+      "category": "logic",
+      "stride": "N/A",
+      "cwe": "N/A",
+      "file": "src/loading.tsx",
+      "lines": "14-16",
+      "claim": "i18n translations captured at module scope before initI18n completes — non-English locales show fallback text on loading screen",
+      "fix": "Move lines array inside component body or use a function"
+    }
+  ],
+  "dismissed": [
+    { "id": "BUG-2", "severity": "Critical", "category": "security", "file": "src-tauri/src/cli.rs", "claim": "Shell injection via WSL hostname from config", "reason": "Hostname is hardcoded 127.0.0.1, not from user config" },
+    { "id": "BUG-3", "severity": "Critical", "category": "security", "file": "src-tauri/src/cli.rs", "claim": "Shell injection via Unix shell command", "reason": "Args from hardcoded strings and u32 port" },
+    { "id": "BUG-4", "severity": "Medium", "category": "security", "file": "src-tauri/src/main.rs", "claim": "Unsafe env::set_var race condition", "reason": "Standard Rust pattern, no threads at point of call" },
+    { "id": "BUG-5", "severity": "Medium", "category": "security", "file": "src-tauri/src/server.rs", "claim": "SSRF via custom server URL", "reason": "Desktop app — user controls own config" },
+    { "id": "BUG-10", "severity": "Medium", "category": "security", "file": "src-tauri/src/cli.rs", "claim": "curl|bash without integrity verification", "reason": "HTTPS provides integrity, industry-standard pattern" },
+    { "id": "BUG-12", "severity": "Low", "category": "logic", "file": "src/index.tsx", "claim": "AsyncStorage length returns Promise", "reason": "Correct behavior per AsyncStorage interface" },
+    { "id": "BUG-14", "severity": "Low", "category": "logic", "file": "src/webview-zoom.ts", "claim": "Zoom state not persisted across reloads", "reason": "Both signal and webview zoom reset together" },
+    { "id": "BUG-16", "severity": "Medium", "category": "logic", "file": "src-tauri/src/lib.rs", "claim": "Remote server falls through to local sidecar", "reason": "Intentional design documented in code comment" }
+  ],
+  "dependencies": [],
+  "summary": {
+    "total_reported": 17,
+    "confirmed": 9,
+    "dismissed": 8,
+    "by_severity": { "CRITICAL": 1, "HIGH": 0, "MEDIUM": 3, "LOW": 5 },
+    "by_stride": { "Tampering": 3, "N/A": 6 },
+    "by_category": { "security": 3, "logic": 4, "error-handling": 1 }
+  }
+}

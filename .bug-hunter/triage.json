@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-03-10T21:21:37.857Z",
+  "target": "/Users/praxlannister/Documents/workspace/opencode/packages/desktop",
+  "totalFiles": 46,
+  "scannableFiles": 25,
+  "strategy": "parallel",
+  "modeFile": "modes/parallel.md",
+  "needsLoop": false,
+  "fileBudget": 60,
+  "avgLines": 82,
+  "avgTokensPerFile": 328,
+  "estimatedTotalLines": 3772,
+  "sampledFiles": 30,
+  "domains": [
+    {
+      "path": "src",
+      "tier": "MEDIUM",
+      "fileCount": 9,
+      "riskBreakdown": {
+        "critical": 0,
+        "high": 0,
+        "medium": 9,
+        "low": 0,
+        "context-only": 0
+      }
+    },
+    {
+      "path": "src-tauri",
+      "tier": "MEDIUM",
+      "fileCount": 14,
+      "riskBreakdown": {
+        "critical": 0,
+        "high": 0,
+        "medium": 14,
+        "low": 0,
+        "context-only": 0
+      }
+    },
+    {
+      "path": ".",
+      "tier": "MEDIUM",
+      "fileCount": 2,
+      "riskBreakdown": {
+        "critical": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 0,
+        "context-only": 0
+      }
+    },
+    {
+      "path": "scripts",
+      "tier": "LOW",
+      "fileCount": 5,
+      "riskBreakdown": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 5,
+        "context-only": 0
+      }
+    },
+    {
+      "path": "src/i18n",
+      "tier": "LOW",
+      "fileCount": 16,
+      "riskBreakdown": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 16,
+        "context-only": 0
+      }
+    }
+  ],
+  "scanOrder": [
+    "src-tauri/build.rs",
+    "src-tauri/src/cli.rs",
+    "src-tauri/src/constants.rs",
+    "src-tauri/src/lib.rs",
+    "src-tauri/src/linux_display.rs",
+    "src-tauri/src/linux_windowing.rs",
+    "src-tauri/src/logging.rs",
+    "src-tauri/src/main.rs",
+    "src-tauri/src/markdown.rs",
+    "src-tauri/src/os/mod.rs",
+    "src-tauri/src/os/windows.rs",
+    "src-tauri/src/server.rs",
+    "src-tauri/src/window_customizer.rs",
+    "src-tauri/src/windows.rs",
+    "src/bindings.ts",
+    "src/cli.ts",
+    "src/console-bridge.ts",
+    "src/entry.tsx",
+    "src/index.tsx",
+    "src/loading.tsx",
+    "src/menu.ts",
+    "src/updater.ts",
+    "src/webview-zoom.ts",
+    "sst-env.d.ts",
+    "vite.config.ts"
+  ],
+  "tokenEstimate": {
+    "recon": 920,
+    "perHunterChunk": 8200,
+    "totalPipeline": 14120
+  },
+  "recommendations": [],
+  "riskMap": {
+    "critical": [],
+    "high": [],
+    "medium": [
+      "src-tauri/build.rs",
+      "src-tauri/src/cli.rs",
+      "src-tauri/src/constants.rs",
+      "src-tauri/src/lib.rs",
+      "src-tauri/src/linux_display.rs",
+      "src-tauri/src/linux_windowing.rs",
+      "src-tauri/src/logging.rs",
+      "src-tauri/src/main.rs",
+      "src-tauri/src/markdown.rs",
+      "src-tauri/src/os/mod.rs",
+      "src-tauri/src/os/windows.rs",
+      "src-tauri/src/server.rs",
+      "src-tauri/src/window_customizer.rs",
+      "src-tauri/src/windows.rs",
+      "src/bindings.ts",
+      "src/cli.ts",
+      "src/console-bridge.ts",
+      "src/entry.tsx",
+      "src/index.tsx",
+      "src/loading.tsx",
+      "src/menu.ts",
+      "src/updater.ts",
+      "src/webview-zoom.ts",
+      "sst-env.d.ts",
+      "vite.config.ts"
+    ],
+    "low": [
+      "scripts/copy-bundles.ts",
+      "scripts/finalize-latest-json.ts",
+      "scripts/predev.ts",
+      "scripts/prepare.ts",
+      "scripts/utils.ts",
+      "src/i18n/ar.ts",
+      "src/i18n/br.ts",
+      "src/i18n/bs.ts",
+      "src/i18n/da.ts",
+      "src/i18n/de.ts",
+      "src/i18n/en.ts",
+      "src/i18n/es.ts",
+      "src/i18n/fr.ts",
+      "src/i18n/index.ts",
+      "src/i18n/ja.ts",
+      "src/i18n/ko.ts",
+      "src/i18n/no.ts",
+      "src/i18n/pl.ts",
+      "src/i18n/ru.ts",
+      "src/i18n/zh.ts",
+      "src/i18n/zht.ts"
+    ],
+    "context-only": []
+  }
+}

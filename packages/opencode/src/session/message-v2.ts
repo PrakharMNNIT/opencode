@@ -183,20 +183,40 @@ export namespace MessageV2 {
   })
   export type FilePart = z.infer<typeof FilePart>
 
-  export const AgentPart = PartBase.extend({
-    type: z.literal("agent"),
-    name: z.string(),
-    source: z
-      .object({
-        value: z.string(),
-        start: z.number().int(),
-        end: z.number().int(),
-      })
-      .optional(),
-  }).meta({
-    ref: "AgentPart",
-  })
-  export type AgentPart = z.infer<typeof AgentPart>
+export const AgentPart = PartBase.extend({
+  type: z.literal("agent"),
+  name: z.string(),
+  source: z
+    .object({
+      value: z.string(),
+      start: z.number().int(),
+      end: z.number().int(),
+    })
+    .optional(),
+}).meta({
+  ref: "AgentPart",
+})
+export type AgentPart = z.infer<typeof AgentPart>
+
+// SkillPart — represents a user-initiated $skill mention.
+// When a user types "$brainstorming" in the prompt, this part is created.
+// The backend uses it to inject the skill's SKILL.md content into the
+// system prompt (wrapped in <skill> XML tags) for every message in the
+// session until the skill is removed.
+//
+// Data flow:
+//   User types "$brainstorming" → UI creates SkillPart → submitted with message
+//   → createUserMessage() extracts it → SessionSkills.add() persists to DB
+//   → loop() reads SessionSkills.list() → LRU cache → Skill.load() → system prompt
+//
+// See also: SessionSkills service (session/skill.service.ts)
+export const SkillPart = PartBase.extend({
+  type: z.literal("skill"),
+  name: z.string(), // skill name, e.g. "brainstorming" (matches SKILL.md directory name)
+}).meta({
+  ref: "SkillPart",
+})
+export type SkillPart = z.infer<typeof SkillPart>
 
   export const CompactionPart = PartBase.extend({
     type: z.literal("compaction"),
@@ -386,6 +406,7 @@ export namespace MessageV2 {
       SnapshotPart,
       PatchPart,
       AgentPart,
+      SkillPart,
       RetryPart,
       CompactionPart,
     ])

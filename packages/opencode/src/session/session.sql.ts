@@ -94,6 +94,32 @@ export const TodoTable = sqliteTable(
   ],
 )
 
+// session_skills — persists user-initiated $skill mentions per session.
+// Each row represents one active skill for one session.
+// Skills are added via "$brainstorming" in the prompt or POST /session/:id/skill,
+// removed via "$-brainstorming" or DELETE /session/:id/skill/:name.
+// The loop() function in prompt.ts reads this table each message to inject
+// skill content into the system prompt.
+//
+// Schema: composite PK on (session_id, skill_name) ensures uniqueness.
+// Index on session_id for fast list queries.
+export const SessionSkillTable = sqliteTable(
+  "session_skill",
+  {
+    session_id: text()
+      .$type<SessionID>()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    skill_name: text().notNull(),
+    added_at: integer().notNull(),
+    token_estimate: integer(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.session_id, table.skill_name] }),
+    index("session_skill_session_idx").on(table.session_id),
+  ],
+)
+
 export const PermissionTable = sqliteTable("permission", {
   project_id: text()
     .primaryKey()

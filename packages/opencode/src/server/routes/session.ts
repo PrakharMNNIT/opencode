@@ -18,6 +18,7 @@ import { PermissionNext } from "@/permission"
 import { PermissionID } from "@/permission/schema"
 import { ModelID, ProviderID } from "@/provider/schema"
 import { SessionSteer } from "@/session/steer"
+import { SessionSkills } from "@/session/skill.service"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 
@@ -1103,6 +1104,126 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const params = c.req.valid("param")
         const removed = SessionSteer.remove(params.sessionID as SessionID, params.steerID)
+        return c.json(removed)
+      },
+    )
+    // ─── Skill Routes ───────────────────────────────────────────────────────
+    // User-initiated $skill mentions. Persists skills per session in the
+    // session_skills SQL table. Frontend reads via sync channel.
+    // See: docs/designs/dollar-skill-mentions.md
+    .post(
+      "/:sessionID/skill",
+      describeRoute({
+        summary: "Add skill to session",
+        description:
+          "Add a user-initiated skill to the session. The skill's SKILL.md content will be injected into the system prompt for all subsequent messages in this session.",
+        operationId: "session.skill.add",
+        responses: {
+          200: {
+            description: "Active skills after addition",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.array(
+                    z.object({
+                      name: z.string(),
+                      added_at: z.number(),
+                      token_estimate: z.number().nullable(),
+                    }),
+                  ),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          name: z.string().min(1).meta({ description: "Skill name (e.g., 'brainstorming')" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID as SessionID
+        const body = c.req.valid("json")
+        // Idempotent add — re-adding an active skill is a no-op
+        SessionSkills.add(sessionID, body.name)
+        return c.json(SessionSkills.list(sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/skill",
+      describeRoute({
+        summary: "List active skills",
+        description: "List all user-initiated skills currently active for this session.",
+        operationId: "session.skill.list",
+        responses: {
+          200: {
+            description: "Active skills",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.array(
+                    z.object({
+                      name: z.string(),
+                      added_at: z.number(),
+                      token_estimate: z.number().nullable(),
+                    }),
+                  ),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID as SessionID
+        return c.json(SessionSkills.list(sessionID))
+      },
+    )
+    .delete(
+      "/:sessionID/skill/:skillName",
+      describeRoute({
+        summary: "Remove skill from session",
+        description:
+          "Remove a user-initiated skill from the session. Only removes skills added via $ prefix or this API — does not affect AI auto-loaded skills.",
+        operationId: "session.skill.remove",
+        responses: {
+          200: {
+            description: "Whether the skill was found and removed",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+          skillName: z.string().meta({ description: "Skill name to remove" }),
+        }),
+      ),
+      async (c) => {
+        const params = c.req.valid("param")
+        const removed = SessionSkills.remove(params.sessionID as SessionID, params.skillName)
         return c.json(removed)
       },
     )

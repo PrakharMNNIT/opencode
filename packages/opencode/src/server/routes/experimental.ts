@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { describeRoute, validator, resolver } from "hono-openapi"
 import z from "zod"
 import { ProviderID, ModelID } from "../../provider/schema"
+import { SessionID, MessageID } from "../../session/schema"
 import { ToolRegistry } from "../../tool/registry"
 import { Worktree } from "../../worktree"
 import { Instance } from "../../project/instance"
@@ -306,13 +307,13 @@ export const ExperimentalRoutes = lazy(() =>
         if (!agent) return c.json({ text: body.text })
 
         const defaults = await Provider.defaultModel()
-        const providerID = body.providerID ?? defaults.providerID
+        const providerID = (body.providerID ?? defaults.providerID) as ProviderID
         const model = await (async () => {
           if (agent.model)
             return Provider.getModel(agent.model.providerID, agent.model.modelID)
           const small = await Provider.getSmallModel(providerID)
           if (small) return small
-          return Provider.getModel(providerID, body.modelID ?? defaults.modelID)
+          return Provider.getModel(providerID, (body.modelID ?? defaults.modelID) as ModelID)
         })()
         if (!model) return c.json({ text: body.text })
 
@@ -320,8 +321,8 @@ export const ExperimentalRoutes = lazy(() =>
           agent,
           user: {
             role: "user",
-            id: "",
-            sessionID: "",
+            id: "" as MessageID,
+            sessionID: "" as SessionID,
             time: { created: Date.now() },
             agent: "enhance",
             model: { providerID: model.providerID, modelID: model.id },
@@ -332,7 +333,7 @@ export const ExperimentalRoutes = lazy(() =>
           tools: {},
           model,
           abort: new AbortController().signal,
-          sessionID: "",
+          sessionID: "" as SessionID,
           retries: 2,
           messages: [
             {

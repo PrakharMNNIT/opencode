@@ -31,7 +31,7 @@ describe("provider.error.parseAPICallError", () => {
       }),
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "amazon-bedrock",
+      providerID: "amazon-bedrock" as any,
       error,
     })
     expect(result.type).toBe("context_overflow")
@@ -46,7 +46,7 @@ describe("provider.error.parseAPICallError", () => {
       }),
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "amazon-bedrock",
+      providerID: "amazon-bedrock" as any,
       error,
     })
     expect(result.type).toBe("context_overflow")
@@ -59,7 +59,7 @@ describe("provider.error.parseAPICallError", () => {
       responseBody: JSON.stringify({ message: "Access denied" }),
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "amazon-bedrock",
+      providerID: "amazon-bedrock" as any,
       error,
     })
     expect(result.type).toBe("api_error")
@@ -71,7 +71,7 @@ describe("provider.error.parseAPICallError", () => {
       statusCode: 429,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "amazon-bedrock",
+      providerID: "amazon-bedrock" as any,
       error,
     })
     expect(result.type).toBe("api_error")
@@ -89,7 +89,7 @@ describe("provider.error.parseAPICallError", () => {
       isRetryable: false,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "amazon-bedrock",
+      providerID: "amazon-bedrock" as any,
       error,
     })
     expect(result.type).toBe("api_error")
@@ -105,7 +105,7 @@ describe("provider.error.parseAPICallError", () => {
       statusCode: 400,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "anthropic",
+      providerID: "anthropic" as any,
       error,
     })
     expect(result.type).toBe("context_overflow")
@@ -118,7 +118,7 @@ describe("provider.error.parseAPICallError", () => {
       responseBody: "input is too long for requested model",
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "amazon-bedrock",
+      providerID: "amazon-bedrock" as any,
       error,
     })
     expect(result.type).toBe("context_overflow")
@@ -130,7 +130,7 @@ describe("provider.error.parseAPICallError", () => {
       statusCode: 400,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "openai",
+      providerID: "openai" as any,
       error,
     })
     expect(result.type).toBe("context_overflow")
@@ -142,7 +142,7 @@ describe("provider.error.parseAPICallError", () => {
       statusCode: 400,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "openrouter",
+      providerID: "openrouter" as any,
       error,
     })
     expect(result.type).toBe("context_overflow")
@@ -156,7 +156,7 @@ describe("provider.error.parseAPICallError", () => {
       isRetryable: true,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "amazon-bedrock",
+      providerID: "amazon-bedrock" as any,
       error,
     })
     expect(result.type).toBe("api_error")
@@ -173,7 +173,7 @@ describe("provider.error.parseAPICallError", () => {
       isRetryable: false,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "anthropic",
+      providerID: "anthropic" as any,
       error,
     })
     expect(result.type).toBe("api_error")
@@ -189,7 +189,7 @@ describe("provider.error.parseAPICallError", () => {
       isRetryable: true,
     })
     const result = ProviderError.parseAPICallError({
-      providerID: "anthropic",
+      providerID: "anthropic" as any,
       error,
     })
     expect(result.type).toBe("api_error")

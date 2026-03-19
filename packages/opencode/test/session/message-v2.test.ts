@@ -59,11 +59,11 @@ const model: Provider.Model = {
 
 const model2: Provider.Model = {
   ...model,
-  id: "other-model",
-  providerID: "other",
+  id: "other-model" as any,
+  providerID: "other" as any,
   api: {
     ...model.api,
-    id: "other-model",
+    id: "other-model" as any,
   },
   name: "Other Model",
 }

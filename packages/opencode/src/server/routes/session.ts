@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { stream } from "hono/streaming"
 import { describeRoute, validator, resolver } from "hono-openapi"
+import { SessionID, MessageID, PartID } from "@/session/schema"
 import z from "zod"
 import { Session } from "../../session"
 import { MessageV2 } from "../../session/message-v2"
@@ -13,8 +14,9 @@ import { Todo } from "../../session/todo"
 import { Agent } from "../../agent/agent"
 import { Snapshot } from "@/snapshot"
 import { Log } from "../../util/log"
-import { PermissionNext } from "@/permission/next"
-import { SessionSteer } from "@/session/steer"
+import { PermissionNext } from "@/permission"
+import { PermissionID } from "@/permission/schema"
+import { ModelID, ProviderID } from "@/provider/schema"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 
@@ -174,7 +176,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       async (c) => {
@@ -259,7 +261,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string(),
+          sessionID: SessionID.zod,
         }),
       ),
       validator(
@@ -310,7 +312,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       validator("json", Session.initialize.schema.omit({ sessionID: true })),
@@ -373,7 +375,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string(),
+          sessionID: SessionID.zod,
         }),
       ),
       async (c) => {
@@ -402,7 +404,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string(),
+          sessionID: SessionID.zod,
         }),
       ),
       async (c) => {
@@ -503,14 +505,14 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       validator(
         "json",
         z.object({
-          providerID: z.string(),
-          modelID: z.string(),
+          providerID: ProviderID.zod,
+          modelID: ModelID.zod,
           auto: z.boolean().optional().default(false),
         }),
       ),
@@ -562,22 +564,70 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       validator(
         "query",
-        z.object({
-          limit: z.coerce.number().optional(),
-        }),
+        z
+          .object({
+            limit: z.coerce
+              .number()
+              .int()
+              .min(0)
+              .optional()
+              .meta({ description: "Maximum number of messages to return" }),
+            before: z
+              .string()
+              .optional()
+              .meta({ description: "Opaque cursor for loading older messages" })
+              .refine(
+                (value) => {
+                  if (!value) return true
+                  try {
+                    MessageV2.cursor.decode(value)
+                    return true
+                  } catch {
+                    return false
+                  }
+                },
+                { message: "Invalid cursor" },
+              ),
+          })
+          .refine((value) => !value.before || value.limit !== undefined, {
+            message: "before requires limit",
+            path: ["before"],
+          }),
       ),
       async (c) => {
         const query = c.req.valid("query")
-        const messages = await Session.messages({
-          sessionID: c.req.valid("param").sessionID,
+        const sessionID = c.req.valid("param").sessionID
+        if (query.limit === undefined) {
+          await Session.get(sessionID)
+          const messages = await Session.messages({ sessionID })
+          return c.json(messages)
+        }
+
+        if (query.limit === 0) {
+          await Session.get(sessionID)
+          const messages = await Session.messages({ sessionID })
+          return c.json(messages)
+        }
+
+        const page = await MessageV2.page({
+          sessionID,
           limit: query.limit,
+          before: query.before,
         })
-        return c.json(messages)
+        if (page.cursor) {
+          const url = new URL(c.req.url)
+          url.searchParams.set("limit", query.limit.toString())
+          url.searchParams.set("before", page.cursor)
+          c.header("Access-Control-Expose-Headers", "Link, X-Next-Cursor")
+          c.header("Link", `<${url.toString()}>; rel=\"next\"`)
+          c.header("X-Next-Cursor", page.cursor)
+        }
+        return c.json(page.items)
       },
     )
     .get(
@@ -606,8 +656,8 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
-          messageID: z.string().meta({ description: "Message ID" }),
+          sessionID: SessionID.zod,
+          messageID: MessageID.zod,
         }),
       ),
       async (c) => {
@@ -641,8 +691,8 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
-          messageID: z.string().meta({ description: "Message ID" }),
+          sessionID: SessionID.zod,
+          messageID: MessageID.zod,
         }),
       ),
       async (c) => {
@@ -675,9 +725,9 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
-          messageID: z.string().meta({ description: "Message ID" }),
-          partID: z.string().meta({ description: "Part ID" }),
+          sessionID: SessionID.zod,
+          messageID: MessageID.zod,
+          partID: PartID.zod,
         }),
       ),
       async (c) => {
@@ -710,9 +760,9 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
-          messageID: z.string().meta({ description: "Message ID" }),
-          partID: z.string().meta({ description: "Part ID" }),
+          sessionID: SessionID.zod,
+          messageID: MessageID.zod,
+          partID: PartID.zod,
         }),
       ),
       validator("json", MessageV2.Part),
@@ -754,7 +804,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       validator("json", SessionPrompt.PromptInput.omit({ sessionID: true })),
@@ -786,7 +836,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       validator("json", SessionPrompt.PromptInput.omit({ sessionID: true })),
@@ -826,7 +876,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       validator("json", SessionPrompt.CommandInput.omit({ sessionID: true })),
@@ -858,7 +908,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
+          sessionID: SessionID.zod,
         }),
       ),
       validator("json", SessionPrompt.ShellInput.omit({ sessionID: true })),
@@ -890,7 +940,7 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string(),
+          sessionID: SessionID.zod,
         }),
       ),
       validator("json", SessionRevert.RevertInput.omit({ sessionID: true })),
@@ -925,148 +975,13 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string(),
+          sessionID: SessionID.zod,
         }),
       ),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const session = await SessionRevert.unrevert({ sessionID })
         return c.json(session)
-      },
-    )
-    .post(
-      "/:sessionID/steer",
-      describeRoute({
-        summary: "Steer session",
-        description:
-          "Push a message into the session's pending input buffer. If the session is busy, the message will be injected at the next agentic loop boundary. If idle, it is queued for the next turn.",
-        operationId: "session.steer",
-        responses: {
-          200: {
-            description: "Queued message",
-            content: {
-              "application/json": {
-                schema: resolver(
-                  z.object({
-                    id: z.string(),
-                    text: z.string(),
-                    time: z.number(),
-                    mode: z.enum(["queue", "steer"]),
-                  }),
-                ),
-              },
-            },
-          },
-          ...errors(400, 404),
-        },
-      }),
-      validator(
-        "param",
-        z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
-        }),
-      ),
-      validator(
-        "json",
-        z.object({
-          text: z.string().min(1).meta({ description: "The message text to inject" }),
-          mode: z.enum(["queue", "steer"]).optional().default("queue").meta({ description: "queue waits for turn end, steer injects mid-turn" }),
-        }),
-      ),
-      async (c) => {
-        const sessionID = c.req.valid("param").sessionID
-        const body = c.req.valid("json")
-        const entry = SessionSteer.push(sessionID, body.text, body.mode)
-
-        // If session is idle after push, auto-start a loop to process
-        // stranded items. Handles the race where the loop exits just
-        // before this push arrives.
-        // NOTE: A narrow TOCTOU window remains — if the loop has decided
-        // to exit but cancel() hasn't fired yet, status is still "busy"
-        // and this check won't trigger. The item will be stranded until
-        // the next manual submit. An event-driven approach (listening for
-        // QueueChanged inside the loop exit path) would close this fully.
-        if (SessionStatus.get(sessionID).type === "idle") {
-          SessionPrompt.loop({ sessionID }).catch(() => {
-            // Loop failed (e.g., no user messages in session). Clear the
-            // stranded item. Note: this also clears on transient errors
-            // (rate limits, timeouts) — consistent with cancel() behavior
-            // which also calls SessionSteer.clear().
-            SessionSteer.clear(sessionID)
-          })
-        }
-
-        return c.json(entry)
-      },
-    )
-    .get(
-      "/:sessionID/steer",
-      describeRoute({
-        summary: "Get steer queue",
-        description: "List all pending steered messages for a session without draining the queue.",
-        operationId: "session.steer.list",
-        responses: {
-          200: {
-            description: "Pending steered messages",
-            content: {
-              "application/json": {
-                schema: resolver(
-                  z.array(
-                    z.object({
-                      id: z.string(),
-                      text: z.string(),
-                      time: z.number(),
-                      mode: z.enum(["queue", "steer"]),
-                    }),
-                  ),
-                ),
-              },
-            },
-          },
-          ...errors(400, 404),
-        },
-      }),
-      validator(
-        "param",
-        z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
-        }),
-      ),
-      async (c) => {
-        const sessionID = c.req.valid("param").sessionID
-        const queue = SessionSteer.list(sessionID)
-        return c.json(queue)
-      },
-    )
-    .delete(
-      "/:sessionID/steer/:steerID",
-      describeRoute({
-        summary: "Remove steered message",
-        description: "Remove a specific queued steered message by its ID before it gets injected.",
-        operationId: "session.steer.remove",
-        responses: {
-          200: {
-            description: "Whether the message was found and removed",
-            content: {
-              "application/json": {
-                schema: resolver(z.boolean()),
-              },
-            },
-          },
-          ...errors(400, 404),
-        },
-      }),
-      validator(
-        "param",
-        z.object({
-          sessionID: z.string().meta({ description: "Session ID" }),
-          steerID: z.string().meta({ description: "Steer message ID" }),
-        }),
-      ),
-      async (c) => {
-        const params = c.req.valid("param")
-        const removed = SessionSteer.remove(params.sessionID, params.steerID)
-        return c.json(removed)
       },
     )
     .post(
@@ -1091,8 +1006,8 @@ export const SessionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          sessionID: z.string(),
-          permissionID: z.string(),
+          sessionID: SessionID.zod,
+          permissionID: PermissionID.zod,
         }),
       ),
       validator("json", z.object({ response: PermissionNext.Reply })),

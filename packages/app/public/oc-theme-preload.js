@@ -1,5 +1,13 @@
 ;(function () {
-  var themeId = localStorage.getItem("opencode-theme-id") || "aurora"
+  var key = "opencode-theme-id"
+  var themeId = localStorage.getItem(key) || "aurora"
+
+  if (themeId === "oc-1") {
+    themeId = "aurora"
+    localStorage.setItem(key, themeId)
+    localStorage.removeItem("opencode-theme-css-light")
+    localStorage.removeItem("opencode-theme-css-dark")
+  }
 
   var scheme = localStorage.getItem("opencode-color-scheme") || "system"
   var isDark = scheme === "dark" || (scheme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)

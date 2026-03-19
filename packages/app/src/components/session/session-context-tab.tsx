@@ -1,9 +1,7 @@
 import { createMemo, createEffect, createSignal, on, onCleanup, For, Show } from "solid-js"
 import type { JSX } from "solid-js"
-import { useParams } from "@solidjs/router"
 import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
-import { useLayout } from "@/context/layout"
 import { checksum } from "@opencode-ai/util/encode"
 import { findLast } from "@opencode-ai/util/array"
 import { same } from "@/utils/same"
@@ -19,6 +17,7 @@ import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { ProgressCircle } from "@opencode-ai/ui/progress-circle"
 import type { Message, Part, UserMessage } from "@opencode-ai/sdk/v2/client"
 import { useLanguage } from "@/context/language"
+import { useSessionLayout } from "@/pages/session/session-layout"
 import { getSessionContextMetrics } from "./session-context-metrics"
 import { estimateSessionContextBreakdown, type SessionContextBreakdownKey } from "./session-context-breakdown"
 import { createSessionContextFormatter } from "./session-context-format"
@@ -96,13 +95,10 @@ const emptyMessages: Message[] = []
 const emptyUserMessages: UserMessage[] = []
 
 export function SessionContextTab() {
-  const params = useParams()
   const sync = useSync()
-  const layout = useLayout()
   const language = useLanguage()
+  const { params, view } = useSessionLayout()
 
-  const sessionKey = createMemo(() => `${params.dir}${params.id ? "/" + params.id : ""}`)
-  const view = createMemo(() => layout.view(sessionKey))
   const info = createMemo(() => (params.id ? sync.session.get(params.id) : undefined))
 
   const messages = createMemo(

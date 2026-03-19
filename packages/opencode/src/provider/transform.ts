@@ -49,13 +49,9 @@ export namespace ProviderTransform {
     model: Provider.Model,
     options: Record<string, unknown>,
   ): ModelMessage[] {
-    // Anthropic (and Bedrock/Vertex Anthropic) rejects messages with empty content -
-    // filter out empty string messages and remove empty text/reasoning parts from array content
-    if (
-      model.api.npm === "@ai-sdk/anthropic" ||
-      model.api.npm === "@ai-sdk/amazon-bedrock" ||
-      model.api.npm === "@ai-sdk/google-vertex/anthropic"
-    ) {
+    // Anthropic rejects messages with empty content - filter out empty string messages
+    // and remove empty text/reasoning parts from array content
+    if (model.api.npm === "@ai-sdk/anthropic" || model.api.npm === "@ai-sdk/amazon-bedrock") {
       msgs = msgs
         .map((msg) => {
           if (typeof msg.content === "string") {
@@ -198,10 +194,6 @@ export namespace ProviderTransform {
     }
 
     for (const msg of unique([...system, ...final])) {
-      // Skip messages with empty content — APIs reject cache points on empty messages
-      if (typeof msg.content === "string" && msg.content === "") continue
-      if (Array.isArray(msg.content) && msg.content.length === 0) continue
-
       const useMessageLevelOptions = model.providerID === "anthropic" || model.providerID.includes("bedrock")
       const shouldUseContentOptions = !useMessageLevelOptions && Array.isArray(msg.content) && msg.content.length > 0
 
@@ -262,14 +254,11 @@ export namespace ProviderTransform {
     msgs = normalizeMessages(msgs, model, options)
     if (
       (model.providerID === "anthropic" ||
-        model.providerID.includes("bedrock") ||
         model.api.id.includes("anthropic") ||
         model.api.id.includes("claude") ||
         model.id.includes("anthropic") ||
         model.id.includes("claude") ||
-        model.api.npm === "@ai-sdk/anthropic" ||
-        model.api.npm === "@ai-sdk/amazon-bedrock" ||
-        model.api.npm === "@ai-sdk/google-vertex/anthropic") &&
+        model.api.npm === "@ai-sdk/anthropic") &&
       model.api.npm !== "@ai-sdk/gateway"
     ) {
       msgs = applyCaching(msgs, model)
@@ -451,7 +440,9 @@ export namespace ProviderTransform {
         const copilotEfforts = iife(() => {
           if (id.includes("5.1-codex-max") || id.includes("5.2") || id.includes("5.3"))
             return [...WIDELY_SUPPORTED_EFFORTS, "xhigh"]
-          return WIDELY_SUPPORTED_EFFORTS
+          const arr = [...WIDELY_SUPPORTED_EFFORTS]
+          if (id.includes("gpt-5") && model.release_date >= "2025-12-04") arr.push("xhigh")
+          return arr
         })
         return Object.fromEntries(
           copilotEfforts.map((effort) => [
@@ -666,9 +657,21 @@ export namespace ProviderTransform {
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/perplexity
         return {}
 
-      case "@mymediset/sap-ai-provider":
       case "@jerome-benoit/sap-ai-provider-v2":
         if (model.api.id.includes("anthropic")) {
+          if (isAnthropicAdaptive) {
+            return Object.fromEntries(
+              adaptiveEfforts.map((effort) => [
+                effort,
+                {
+                  thinking: {
+                    type: "adaptive",
+                  },
+                  effort,
+                },
+              ]),
+            )
+          }
           return {
             high: {
               thinking: {
@@ -684,7 +687,26 @@ export namespace ProviderTransform {
             },
           }
         }
-        return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
+        if (model.api.id.includes("gemini") && id.includes("2.5")) {
+          return {
+            high: {
+              thinkingConfig: {
+                includeThoughts: true,
+                thinkingBudget: 16000,
+              },
+            },
+            max: {
+              thinkingConfig: {
+                includeThoughts: true,
+                thinkingBudget: 24576,
+              },
+            },
+          }
+        }
+        if (model.api.id.includes("gpt") || /\bo[1-9]/.test(model.api.id)) {
+          return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
+        }
+        return {}
     }
     return {}
   }

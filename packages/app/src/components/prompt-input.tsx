@@ -1447,6 +1447,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 "w-full pl-3 pr-2 pt-2 text-14-regular text-text-strong focus:outline-none whitespace-pre-wrap": true,
                 "[&_[data-type=file]]:text-syntax-property": true,
                 "[&_[data-type=agent]]:text-syntax-type": true,
+                // Design review: text-syntax-string (warm/amber) for $skill pills
+                "[&_[data-type=skill]]:text-syntax-string": true,
                 "font-mono!": store.mode === "shell",
               }}
               style={{ "padding-bottom": space }}

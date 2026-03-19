@@ -957,9 +957,35 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         slashOnInput(slashMatch[1])
         setStore("popover", "slash")
       } else if (dollarMatch) {
-        // Skill popover is wired in PromptPopover with "skill" mode.
-        // Data binding (skillFlat props) happens via sync.data.skill when available.
-        setStore("popover", "skill")
+        const query = dollarMatch[1]
+        // $-removal syntax: typing "$-brainstorming" removes a skill from the session.
+        // Only removes user-added skills (not AI auto-loaded). Per spec §11.
+        if (query.startsWith("-") && query.length > 1) {
+          const name = query.slice(1)
+          const sessionID = params.id
+          if (sessionID && activeSkills().some((s) => s.name === name)) {
+            // Remove skill via API, then clear the $-name text from editor
+            fetch(`${sdk.url}/session/${sessionID}/skill/${name}`, {
+              method: "DELETE",
+              headers: server.current?.http?.password
+                ? { Authorization: `Basic ${btoa(`${server.current.http.username ?? "opencode"}:${server.current.http.password}`)}` }
+                : {},
+            }).catch(() => {})
+            // Clear the $-removal text from the editor
+            const cleaned = rawText.replace(/(?:^|\s)\$-\S+\s*$/, "").trim()
+            if (!cleaned) {
+              prompt.set(DEFAULT_PROMPT, 0)
+              clearEditor()
+            }
+            closePopover()
+          } else {
+            // Unknown skill or no session — show popover for discovery
+            setStore("popover", "skill")
+          }
+        } else {
+          // Normal $ prefix — open skill popover
+          setStore("popover", "skill")
+        }
       } else {
         closePopover()
       }

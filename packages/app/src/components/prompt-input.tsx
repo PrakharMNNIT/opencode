@@ -1180,6 +1180,16 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       return
     }
 
+    // CEO expansion: Cmd+Shift+S opens skill picker directly
+    // Design review: only fires when prompt editor is focused (focus guard)
+    if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === "s") {
+      event.preventDefault()
+      if (store.mode !== "normal") return
+      // Focus guard: only open if editor has focus (which it does since we're in keyDown)
+      setStore("popover", "skill")
+      return
+    }
+
     if (event.key === "Backspace") {
       const selection = window.getSelection()
       if (selection && selection.isCollapsed) {

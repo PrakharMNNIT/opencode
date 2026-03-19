@@ -164,6 +164,7 @@ export function createChildStoreManager(input: {
             path: { state: "", config: "", worktree: "", directory: "", home: "" },
             status: "loading" as const,
             agent: [],
+            skill: [],
             command: [],
             session: [],
             sessionTotal: 0,

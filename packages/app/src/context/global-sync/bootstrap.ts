@@ -151,6 +151,8 @@ export async function bootstrapDirectory(input: {
   Promise.all([
     input.sdk.path.get().then((x) => input.setStore("path", x.data!)),
     input.sdk.command.list().then((x) => input.setStore("command", x.data ?? [])),
+    // Load available skills for $ popover (non-blocking — popover shows empty state until loaded)
+    input.sdk.app.skills().then((x) => input.setStore("skill", x.data ?? [])).catch(() => {}),
     input.sdk.session.status().then((x) => input.setStore("session_status", x.data!)),
     input.loadSessions(input.directory),
     input.sdk.mcp.status().then((x) => input.setStore("mcp", x.data!)),

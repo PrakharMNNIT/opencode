@@ -34,6 +34,7 @@ export type ProjectMeta = {
 export type State = {
   status: "loading" | "partial" | "complete"
   agent: Agent[]
+  skill: { name: string; description: string; location: string; content: string }[]
   command: Command[]
   project: string
   projectMeta: ProjectMeta | undefined

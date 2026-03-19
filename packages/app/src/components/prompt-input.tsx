@@ -52,7 +52,7 @@ import {
   promptLength,
 } from "./prompt-input/history"
 import { createPromptSubmit, type FollowupDraft } from "./prompt-input/submit"
-import { PromptPopover, type AtOption, type SlashCommand } from "./prompt-input/slash-popover"
+import { PromptPopover, type AtOption, type SlashCommand, type SkillOption } from "./prompt-input/slash-popover"
 import { PromptContextItems } from "./prompt-input/context-items"
 import { PromptImageAttachments } from "./prompt-input/image-attachments"
 import { PromptDragOverlay } from "./prompt-input/drag-overlay"
@@ -1401,6 +1401,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         onSlashSelect={handleSlashSelect}
         commandKeybind={command.keybind}
         t={(key) => language.t(key as Parameters<typeof language.t>[0])}
+        skillFlat={sync.data.skill.map((s): SkillOption => ({ type: "skill", name: s.name, description: s.description }))}
+        onSkillSelect={(skill) => {
+          // When a skill is selected from popover, add it via API
+          skillApi("POST", skill.name)
+          closePopover()
+        }}
       />
       <DockShellForm
         onSubmit={handleSubmit}

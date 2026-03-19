@@ -150,10 +150,13 @@ export namespace SessionSkills {
 
   /** Remove a skill from a session. Returns true if it existed. */
   export function remove(sessionID: SessionID, name: string): boolean {
+    // Check if the skill exists before deleting, since Drizzle's .run()
+    // returns void and doesn't report affected row count.
+    const before = list(sessionID)
+    const existed = before.some((s) => s.name === name)
+    if (!existed) return false
     // Delete using composite key: both session_id AND skill_name must match.
-    // This ensures we only remove the specific skill from the specific session,
-    // not all skills for the session.
-    const result = Database.use((db) =>
+    Database.use((db) =>
       db
         .delete(SessionSkillTable)
         .where(
@@ -164,13 +167,10 @@ export namespace SessionSkills {
         )
         .run(),
     )
-    const existed = result.changes > 0
-    if (existed) {
-      log.info("skill.remove", { sessionID, name })
-      SkillContentCache.evict(name)
-      Bus.publish(Event.Changed, { sessionID, skills: list(sessionID) })
-    }
-    return existed
+    log.info("skill.remove", { sessionID, name })
+    SkillContentCache.evict(name)
+    Bus.publish(Event.Changed, { sessionID, skills: list(sessionID) })
+    return true
   }
 
   /** List all active skills for a session. */

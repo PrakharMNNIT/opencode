@@ -48,6 +48,8 @@ import { iife } from "@/util/iife"
 import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncate"
 import { SessionSteer } from "./steer"
+import { SessionSkills, SkillContentCache } from "./skill.service"
+import { Skill } from "../skill/skill"
 import { decodeDataUrl } from "@/util/data-url"
 
 // @ts-ignore
@@ -153,6 +155,20 @@ export namespace SessionPrompt {
           })
           .meta({
             ref: "SubtaskPartInput",
+          }),
+        // SkillPart — user-initiated $skill mentions.
+        // When the user types "$brainstorming", the frontend creates a SkillPart
+        // and includes it in the parts array. createUserMessage() extracts it
+        // and persists it to SessionSkills for the session.
+        MessageV2.SkillPart.omit({
+          messageID: true,
+          sessionID: true,
+        })
+          .partial({
+            id: true,
+          })
+          .meta({
+            ref: "SkillPartInput",
           }),
       ]),
     ),
@@ -704,11 +720,57 @@ export namespace SessionPrompt {
       await Plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
       // Build system prompt, adding structured output instruction if needed
+      //
+      // ─── Skill injection flow (from $skill mentions) ─────────────────
+      //   SessionSkills.list(sessionID) → active skill names
+      //        ↓
+      //   LRU cache (5-min TTL) → Skill.load() on miss
+      //        ↓
+      //   Dedup against auto-discovered skills (already in `skills` var)
+      //        ↓
+      //   Wrap in <skill> XML → append to system prompt array
+      //
+      // Auto-discovered skills (from SystemPrompt.skills) are UNCHANGED.
+      // User $-mentioned skills are ADDITIVE — they never remove auto skills.
+      // If a skill was both auto-discovered and $-mentioned, it's deduped.
       const skills = await SystemPrompt.skills(agent)
+
+      // Load user-initiated $skill mentions from server-side session_skills table.
+      // These are skills the user explicitly loaded via "$brainstorming" or the API.
+      // They persist for the session (survive page reloads).
+      const activeSkills = SessionSkills.list(sessionID)
+      const userSkills: string[] = []
+      for (const active of activeSkills) {
+        // Dedup: skip if this skill is already in auto-discovered system prompt.
+        // The auto-discovered skills section contains <name>skillname</name> tags.
+        if (skills && skills.includes(`<name>${active.name}</name>`)) continue
+        try {
+          // Check LRU cache first (5-min TTL), then fall back to disk read.
+          const cached = SkillContentCache.get(active.name)
+          if (cached) {
+            userSkills.push(`<skill>\n<name>${active.name}</name>\n${cached.content}\n</skill>`)
+            continue
+          }
+          // Cache miss — load from disk via Skill.get() and cache the result.
+          const loaded = await Skill.get(active.name).catch(() => null)
+          if (!loaded) {
+            log.warn("skill.get.notfound", { sessionID, name: active.name })
+            continue
+          }
+          SkillContentCache.set(active.name, loaded.content)
+          userSkills.push(`<skill>\n<name>${active.name}</name>\n${loaded.content}\n</skill>`)
+        } catch (err) {
+          // ParseError or FileNotFoundError — skip this skill gracefully.
+          // Don't crash the loop; just log and continue without this skill.
+          log.warn("skill.load.failed", { sessionID, name: active.name, error: String(err) })
+        }
+      }
+
       const system = [
         ...(await SystemPrompt.environment(model)),
         ...(skills ? [skills] : []),
         ...(await InstructionPrompt.system()),
+        ...userSkills, // User $-mentioned skills (additive, deduped, per-session persistent)
       ]
       const format = lastUser.format ?? { type: "text" }
       if (format.type === "json_schema") {
@@ -1341,6 +1403,35 @@ export namespace SessionPrompt {
                 " Use the above message and context to generate a prompt and call the task tool with subagent: " +
                 part.name +
                 hint,
+            },
+          ]
+        }
+
+        // ─── Skill Part Handling ────────────────────────────────────────
+        // When user types "$brainstorming", the frontend creates a SkillPart.
+        // Here we persist it to SessionSkills (server-side DB) so the skill
+        // stays active for the entire session, and create a synthetic log
+        // message visible in the chat history.
+        //
+        // The actual SKILL.md content injection happens later in loop(),
+        // NOT here. This function only persists the skill name and logs it.
+        //
+        // Flow: SkillPart in parts → SessionSkills.add() → synthetic log
+        //       → loop() reads SessionSkills.list() → injects into system prompt
+        if (part.type === "skill") {
+          SessionSkills.add(input.sessionID, part.name)
+          return [
+            {
+              ...part,
+              messageID: info.id,
+              sessionID: input.sessionID,
+            },
+            {
+              messageID: info.id,
+              sessionID: input.sessionID,
+              type: "text",
+              synthetic: true,
+              text: `Loaded skill: ${part.name}`,
             },
           ]
         }

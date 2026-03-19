@@ -326,7 +326,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
 
   const [store, setStore] = createStore<{
-    popover: "at" | "slash" | null
+    popover: "at" | "slash" | "skill" | null
     historyIndex: number
     savedPrompt: PromptHistoryEntry | null
     placeholder: number
@@ -938,6 +938,14 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (!shellMode) {
       const atMatch = rawText.substring(0, cursorPosition).match(/@(\S*)$/)
       const slashMatch = rawText.match(/^\/(\S*)$/)
+      // ─── $ prefix detection for skill mentions ──────────────────────
+      // Matches "$" preceded by whitespace or start-of-line (NOT another "$").
+      // Guards (from CEO/Eng/Design reviews):
+      //   - Shell mode: disabled above (shellMode check)
+      //   - $$: negative lookbehind (?<!\$) prevents double-dollar triggering
+      //   - SOL/whitespace: (?:^|(?<=\s)) ensures $ isn't mid-word
+      // When triggered, opens the "skill" popover mode.
+      const dollarMatch = rawText.substring(0, cursorPosition).match(/(?:^|(?<=\s))\$(?!\$)(\S*)$/)
 
       if (atMatch) {
         atOnInput(atMatch[1])
@@ -945,6 +953,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       } else if (slashMatch) {
         slashOnInput(slashMatch[1])
         setStore("popover", "slash")
+      } else if (dollarMatch) {
+        // TODO: wire up skill popover filtering once slash-popover.tsx has "skill" mode
+        setStore("popover", "skill")
       } else {
         closePopover()
       }

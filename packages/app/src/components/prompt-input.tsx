@@ -1454,6 +1454,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           <div class="flex flex-wrap items-center gap-1 px-3 pt-2 pb-1">
             <For each={activeSkills()}>
               {(skill) => (
+                <Tooltip
+                  placement="top"
+                  value={
+                    <div class="flex flex-col gap-0.5 max-w-[280px]">
+                      <span class="text-12-medium text-text-strong">{skill.name}</span>
+                      <span class="text-11-regular text-text-weak">
+                        {sync.data.skill.find((s) => s.name === skill.name)?.description ?? "Skill loaded"}
+                      </span>
+                      <Show when={skill.token_estimate}>
+                        <span class="text-10-regular text-text-subtle">~{Math.round((skill.token_estimate ?? 0) / 1000)}K tokens</span>
+                      </Show>
+                    </div>
+                  }
+                >
                 <span class="inline-flex items-center gap-1 text-12-medium text-syntax-string bg-surface-invert/5 rounded px-1.5 py-0.5 leading-tight">
                   <span>${skill.name}</span>
                   <button
@@ -1465,6 +1479,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     <Icon name="close" size="small" class="size-2.5" />
                   </button>
                 </span>
+                </Tooltip>
               )}
             </For>
           </div>

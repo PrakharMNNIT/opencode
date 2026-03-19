@@ -252,6 +252,21 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   // Used by badge strip above editor and to populate popover
   const activeSkills = createMemo(() => sync.data.session_skill[params.id ?? ""] ?? [])
 
+  // CEO expansion: context budget warning toast when >30K estimated tokens.
+  // Shows a non-blocking toast when too many skills are loaded.
+  // Token estimate comes from session_skills table (chars÷4 per skill content).
+  const SKILL_TOKEN_BUDGET = 30000 // ~30K tokens threshold
+  createEffect(() => {
+    const skills = activeSkills()
+    const budget = skills.reduce((sum, s) => sum + (s.token_estimate ?? 0), 0)
+    if (skills.length > 0 && budget > SKILL_TOKEN_BUDGET) {
+      showToast({
+        title: `⚠️ ${skills.length} skills loaded (~${Math.round(budget / 1000)}K tokens)`,
+        description: "Consider removing some to leave room for conversation.",
+      })
+    }
+  })
+
   // Helper: call skill API endpoints with proper auth headers.
   // Extracted to DRY up badge × click, $-removal, and future call sites.
   // (Code review fix #1: DRY violation — 3 identical fetch patterns)

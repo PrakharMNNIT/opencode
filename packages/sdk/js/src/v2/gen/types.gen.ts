@@ -602,6 +602,14 @@ export type AgentPart = {
   }
 }
 
+export type SkillPart = {
+  id: string
+  sessionID: string
+  messageID: string
+  type: "skill"
+  name: string
+}
+
 export type RetryPart = {
   id: string
   sessionID: string
@@ -634,6 +642,7 @@ export type Part =
   | SnapshotPart
   | PatchPart
   | AgentPart
+  | SkillPart
   | RetryPart
   | CompactionPart
 
@@ -811,6 +820,18 @@ export type EventSessionQueueChanged = {
       text: string
       time: number
       mode: "queue" | "steer"
+    }>
+  }
+}
+
+export type EventSessionSkillChanged = {
+  type: "session.skill.changed"
+  properties: {
+    sessionID: string
+    skills: Array<{
+      name: string
+      added_at: number
+      token_estimate: number | null
     }>
   }
 }
@@ -1004,6 +1025,7 @@ export type Event =
   | EventMcpBrowserOpenFailed
   | EventCommandExecuted
   | EventSessionQueueChanged
+  | EventSessionSkillChanged
   | EventSessionCreated
   | EventSessionUpdated
   | EventSessionDeleted
@@ -1740,6 +1762,10 @@ export type McpResource = {
   client: string
 }
 
+export type EnhanceResult = {
+  text: string
+}
+
 export type TextPartInput = {
   id?: string
   type: "text"
@@ -1786,6 +1812,12 @@ export type SubtaskPartInput = {
     modelID: string
   }
   command?: string
+}
+
+export type SkillPartInput = {
+  id?: string
+  type: "skill"
+  name: string
 }
 
 export type ProviderAuthMethod = {
@@ -2778,6 +2810,38 @@ export type ExperimentalResourceListResponses = {
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
 
+export type ExperimentalEnhanceData = {
+  body?: {
+    text: string
+    providerID?: string
+    modelID?: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/enhance"
+}
+
+export type ExperimentalEnhanceErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExperimentalEnhanceError = ExperimentalEnhanceErrors[keyof ExperimentalEnhanceErrors]
+
+export type ExperimentalEnhanceResponses = {
+  /**
+   * Enhanced prompt text
+   */
+  200: EnhanceResult
+}
+
+export type ExperimentalEnhanceResponse = ExperimentalEnhanceResponses[keyof ExperimentalEnhanceResponses]
+
 export type SessionListData = {
   body?: never
   path?: never
@@ -3337,7 +3401,7 @@ export type SessionPromptData = {
     format?: OutputFormat
     system?: string
     variant?: string
-    parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+    parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput | SkillPartInput>
   }
   path: {
     sessionID: string
@@ -3537,7 +3601,7 @@ export type SessionPromptAsyncData = {
     format?: OutputFormat
     system?: string
     variant?: string
-    parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+    parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput | SkillPartInput>
   }
   path: {
     sessionID: string
@@ -3868,6 +3932,134 @@ export type SessionSteerRemoveResponses = {
 }
 
 export type SessionSteerRemoveResponse = SessionSteerRemoveResponses[keyof SessionSteerRemoveResponses]
+
+export type SessionSkillListData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/skill"
+}
+
+export type SessionSkillListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionSkillListError = SessionSkillListErrors[keyof SessionSkillListErrors]
+
+export type SessionSkillListResponses = {
+  /**
+   * Active skills
+   */
+  200: Array<{
+    name: string
+    added_at: number
+    token_estimate: number | null
+  }>
+}
+
+export type SessionSkillListResponse = SessionSkillListResponses[keyof SessionSkillListResponses]
+
+export type SessionSkillAddData = {
+  body?: {
+    /**
+     * Skill name (e.g., 'brainstorming')
+     */
+    name: string
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/skill"
+}
+
+export type SessionSkillAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionSkillAddError = SessionSkillAddErrors[keyof SessionSkillAddErrors]
+
+export type SessionSkillAddResponses = {
+  /**
+   * Active skills after addition
+   */
+  200: Array<{
+    name: string
+    added_at: number
+    token_estimate: number | null
+  }>
+}
+
+export type SessionSkillAddResponse = SessionSkillAddResponses[keyof SessionSkillAddResponses]
+
+export type SessionSkillRemoveData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+    /**
+     * Skill name to remove
+     */
+    skillName: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/skill/{skillName}"
+}
+
+export type SessionSkillRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionSkillRemoveError = SessionSkillRemoveErrors[keyof SessionSkillRemoveErrors]
+
+export type SessionSkillRemoveResponses = {
+  /**
+   * Whether the skill was found and removed
+   */
+  200: boolean
+}
+
+export type SessionSkillRemoveResponse = SessionSkillRemoveResponses[keyof SessionSkillRemoveResponses]
 
 export type PermissionRespondData = {
   body?: {

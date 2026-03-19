@@ -629,6 +629,41 @@ export function Prompt(props: PromptProps) {
           })),
       })
     } else {
+      // ─── $skill mention parsing ─────────────────────────────────
+      // Parse $name tokens from input text before creating prompt parts.
+      // Guards: $ must be at start-of-line or after whitespace (not $$).
+      // $name  → adds skill to session (SkillPart in parts array)
+      // $-name → removes skill from session (DELETE API call)
+      const skills: Array<{ type: "skill"; name: string }> = []
+      const removals: string[] = []
+      const skillRegex = /(?:^|(?<=\s))\$(-?[a-zA-Z][\w-]*)/g
+      let m
+      while ((m = skillRegex.exec(inputText)) !== null) {
+        const token = m[1]
+        if (token.startsWith("-")) removals.push(token.slice(1))
+        else skills.push({ type: "skill" as const, name: token })
+      }
+
+      // Process $-removal requests via DELETE /session/:id/skill
+      if (sessionID) {
+        for (const name of removals) {
+          fetch(`${sdk.url}/session/${sessionID}/skill`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          }).catch(() => {})
+        }
+      }
+
+      // Strip $skill tokens from text, collapse whitespace
+      let text = inputText
+      if (skills.length > 0 || removals.length > 0) {
+        text = inputText
+          .replace(/(?:^|(?<=\s))\$-?[a-zA-Z][\w-]*/g, "")
+          .replace(/\s{2,}/g, " ")
+          .trim()
+      }
+
       sdk.client.session
         .prompt({
           sessionID,
@@ -641,8 +676,12 @@ export function Prompt(props: PromptProps) {
             {
               id: PartID.ascending(),
               type: "text",
-              text: inputText,
+              text,
             },
+            ...skills.map((x) => ({
+              id: PartID.ascending(),
+              ...x,
+            })),
             ...nonTextParts.map((x) => ({
               id: PartID.ascending(),
               ...x,

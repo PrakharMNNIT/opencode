@@ -24,6 +24,8 @@ import type {
   EventTuiPromptAppend,
   EventTuiSessionSelect,
   EventTuiToastShow,
+  ExperimentalEnhanceErrors,
+  ExperimentalEnhanceResponses,
   ExperimentalResourceListResponses,
   ExperimentalSessionListResponses,
   ExperimentalWorkspaceCreateErrors,
@@ -137,6 +139,12 @@ import type {
   SessionShareResponses,
   SessionShellErrors,
   SessionShellResponses,
+  SessionSkillAddErrors,
+  SessionSkillAddResponses,
+  SessionSkillListErrors,
+  SessionSkillListResponses,
+  SessionSkillRemoveErrors,
+  SessionSkillRemoveResponses,
   SessionStatusErrors,
   SessionStatusResponses,
   SessionSteerErrors,
@@ -155,6 +163,7 @@ import type {
   SessionUnshareResponses,
   SessionUpdateErrors,
   SessionUpdateResponses,
+  SkillPartInput,
   SubtaskPartInput,
   TextPartInput,
   ToolIdsErrors,
@@ -1091,6 +1100,49 @@ export class Resource extends HeyApiClient {
 }
 
 export class Experimental extends HeyApiClient {
+  /**
+   * Enhance prompt
+   *
+   * Rewrite a user prompt to be clearer, more specific, and more effective for an AI coding assistant.
+   */
+  public enhance<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      text?: string
+      providerID?: string
+      modelID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "text" },
+            { in: "body", key: "providerID" },
+            { in: "body", key: "modelID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ExperimentalEnhanceResponses, ExperimentalEnhanceErrors, ThrowOnError>(
+      {
+        url: "/experimental/enhance",
+        ...options,
+        ...params,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+          ...params.headers,
+        },
+      },
+    )
+  }
+
   private _workspace?: Workspace
   get workspace(): Workspace {
     return (this._workspace ??= new Workspace({ client: this.client }))
@@ -1313,6 +1365,115 @@ export class Steer extends HeyApiClient {
     return (options?.client ?? this.client).delete<SessionSteerRemoveResponses, SessionSteerRemoveErrors, ThrowOnError>(
       {
         url: "/session/{sessionID}/steer/{steerID}",
+        ...options,
+        ...params,
+      },
+    )
+  }
+}
+
+export class Skill extends HeyApiClient {
+  /**
+   * List active skills
+   *
+   * List all user-initiated skills currently active for this session.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionSkillListResponses, SessionSkillListErrors, ThrowOnError>({
+      url: "/session/{sessionID}/skill",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add skill to session
+   *
+   * Add a user-initiated skill to the session. The skill's SKILL.md content will be injected into the system prompt for all subsequent messages in this session.
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      workspace?: string
+      name?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "name" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionSkillAddResponses, SessionSkillAddErrors, ThrowOnError>({
+      url: "/session/{sessionID}/skill",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove skill from session
+   *
+   * Remove a user-initiated skill from the session. Only removes skills added via $ prefix or this API — does not affect AI auto-loaded skills.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      skillName: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "skillName" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<SessionSkillRemoveResponses, SessionSkillRemoveErrors, ThrowOnError>(
+      {
+        url: "/session/{sessionID}/skill/{skillName}",
         ...options,
         ...params,
       },
@@ -1917,7 +2078,7 @@ export class Session2 extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
-      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput | SkillPartInput>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2049,7 +2210,7 @@ export class Session2 extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
-      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput | SkillPartInput>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2307,6 +2468,11 @@ export class Session2 extends HeyApiClient {
   private _steer?: Steer
   get steer2(): Steer {
     return (this._steer ??= new Steer({ client: this.client }))
+  }
+
+  private _skill?: Skill
+  get skill(): Skill {
+    return (this._skill ??= new Skill({ client: this.client }))
   }
 }
 

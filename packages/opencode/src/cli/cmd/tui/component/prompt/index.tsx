@@ -634,11 +634,11 @@ export function Prompt(props: PromptProps) {
       // Guards: $ must be at start-of-line or after whitespace (not $$).
       // $name  → adds skill to session (SkillPart in parts array)
       // $-name → removes skill from session (DELETE API call)
+      const skillPattern = /(?:^|(?<=\s))\$(-?[a-zA-Z][\w-]*)/g
       const skills: Array<{ type: "skill"; name: string }> = []
       const removals: string[] = []
-      const skillRegex = /(?:^|(?<=\s))\$(-?[a-zA-Z][\w-]*)/g
       let m
-      while ((m = skillRegex.exec(inputText)) !== null) {
+      while ((m = skillPattern.exec(inputText)) !== null) {
         const token = m[1]
         if (token.startsWith("-")) removals.push(token.slice(1))
         else skills.push({ type: "skill" as const, name: token })
@@ -651,11 +651,18 @@ export function Prompt(props: PromptProps) {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
-          }).catch(() => {})
+          }).catch(() => {
+            toast.show({
+              variant: "error",
+              message: `Failed to remove skill: ${name}`,
+              duration: 3000,
+            })
+          })
         }
       }
 
       // Strip $skill tokens from text, collapse whitespace
+      // Reuse same pattern shape (without capture group) for stripping
       let text = inputText
       if (skills.length > 0 || removals.length > 0) {
         text = inputText

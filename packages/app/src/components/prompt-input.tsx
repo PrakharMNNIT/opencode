@@ -251,6 +251,23 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   // Active $skills for this session — reads from sync layer (server-side persisted)
   // Used by badge strip above editor and to populate popover
   const activeSkills = createMemo(() => sync.data.session_skill[params.id ?? ""] ?? [])
+
+  // Helper: call skill API endpoints with proper auth headers.
+  // Extracted to DRY up badge × click, $-removal, and future call sites.
+  // (Code review fix #1: DRY violation — 3 identical fetch patterns)
+  const skillApi = (method: "POST" | "DELETE", name: string) => {
+    const sessionID = params.id
+    if (!sessionID) return
+    const headers: Record<string, string> = {}
+    if (server.current?.http?.password) {
+      headers.Authorization = `Basic ${btoa(`${server.current.http.username ?? "opencode"}:${server.current.http.password}`)}`
+    }
+    fetch(`${sdk.url}/session/${sessionID}/skill/${name}`, { method, headers }).catch(() => {
+      // Silently ignore — badge strip will re-sync from server.
+      // (Code review note: acceptable for UI removals)
+    })
+  }
+
   const [steerPending, setSteerPending] = createSignal(false)
   const [enhancing, setEnhancing] = createSignal(false)
 
@@ -964,13 +981,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           const name = query.slice(1)
           const sessionID = params.id
           if (sessionID && activeSkills().some((s) => s.name === name)) {
-            // Remove skill via API, then clear the $-name text from editor
-            fetch(`${sdk.url}/session/${sessionID}/skill/${name}`, {
-              method: "DELETE",
-              headers: server.current?.http?.password
-                ? { Authorization: `Basic ${btoa(`${server.current.http.username ?? "opencode"}:${server.current.http.password}`)}` }
-                : {},
-            }).catch(() => {})
+            // Remove skill via extracted helper (code review fix #1: DRY)
+            // $-removal requires exact full name match — intentional per spec §11.
+            // (Code review fix #2: documented as intentional behavior)
+            skillApi("DELETE", name)
             // Clear the $-removal text from the editor
             const cleaned = rawText.replace(/(?:^|\s)\$-\S+\s*$/, "").trim()
             if (!cleaned) {
@@ -1424,18 +1438,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   <button
                     type="button"
                     class="size-3.5 shrink-0 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
-                    onClick={() => {
-                      const sessionID = params.id
-                      if (!sessionID) return
-                      // Remove skill via API — SessionSkills.remove() on server
-                      // Only removes user-added skills (not AI auto-loaded)
-                      fetch(`${sdk.url}/session/${sessionID}/skill/${skill.name}`, {
-                        method: "DELETE",
-                        headers: server.current?.http?.password
-                          ? { Authorization: `Basic ${btoa(`${server.current.http.username ?? "opencode"}:${server.current.http.password}`)}` }
-                          : {},
-                      }).catch(() => {})
-                    }}
+                    onClick={() => skillApi("DELETE", skill.name)}
                     aria-label={`Remove skill ${skill.name}`}
                   >
                     <Icon name="close" size="small" class="size-2.5" />

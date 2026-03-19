@@ -243,10 +243,58 @@ Unmatched `$tokens` (not found in available skills) are left as literal text.
 
 ---
 
+## Cherry-Picks from CEO Review (Session Skills System)
+
+### 9. Session-Persistent Skills
+
+Skills loaded via `$` persist for the entire session, not just one message.
+
+**Backend:** Add `activeSkills: string[]` to session state (or a lightweight `SessionSkills` store keyed by sessionID). When `$brainstorming` is typed:
+1. Add `"brainstorming"` to `activeSkills[sessionID]`
+2. On every subsequent message in that session, inject the skill into system prompt
+3. Cleared on new session or explicit removal
+
+**Frontend:** `activeSkills` memo reads from sync data (like `steer_queue`). New skills from `$` parts are added to the session's active list.
+
+### 10. Active Skills Badge Strip
+
+A row above the editor showing loaded skills, reusing the steer queue badge pattern:
+
+```
+[brainstorming ×] [tdd ×]              ← removable pills
+┌─────────────────────────────────────┐
+│  Fix the login flow                 │
+├─────────────────────────────────────┤
+│  [+] [✨]              [↗] [⬆]    │
+└─────────────────────────────────────┘
+```
+
+- Rendered as `<Show when={activeSkills().length > 0}>` block above context items
+- Each badge: skill name + `×` close button
+- Clicking `×` removes the skill from `activeSkills[sessionID]`
+- Styled similarly to steer queue badges but with `text-syntax-string` color
+
+### 11. `$-name` Removal Syntax
+
+Typing `$-brainstorming` removes the skill from the active session skills:
+
+```typescript
+// In $ match handling:
+if (name.startsWith("-")) {
+  const skillToRemove = name.slice(1)
+  removeActiveSkill(sessionID, skillToRemove)
+  // Don't create a pill — just remove and clear the input
+}
+```
+
+Also works from CLI: `$-brainstorming` in terminal input removes the skill.
+
+---
+
 ## Migration
 
 None — this is a new feature with no breaking changes. Existing sessions, messages, and skill configurations are unaffected.
 
 ## Rollback
 
-Remove `$` prefix detection from `handleInput()`. Skill pills in existing messages will render as unknown parts (graceful degradation).
+Remove `$` prefix detection from `handleInput()`. Skill pills in existing messages will render as unknown parts (graceful degradation). Session active skills cleared on rollback.

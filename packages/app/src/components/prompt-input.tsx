@@ -248,6 +248,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
   const working = createMemo(() => status()?.type !== "idle")
   const steerQueue = createMemo(() => sync.data.steer_queue[params.id ?? ""] ?? [])
+  // Active $skills for this session — reads from sync layer (server-side persisted)
+  // Used by badge strip above editor and to populate popover
+  const activeSkills = createMemo(() => sync.data.session_skill[params.id ?? ""] ?? [])
   const [steerPending, setSteerPending] = createSignal(false)
   const [enhancing, setEnhancing] = createSignal(false)
 
@@ -1368,6 +1371,44 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           onRemove={removeAttachment}
           removeLabel={language.t("prompt.attachment.remove")}
         />
+        {/* ─── Active Skills Badge Strip ─────────────────────────────────
+            Design spec: row above editor showing loaded skills, reusable
+            steer queue badge pattern. Each badge: skill name + × close.
+            Clicking × calls DELETE /session/:id/skill/:name via SDK.
+            aria-label on × for accessibility (design review).
+            text-syntax-string color (warm/amber, design review).
+            Hidden when no active skills (Show when={}).
+        */}
+        <Show when={activeSkills().length > 0}>
+          <div class="flex flex-wrap items-center gap-1 px-3 pt-2 pb-1">
+            <For each={activeSkills()}>
+              {(skill) => (
+                <span class="inline-flex items-center gap-1 text-12-medium text-syntax-string bg-surface-invert/5 rounded px-1.5 py-0.5 leading-tight">
+                  <span>${skill.name}</span>
+                  <button
+                    type="button"
+                    class="size-3.5 shrink-0 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      const sessionID = params.id
+                      if (!sessionID) return
+                      // Remove skill via API — SessionSkills.remove() on server
+                      // Only removes user-added skills (not AI auto-loaded)
+                      fetch(`${sdk.url}/session/${sessionID}/skill/${skill.name}`, {
+                        method: "DELETE",
+                        headers: server.current?.http?.password
+                          ? { Authorization: `Basic ${btoa(`${server.current.http.username ?? "opencode"}:${server.current.http.password}`)}` }
+                          : {},
+                      }).catch(() => {})
+                    }}
+                    aria-label={`Remove skill ${skill.name}`}
+                  >
+                    <Icon name="close" size="small" class="size-2.5" />
+                  </button>
+                </span>
+              )}
+            </For>
+          </div>
+        </Show>
         <Show when={steerQueue().length > 0}>
           <div class="flex flex-col gap-1 px-3 pt-2 pb-1">
             <div class="flex items-center gap-1.5 text-11-medium text-text-weak uppercase tracking-wide">

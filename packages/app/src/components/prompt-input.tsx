@@ -1,6 +1,6 @@
 import { useFilteredList } from "@opencode-ai/ui/hooks"
 import { useSpring } from "@opencode-ai/ui/motion-spring"
-import { createEffect, on, Component, Show, For, onCleanup, createMemo, createSignal } from "solid-js"
+import { createEffect, on, Component, Show, For, Switch, Match, onCleanup, createMemo, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLocal } from "@/context/local"
 import { selectionFromLines, type SelectedLineRange, useFile } from "@/context/file"
@@ -24,6 +24,7 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { IconButton } from "@opencode-ai/ui/icon-button"
+import { showToast } from "@opencode-ai/ui/toast"
 import { Select } from "@opencode-ai/ui/select"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ModelSelectorPopover } from "@/components/dialog-select-model"
@@ -34,6 +35,7 @@ import { Persist, persisted } from "@/utils/persist"
 import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { useServer } from "@/context/server"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { promptEnabled, promptProbe } from "@/testing/prompt"
@@ -114,6 +116,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const permission = usePermission()
   const language = useLanguage()
   const platform = usePlatform()
+  const server = useServer()
   const { params, tabs, view } = useSessionLayout()
   let editorRef!: HTMLDivElement
   let fileInputRef: HTMLInputElement | undefined
@@ -244,6 +247,63 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       },
   )
   const working = createMemo(() => status()?.type !== "idle")
+  const steerQueue = createMemo(() => sync.data.steer_queue[params.id ?? ""] ?? [])
+  const [steerPending, setSteerPending] = createSignal(false)
+  const [enhancing, setEnhancing] = createSignal(false)
+
+  const enhancePrompt = async () => {
+    const textParts = prompt.current().filter((p): p is ContentPart & { type: "text" } => p.type === "text")
+    const text = textParts.map((p) => p.content).join("").trim()
+    if (!text || enhancing()) return
+    setEnhancing(true)
+    try {
+      const http = server.current?.http
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (http?.password) headers["Authorization"] = `Basic ${btoa(`${http.username ?? "opencode"}:${http.password}`)}`
+      const fetcher = platform.fetch ?? fetch
+      const res = await fetcher(`${sdk.url}/experimental/enhance`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ text }),
+      })
+      if (!res.ok) throw new Error("Enhance failed")
+      const data = (await res.json()) as { text: string }
+      if (data.text && data.text !== text) {
+        const nonText = prompt.current().filter((p) => p.type !== "text")
+        const enhanced: ContentPart = { type: "text", content: data.text, start: 0, end: data.text.length }
+        prompt.set([...nonText, enhanced], data.text.length)
+        if (editorRef) {
+          editorRef.textContent = data.text
+          requestAnimationFrame(() => {
+            const range = document.createRange()
+            const sel = window.getSelection()
+            range.selectNodeContents(editorRef)
+            range.collapse(false)
+            sel?.removeAllRanges()
+            sel?.addRange(range)
+          })
+        }
+      }
+    } catch {
+      showToast({
+        title: language.t("common.requestFailed") ?? "Failed to enhance prompt",
+      })
+    } finally {
+      setEnhancing(false)
+    }
+  }
+
+  /** Clear text parts after steer/queue, preserving non-text attachments. */
+  const clearText = () => {
+    const kept = prompt.current().filter((p) => p.type !== "text")
+    if (kept.length > 0) {
+      prompt.set(kept, 0)
+      return true
+    }
+    prompt.reset()
+    return false
+  }
+
   const tip = () => {
     if (working()) {
       return (
@@ -1296,6 +1356,42 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           onRemove={removeAttachment}
           removeLabel={language.t("prompt.attachment.remove")}
         />
+        <Show when={steerQueue().length > 0}>
+          <div class="flex flex-col gap-1 px-3 pt-2 pb-1">
+            <div class="flex items-center gap-1.5 text-11-medium text-text-weak uppercase tracking-wide">
+              <Icon name="bullet-list" size="small" class="size-3" />
+              <span>Pending ({steerQueue().length})</span>
+            </div>
+            <For each={steerQueue()}>
+              {(item) => (
+                <div class="flex items-center gap-1.5 group/steer">
+                  <span
+                    class="text-10-medium uppercase shrink-0 rounded px-1 py-px leading-tight"
+                    classList={{
+                      "text-syntax-keyword bg-surface-invert/5": item.mode === "steer",
+                      "text-text-weak bg-surface-invert/3": item.mode === "queue",
+                    }}
+                  >
+                    {item.mode === "steer" ? "steer" : "queue"}
+                  </span>
+                  <span class="text-13-regular text-text-base truncate flex-1">{item.text}</span>
+                  <button
+                    type="button"
+                    class="size-4 shrink-0 flex items-center justify-center opacity-0 group-hover/steer:opacity-100 transition-opacity text-icon-weak hover:text-icon-strong-base"
+                    onClick={() => {
+                      const sessionID = params.id
+                      if (!sessionID) return
+                      sdk.client.session.steer2.remove({ sessionID, steerID: item.id }).catch(() => {})
+                    }}
+                    aria-label={language.t("prompt.attachment.remove") ?? "Remove"}
+                  >
+                    <Icon name="close" size="small" class="size-3" />
+                  </button>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
         <div
           class="relative"
           onMouseDown={(e) => {
@@ -1303,7 +1399,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             if (!(target instanceof HTMLElement)) return
             if (
               target.closest(
-                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-action="prompt-permissions"]',
+                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-action="prompt-steer"], [data-action="prompt-permissions"]',
               )
             ) {
               return
@@ -1379,32 +1475,112 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             />
 
             <div class="flex items-center gap-1 pointer-events-auto">
-              <Tooltip placement="top" inactive={!prompt.dirty() && !working()} value={tip()}>
+              <Show when={working() && prompt.dirty()}>
+                <Tooltip
+                  placement="top"
+                  value={
+                    <div class="flex items-center gap-2">
+                      <span>Steer</span>
+                      <span class="text-icon-base text-12-medium text-[10px]!">⇧⏎</span>
+                    </div>
+                  }
+                >
+                  <IconButton
+                    data-action="prompt-steer"
+                    type="button"
+                    icon="align-right"
+                    variant="ghost"
+                    class="size-8"
+                    style={buttons()}
+                    onClick={() => {
+                      const sessionID = params.id
+                      if (!sessionID || steerPending()) return
+                      const text = prompt
+                        .current()
+                        .filter((p) => p.type === "text")
+                        .map((p) => p.content)
+                        .join("")
+                        .trim()
+                      if (!text) return
+                      setSteerPending(true)
+                      sdk.client.session
+                        .steer({ sessionID, text, mode: "steer" })
+                        .then((res) => {
+                          if (res.error) throw new Error("Failed to steer")
+                          const kept = clearText()
+                          showToast({
+                            title: language.t("prompt.action.steered") ?? "Steering",
+                            description: kept
+                              ? (language.t("prompt.action.attachmentsKept") ?? "Text steered — attachments still attached")
+                              : (language.t("prompt.action.steered.description") ?? "Will be injected at the next step"),
+                          })
+                          const editor = editorRef
+                          if (editor) editor.innerHTML = ""
+                        })
+                        .catch((err) =>
+                          showToast({
+                            title: language.t("common.requestFailed") ?? "Failed to steer",
+                            description: err?.message,
+                          }),
+                        )
+                        .finally(() => setSteerPending(false))
+                    }}
+                    aria-label="Steer"
+                  />
+                </Tooltip>
+              </Show>
+              <Tooltip
+                placement="top"
+                inactive={!prompt.dirty() && !working()}
+                value={
+                  <Switch>
+                    <Match when={working() && prompt.dirty()}>
+                      <div class="flex items-center gap-2">
+                        <span>Queue</span>
+                        <Icon name="enter" size="small" class="text-icon-base" />
+                      </div>
+                    </Match>
+                    <Match when={working()}>
+                      <div class="flex items-center gap-2">
+                        <span>{language.t("prompt.action.stop")}</span>
+                        <span class="text-icon-base text-12-medium text-[10px]!">{language.t("common.key.esc")}</span>
+                      </div>
+                    </Match>
+                    <Match when={true}>
+                      <div class="flex items-center gap-2">
+                        <span>{language.t("prompt.action.send")}</span>
+                        <Icon name="enter" size="small" class="text-icon-base" />
+                      </div>
+                    </Match>
+                  </Switch>
+                }
+              >
                 <IconButton
                   data-action="prompt-submit"
                   type="submit"
                   disabled={store.mode !== "normal" || (!prompt.dirty() && !working() && commentCount() === 0)}
                   tabIndex={store.mode === "normal" ? undefined : -1}
-                  icon={working() ? "stop" : "arrow-up"}
+                  icon={working() ? (prompt.dirty() ? "arrow-up" : "stop") : "arrow-up"}
                   variant="primary"
                   class="size-8"
                   style={buttons()}
-                  aria-label={working() ? language.t("prompt.action.stop") : language.t("prompt.action.send")}
+                  aria-label={
+                    working()
+                      ? prompt.dirty()
+                        ? language.t("prompt.action.queued") ?? "Queue"
+                        : language.t("prompt.action.stop")
+                      : language.t("prompt.action.send")
+                  }
                 />
               </Tooltip>
             </div>
           </div>
 
           <div class="pointer-events-none absolute bottom-2 left-2">
-            <div
-              aria-hidden={store.mode !== "normal"}
-              class="pointer-events-auto"
-              style={{
-                "pointer-events": buttonsSpring() > 0.5 ? "auto" : "none",
-              }}
-            >
+            <div class="pointer-events-auto">
               <TooltipKeybind
                 placement="top"
+                gutter={8}
                 title={language.t("prompt.action.attachFile")}
                 keybind={command.keybind("file.attach")}
               >
@@ -1422,6 +1598,32 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   <Icon name="plus" class="size-4.5" />
                 </Button>
               </TooltipKeybind>
+
+              <Show when={prompt.dirty() && !working()}>
+                <Tooltip
+                  placement="top"
+                  value={language.t("prompt.action.enhance") ?? "Enhance prompt"}
+                >
+                  <Button
+                    data-action="prompt-enhance"
+                    type="button"
+                    variant="ghost"
+                    class="size-8 p-0"
+                    style={buttons()}
+                    onClick={enhancePrompt}
+                    disabled={enhancing() || store.mode !== "normal"}
+                    aria-label={language.t("prompt.action.enhance") ?? "Enhance prompt"}
+                  >
+                    <Icon
+                      name="sparkle"
+                      class="size-4.5"
+                      classList={{
+                        "animate-pulse": enhancing(),
+                      }}
+                    />
+                  </Button>
+                </Tooltip>
+              </Show>
             </div>
           </div>
         </div>

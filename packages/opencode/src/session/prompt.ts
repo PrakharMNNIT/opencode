@@ -47,6 +47,7 @@ import { LLM } from "./llm"
 import { iife } from "@/util/iife"
 import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncate"
+import { SessionSteer } from "./steer"
 import { decodeDataUrl } from "@/util/data-url"
 
 // @ts-ignore
@@ -258,6 +259,7 @@ export namespace SessionPrompt {
 
   export function cancel(sessionID: SessionID) {
     log.info("cancel", { sessionID })
+    SessionSteer.clear(sessionID)
     const s = state()
     const match = s[sessionID]
     if (!match) {
@@ -323,6 +325,56 @@ export namespace SessionPrompt {
         !["tool-calls", "unknown"].includes(lastAssistant.finish) &&
         lastUser.id < lastAssistant.id
       ) {
+        // Check for "steer" mode messages — inject mid-turn at loop boundaries
+        const steered = SessionSteer.takeByMode(sessionID, "steer")
+        if (steered.length > 0) {
+          log.info("steer: injecting pending input", { sessionID, count: steered.length })
+          const text = steered.map((m) => m.text).join("\n\n")
+          const steerMsg: MessageV2.User = {
+            id: MessageID.ascending(),
+            sessionID,
+            role: "user",
+            time: { created: Date.now() },
+            agent: lastUser.agent,
+            model: lastUser.model,
+            variant: lastUser.variant,
+          }
+          await Session.updateMessage(steerMsg)
+          await Session.updatePart({
+            id: PartID.ascending(),
+            messageID: steerMsg.id,
+            sessionID,
+            type: "text",
+            text,
+          } satisfies MessageV2.TextPart)
+          continue
+        }
+
+        // Turn finished. Drain "queue" mode messages and auto-submit as new user messages.
+        const queued = SessionSteer.takeByMode(sessionID, "queue")
+        if (queued.length > 0) {
+          log.info("steer: auto-submitting queued input", { sessionID, count: queued.length })
+          const text = queued.map((m) => m.text).join("\n\n")
+          const queueMsg: MessageV2.User = {
+            id: MessageID.ascending(),
+            sessionID,
+            role: "user",
+            time: { created: Date.now() },
+            agent: lastUser.agent,
+            model: lastUser.model,
+            variant: lastUser.variant,
+          }
+          await Session.updateMessage(queueMsg)
+          await Session.updatePart({
+            id: PartID.ascending(),
+            messageID: queueMsg.id,
+            sessionID,
+            type: "text",
+            text,
+          } satisfies MessageV2.TextPart)
+          continue
+        }
+
         log.info("exiting loop", { sessionID })
         break
       }

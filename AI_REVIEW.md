@@ -1,16 +1,8 @@
-# Code Review — `prax-dev` vs `origin/dev`
+# Code Review — `prax-dev` branch vs `origin/dev`
 
-> Generated: 2026-03-19T01:58Z
-> Reviewer: code-review-expert skill
-> Scope: `git diff origin/dev...HEAD` (core source files only)
-
-## Code Review Summary
-
-**Files reviewed**: ~60 core source files across `packages/opencode`, `packages/app`, `packages/desktop`, `packages/ui`
-**Lines changed**: ~75,276 additions, ~4,470 deletions (997 total files; ~800 were skill symlinks, docs, icons, i18n — skipped)
-**Overall assessment**: **COMMENT**
-
-The branch contains a large, well-structured refactor that inlines separate service files into their parent namespaces (permission, auth, question, snapshot, skill), adds a new steer/queue feature for session management, improves compaction headroom logic, and adds desktop console log bridging. No merge-blocking security vulnerabilities found, but several high-priority items need attention.
+**Files reviewed**: 896 files, ~71,036 insertions, ~877 deletions  
+**Scope**: Focused on source code changes (~50 files). Excluded ~700+ skill symlinks, icon assets, docs, and reference files.  
+**Overall assessment**: **REQUEST_CHANGES**
 
 ---
 
@@ -20,231 +12,212 @@ The branch contains a large, well-structured refactor that inlines separate serv
 
 (none)
 
----
-
 ### P1 - High
 
-**1. [packages/opencode/src/session/steer.ts] Unbounded in-memory state — no session cleanup**
+**1. `packages/opencode/src/server/routes/session.ts:1030` — Steer route has no session existence validation**
 
-The `Instance.state()` call creates a `Record<string, SteerState>` that accumulates entries for every session. `drain()` empties the `pending` array but never deletes the session key. Over long-running processes with many sessions, this is a memory leak (ref: security-checklist § Runtime Risks — "Unbounded collections that grow without limit").
+The `POST /:sessionID/steer` handler pushes messages into the steer queue without verifying the session actually exists. A fabricated or stale `sessionID` silently creates orphan state in memory and can trigger `SessionPrompt.loop()` on a non-existent session.
 
 ```typescript
-// Current: drain clears array but key persists forever
-function drain(sessionID: string): QueuedMessage[] {
-  const entry = ensure(sessionID)
-  const items = entry.pending.splice(0)
-  // entry still exists in state()[sessionID]
+// Current — no guard
+async (c) => {
+  const sessionID = c.req.valid("param").sessionID as SessionID
+  const body = c.req.valid("json")
+  const entry = SessionSteer.push(sessionID, body.text, body.mode)
+  if (SessionStatus.get(sessionID).type === "idle") {
+    SessionPrompt.loop({ sessionID }).catch(() => { ... })
+  }
+  return c.json(entry)
+}
+```
+
+Suggested fix: Add a session-exists check (e.g., `Session.get(sessionID)`) and return 404 if not found, consistent with the other `/:sessionID/*` routes.
+
+---
+
+**2. `packages/opencode/src/session/steer.ts` — Unbounded memory growth: session entries never cleaned up**
+
+The state is `Record<string, SteerState>` keyed by sessionID. Entries are created via `ensure()` but never deleted when a session ends, is archived, or is deleted. Over a long-running server with many sessions, this accumulates orphan objects indefinitely.
+
+```typescript
+const state = Instance.state(
+  () => {
+    const data: Record<string, SteerState> = {}  // grows forever
+    return data
+  },
+  async () => {},
+)
+```
+
+Suggested fix: Subscribe to `Session.Event.Deleted` / archive events and call `delete s[sessionID]` to reclaim memory. Alternatively, add a `destroy(sessionID)` function and call it from session lifecycle hooks.
+
+---
+
+**3. `packages/opencode/src/server/routes/experimental.ts:270-290` — Enhance route uses empty sentinel IDs**
+
+The `/enhance` endpoint passes `"" as SessionID` and `"" as MessageID` to `LLM.stream()`. If any downstream code (logging, metrics, DB writes, bus events) indexes on these values, it will collide or produce corrupt records.
+
+```typescript
+user: {
+  role: "user",
+  id: "" as MessageID,         // ← empty sentinel
+  sessionID: "" as SessionID,  // ← empty sentinel
   ...
 }
 ```
 
-- **Suggested fix**: After drain returns items, `delete state()[sessionID]` if the array is now empty. Or subscribe to a session-close bus event to evict stale entries.
-- **Impact**: Memory exhaustion in long-running desktop/server processes.
+Suggested fix: Generate a transient `MessageID.ascending()` and either a dedicated sentinel SessionID constant or a real ephemeral session. At minimum, use a namespaced prefix like `"enhance-"` so collisions are impossible.
 
 ---
 
-**2. [packages/opencode/src/session/message-v2.ts] Removed `differentModel` guard — providerMetadata now always propagated**
+**4. `packages/opencode/src/provider/provider.ts` — Bedrock context cap duplicated in two locations**
 
-The `differentModel` check was removed. Now `providerMetadata` and `callProviderMetadata` from model A (e.g., Anthropic thinking blocks, cache metadata) are always forwarded when replaying messages to model B (e.g., OpenAI, Bedrock). Provider-specific metadata sent to an incompatible provider may cause API errors or silent data corruption (ref: code-quality-checklist § Error Handling — "What happens when this operation fails?").
+The identical `BEDROCK_CONTEXT_CAP` logic block (constant + condition + mutation) appears at both line ~816 and ~960. This violates DRY and risks divergence if only one copy is updated.
 
 ```typescript
-// Before: metadata gated by model match
-...(differentModel ? {} : { providerMetadata: part.metadata }),
-
-// After: always passed through
-providerMetadata: part.metadata,
+// Appears TWICE, verbatim:
+const BEDROCK_CONTEXT_CAP = 200_000
+if (
+  provider.id === "amazon-bedrock" &&
+  m.limit.context > BEDROCK_CONTEXT_CAP &&
+  m.id.includes("anthropic")
+) {
+  m.limit.context = BEDROCK_CONTEXT_CAP
+}
 ```
 
-- **Suggested fix**: Verify all downstream SDK providers tolerate unknown metadata keys gracefully (they may ignore or error). If not safe, restore a guard — but scope it to provider *family* change (e.g., `anthropic` → `openai`), not just model ID change.
-- **Impact**: Potential API 400 errors when switching models mid-conversation.
+Suggested fix: Extract to a shared helper function like `capBedrockContext(providerID, model)` and call it from both sites.
 
 ---
 
-**3. [packages/opencode/src/provider/auth.ts] OAuth `pending` Map has no TTL, size limit, or CSRF token**
+**5. `packages/opencode/src/session/prompt.ts:328-375` — Steer injection has no input length limit**
 
-`pending = new Map<ProviderID, AuthOuathResult>()` stores intermediate OAuth state after `authorize()` with no expiration. If `callback()` is never invoked, entries persist forever (ref: security-checklist § AuthN/AuthZ, Runtime Risks — "Missing timeouts on external calls", "Unbounded collections"). Additionally, no CSRF state parameter binds the authorize↔callback round-trip — any request with the right `providerID` can complete the flow.
+Steered/queued messages are concatenated with `\n\n` and injected as a new user message. There is no limit on the number of queued messages or their combined length. A client could push hundreds of large messages, creating an oversized user turn that blows the context window or causes OOM.
 
 ```typescript
-const pending = new Map<ProviderID, AuthOuathResult>()
-// No TTL, no max size, no state/nonce token
+const text = steered.map((m) => m.text).join("\n\n")  // unbounded
 ```
 
-- **Suggested fix**:
-  1. Add a TTL (10 min) — wrap entries with a timestamp and sweep on access or via `setInterval`.
-  2. Cap map size (e.g., 50 entries, evict oldest).
-  3. Add a random `state` token to `authorize()` response and require it back in `callback()`.
-- **Impact**: Stale entries leak memory; absent CSRF token is a low-severity security gap (local-only server mitigates exploitability).
-
----
-
-**4. [packages/desktop/src/entry.tsx] Silent swallow of console-bridge import failure**
-
-`.catch(() => {})` silently eats the error if `console-bridge` fails to load. The app proceeds with zero log forwarding and zero diagnostics (ref: code-quality-checklist § Error Handling — "Swallowed exceptions: empty catch blocks").
-
-```typescript
-import("./console-bridge")
-  .catch(() => {})  // silent failure
-  .then(() => { ... })
-```
-
-- **Suggested fix**: `.catch((e) => { console.error("[console-bridge] failed:", e) })`
-- **Impact**: Silent loss of all webview→Rust log forwarding with no way to diagnose.
-
----
-
-**5. [packages/opencode/src/provider/provider.ts] Hardcoded `BEDROCK_CONTEXT_CAP = 200_000`**
-
-A magic number caps Bedrock Anthropic context to 200K. As Bedrock evolves (or users enable `context-1m` beta), this will silently under-utilize context (ref: solid-checklist § OCP — "Adding a new behavior requires editing many switch/if blocks", code-quality-checklist § "Magic numbers without named constants").
-
-- **Suggested fix**: Make configurable via provider config schema (e.g., `provider.amazon-bedrock.contextLimit`). At minimum, add a TODO comment with the Bedrock docs link and the condition under which this should change.
-- **Impact**: Users on Bedrock with 1M context enabled get silently capped at 200K.
+Suggested fix: Add a max queue depth (e.g., 20 messages) and/or a max combined text length in `SessionSteer.push()`. Reject with an error when exceeded.
 
 ---
 
 ### P2 - Medium
 
-**6. [packages/opencode/src/session/compaction.ts] Default headroom changed from 20K to up-to-32K**
+**6. `packages/opencode/src/session/processor.ts:372-383` — Thinking block error detection is string-match fragile**
 
-Removing `COMPACTION_BUFFER = 20_000` and using `ProviderTransform.maxOutputTokens()` (capped at `OUTPUT_TOKEN_MAX = 32_000`) changes compaction trigger behavior. Models that previously reserved 20K now reserve up to 32K, triggering compaction earlier. This is a user-visible behavioral change (ref: code-quality-checklist § Boundary Conditions).
-
-- **Mitigated by**: Config override `config.compaction.reserved`. Comment references #12924.
-- **Suggested action**: Document in release notes that compaction may trigger sooner for high-output models.
-
----
-
-**7. [packages/desktop/src/console-bridge.ts] Batch array unbounded; no cleanup on unload**
-
-The `batch: string[]` grows if `flush()` calls fail or get lost. No `beforeunload` handler ensures final flush. Under pathological conditions (rapid console spam + failing IPC), this is a memory concern (ref: code-quality-checklist § Memory — "Unbounded collections", security-checklist § Runtime Risks).
+The thinking block error recovery relies on substring matching against the error message:
 
 ```typescript
-let batch: string[] = []
-// No max length, no unload flush
+if (errorMsg.includes("thinking") && errorMsg.includes("cannot be modified")) {
 ```
 
-- **Suggested fix**:
-  1. `if (batch.length > 500) batch.splice(0, batch.length - 500)` before push.
-  2. `window.addEventListener("beforeunload", flush)`.
+If the API error message wording changes (e.g., "thought" instead of "thinking", or different phrasing), the recovery path silently breaks and falls through to the generic retry path. 
+
+Suggested fix: Match on a structured error code if available, or use a more resilient regex. Add a log warning for unmatched thinking-related errors.
 
 ---
 
-**8. [packages/opencode/src/provider/error.ts] Band-aid for `msg === "undefined"` string**
+**7. `packages/opencode/src/server/routes/experimental.ts:296` — Think tag stripping regex can fail on malformed output**
 
-New check catches the string literal `"undefined"` — this means `undefined` is being coerced to string upstream. This is a symptom fix, not root cause (ref: code-quality-checklist § Error Handling — "Errors are logged with sufficient context").
+```typescript
+const cleaned = text.replace(/<think>[\s\S]*?<\/think>\s*/g, "").trim()
+```
 
-- **Suggested fix**: Track down where the `undefined` → `"undefined"` coercion happens (likely a `.toString()` or template literal on an undefined var). Keep this guard as defense-in-depth.
+The non-greedy `*?` correctly handles single think blocks, but if the model outputs an unclosed `<think>` tag, the regex won't match and the raw think block leaks to the user.
 
----
-
-**9. [packages/opencode/src/server/routes/experimental.ts] New steer/queue endpoints — verify auth boundary**
-
-New experimental endpoints for steer queue CRUD (`push`, `remove`, `list`, `drain`). These routes must inherit the same auth/session-ownership middleware as existing session routes. The `remove` endpoint accepts `steerID` — confirm it cannot be used cross-session (ref: security-checklist § AuthN/AuthZ — "Missing tenant or ownership checks", "IDOR").
-
-- **Suggested action**: Verify routes are registered under the authenticated router with session-scoped access control.
+Suggested fix: Add a fallback strip for unclosed `<think>` tags: `.replace(/<think>[\s\S]*$/g, "")`.
 
 ---
 
-**10. [packages/opencode/src/session/steer.ts] Potential prototype pollution via session ID**
+**8. `packages/opencode/src/config/config.ts` — Spread preserves stale thinking_strategy values**
 
-`ensure(sessionID)` does `s[sessionID]` on a plain object `{}`. If `sessionID` were user-controlled and equal to `"__proto__"` or `"constructor"`, this could pollute the prototype chain (ref: security-checklist § Input/Output Safety — "Prototype pollution: unsafe object merging"). Mitigated by session IDs being server-generated UUIDs, but not enforced at this layer.
+```typescript
+result.compaction = { ...result.compaction, auto: false, thinking_strategy: result.compaction?.thinking_strategy ?? "none" }
+```
 
-- **Suggested fix**: Use `Object.create(null)` instead of `{}` for the state record, or use a `Map<string, SteerState>`.
+If `result.compaction` already has a `thinking_strategy` set, the explicit `?? "none"` fallback is dead code (it only activates when the field is undefined). The actual intent is unclear — is this preserving an existing value or defaulting? If preserving, `...result.compaction` already does that. The explicit re-assignment is redundant.
 
 ---
 
-**11. [packages/desktop/src-tauri/tauri.conf.json] Missing trailing newline**
+**9. `packages/desktop/src/console-bridge.ts` — Timer not cleaned up on teardown**
 
-POSIX convention; some CI linters flag this.
+The batching timer is never cleared. When the Tauri webview is destroyed, the pending `setTimeout` callback can fire after the bridge is gone, potentially causing errors.
 
-- **Suggested fix**: Re-add trailing newline.
+```typescript
+if (!timer) timer = setTimeout(() => { timer = undefined; flush() }, 100)
+```
+
+Suggested fix: Export a `teardown()` function that calls `clearTimeout(timer)` and `flush()`, invoked on webview unload.
+
+---
+
+**10. Test files use source-code grep instead of behavioral testing**
+
+`test/prax-features/enhance.test.ts`, `steer.test.ts`, and `mermaid.test.ts` read source files as strings and assert on pattern matches:
+
+```typescript
+const src = await Bun.file("src/session/steer.ts").text()
+expect(src).toContain("export function push")
+```
+
+These tests verify that specific strings exist in source code, not that the code works. They are extremely brittle — any rename, reformat, or refactor breaks them without any actual regression. They provide no coverage of runtime behavior.
+
+Suggested fix: Replace with unit tests that import the modules and test actual function behavior (several of these already exist in `test/session/steer.test.ts` which tests the real API correctly).
+
+---
+
+**11. `packages/desktop/src-tauri/tauri.conf.json` — Fork-specific branding change**
+
+Product name changed from `"OpenCode Dev"` to `"OpenCode Prax-Dev"` and identifier from `ai.opencode.desktop.dev` to `ai.opencode.desktop.prax-dev`. Icon paths changed from `icons/dev/` to `icons/prax-dev/`. This is fork-specific and will conflict on merge to upstream `dev`.
 
 ---
 
 ### P3 - Low
 
-**12. [packages/opencode/src/provider/auth.ts] Upstream typo `AuthOuathResult`**
+**12. Agent symlink explosion (~500+ files)**
 
-Import `AuthOuathResult` (should be `AuthOauthResult`) comes from `@opencode-ai/plugin`. Not fixable in this PR — file upstream issue.
-
----
-
-**13. [packages/app/src/components/prompt-input.tsx] Fire-and-forget `.catch(() => {})` on steer remove**
-
-```typescript
-sdk.client.session.steer2.remove({ sessionID, steerID: item.id }).catch(() => {})
-```
-
-Acceptable for UI feedback (the item is already visually removed), but consider logging the error at debug level for diagnosability.
+The PR adds symlinks in ~30 directories (`.adal/`, `.agent/`, `.augment/`, `.claude/`, `.codebuddy/`, `.commandcode/`, `.continue/`, `.cortex/`, `.crush/`, `.factory/`, `.goose/`, `.iflow/`, `.junie/`, `.kilocode/`, `.kiro/`, `.kode/`, `.mcpjam/`, `.mux/`, `.neovate/`, `.openhands/`, `.pi/`, `.pochi/`, `.qoder/`, `.qwen/`, `.roo/`, `.trae/`, `.vibe/`, `.windsurf/`, `.zencoder/`). These should ideally be generated at install-time rather than committed, or consolidated into fewer directories.
 
 ---
 
-**14. [packages/opencode/src/effect/instances.ts + runtime.ts] Clean namespace rename**
+**13. `packages/opencode/src/session/processor.ts` — MAX_RETRIES should be configurable**
 
-The `FooService` → `Foo` pattern and import consolidation from `/service` → `/index` is clean, consistent, and correctly reflected in all layer registrations. No issues.
-
----
-
-**15. [packages/opencode/src/config/config.ts] New `thinking_strategy` and `plan_mode` experimental flags**
-
-Good use of `z.enum(["none", "strip", "compact"]).optional().default("none")` with appropriate defaults. Properly scoped under experimental config.
+`MAX_RETRIES = 10` is hardcoded. For production debugging and different environments, this should be a config value or at least an environment variable override, consistent with how `DOOM_LOOP_THRESHOLD` works.
 
 ---
 
-**16. [packages/opencode/src/skill/skill.ts + discovery.ts] Large inlining**
+**14. `packages/app/src/components/prompt-input.tsx` — enhancePrompt error handling is toast-only**
 
-Consistent with the permission/auth/question refactoring pattern. `skill.ts` grew by ~400 lines. Monitor for SRP violations as this file evolves — it now owns schemas, service interface, layer definition, scanning logic, and URL-based skill download (ref: solid-checklist § SRP — "File owns unrelated concerns").
+The enhance feature catches errors and shows a toast, but silently swallows the response when the server returns the original text unchanged (fallback case). The user gets no feedback that enhancement failed or was a no-op.
 
 ---
 
 ## Removal/Iteration Plan
 
-### Safe to Remove Now (confirmed in this PR)
+| Item | Action | Risk |
+|------|--------|------|
+| Source-grep test files (`prax-features/*.test.ts`) | Delete — real behavioral tests already exist in `test/session/steer.test.ts` | Safe delete now |
+| `.bug-hunter/` directory | Delete or gitignore — analysis artifacts not needed in repo | Safe delete now |
+| `star-team-audit/` directory | Delete or gitignore — audit artifacts not needed in repo | Safe delete now |
+| `docs/09-temp/` files | Move to wiki or delete — temp planning docs should not ship | Safe after confirming no references |
 
-| Item | Location | Evidence | Verified |
-|------|----------|----------|----------|
-| PermissionEffect service file | `src/permission/service.ts` | Fully inlined into `index.ts`; no external imports remain | ✅ |
-| ProviderAuth service file | `src/provider/auth-service.ts` | Fully inlined into `auth.ts`; `instances.ts` updated | ✅ |
-| Question service file | `src/question/service.ts` | Fully inlined into `index.ts`; `instances.ts` updated | ✅ |
-| Eventloop util | `src/util/eventloop.ts` | Functionality consolidated; 0 imports | ✅ |
+## Additional Suggestions
 
-### Defer Removal (needs follow-up)
-
-| Item | Location | Why Defer |
-|------|----------|-----------|
-| `BEDROCK_CONTEXT_CAP` hardcode | `provider/provider.ts` | Needs config schema addition; coordinate with Bedrock feature flag timeline |
-| `session/prompt/qwen.txt` → `default.txt` rename | `session/prompt/` | Old `qwen.txt` may still be referenced in docs or configs — verify before deleting |
-
----
-
-## SOLID Assessment
-
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| **SRP** | ⚠️ | `skill.ts` now owns scanning + downloading + layer + schemas. Monitor. |
-| **OCP** | ✅ | Steer mode extensibility via `Mode = "queue" \| "steer"` enum is good. |
-| **LSP** | ✅ | No inheritance patterns in changed code. |
-| **ISP** | ✅ | Service interfaces are narrow and focused. |
-| **DIP** | ✅ | Effect `Layer`/`ServiceMap` pattern properly inverts dependencies. |
-
----
-
-## Areas Not Covered
-
-- **Database migrations**: No migration files were changed; not reviewed.
-- **UI component rendering**: CSS changes in `packages/ui` were skimmed, not deeply reviewed.
-- **i18n/localization**: Translation files were not reviewed for completeness.
-- **E2E test coverage**: New steer queue feature lacks E2E tests in the diff.
-- **Skill content**: The ~800 skill symlinks and `.agents/` content were not reviewed for correctness.
+- **SDK gen files** (`sdk/js/src/v2/gen/sdk.gen.ts`, `types.gen.ts`): The new steer routes are reflected in the generated SDK. Verify these were regenerated from the OpenAPI spec and not hand-edited.
+- **Enhance agent temperature**: `temperature: 0.7` is reasonable for rewriting, but consider making it configurable per-user or documenting the choice.
+- **Bedrock context cap**: The 200K cap is correct for current Bedrock limits, but should have a code comment linking to the AWS documentation for future maintainers.
 
 ---
 
 ## Next Steps
 
-I found 16 issues (P0: 0, P1: 5, P2: 6, P3: 5).
+I found **14 issues** (P0: 0, P1: 5, P2: 6, P3: 3).
 
 **How would you like to proceed?**
 
 1. **Fix all** — I'll implement all suggested fixes
-2. **Fix P1 only** — Address the 5 high priority issues
+2. **Fix P1 only** — Address the 5 high-priority issues
 3. **Fix specific items** — Tell me which issues to fix
 4. **No changes** — Review complete, no implementation needed
 

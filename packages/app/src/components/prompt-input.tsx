@@ -1461,20 +1461,44 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             }}
           />
 
-          <div class="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_FILE_TYPES.join(",")}
-              class="hidden"
-              onChange={(e) => {
-                const file = e.currentTarget.files?.[0]
-                if (file) void addAttachment(file)
-                e.currentTarget.value = ""
-              }}
-            />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_FILE_TYPES.join(",")}
+            class="hidden"
+            onChange={(e) => {
+              const file = e.currentTarget.files?.[0]
+              if (file) void addAttachment(file)
+              e.currentTarget.value = ""
+            }}
+          />
 
-            <div class="flex items-center gap-1.5 pointer-events-auto">
+          {/* Action bar — Codex/Kilo Code style: below editor, not floating */}
+          <div
+            class="flex items-center justify-between px-2 pb-2 pt-0"
+            style={buttons()}
+          >
+            {/* Left: attach + enhance */}
+            <div class="flex items-center gap-1">
+              <TooltipKeybind
+                placement="top"
+                gutter={8}
+                title={language.t("prompt.action.attachFile")}
+                keybind={command.keybind("file.attach")}
+              >
+                <IconButton
+                  data-action="prompt-attach"
+                  type="button"
+                  icon="plus"
+                  variant="ghost"
+                  class="size-8"
+                  onClick={pick}
+                  disabled={store.mode !== "normal"}
+                  tabIndex={store.mode === "normal" ? undefined : -1}
+                  aria-label={language.t("prompt.action.attachFile")}
+                />
+              </TooltipKeybind>
+
               <Show when={prompt.dirty() && !working()}>
                 <Tooltip
                   placement="top"
@@ -1486,7 +1510,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     icon="sparkle"
                     variant="ghost"
                     class="size-8"
-                    style={buttons()}
                     onClick={enhancePrompt}
                     disabled={enhancing() || store.mode !== "normal"}
                     aria-label={language.t("prompt.action.enhance") ?? "Enhance prompt"}
@@ -1494,6 +1517,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   />
                 </Tooltip>
               </Show>
+            </div>
+
+            {/* Right: steer + submit */}
+            <div class="flex items-center gap-1.5">
               <Show when={working() && prompt.dirty()}>
                 <Tooltip
                   placement="top"
@@ -1510,7 +1537,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     icon="align-right"
                     variant="ghost"
                     class="size-8"
-                    style={buttons()}
                     onClick={() => {
                       const sessionID = params.id
                       if (!sessionID || steerPending()) return
@@ -1582,7 +1608,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   icon={working() ? (prompt.dirty() ? "arrow-up" : "stop") : "arrow-up"}
                   variant="primary"
                   class="size-8"
-                  style={buttons()}
                   aria-label={
                     working()
                       ? prompt.dirty()
@@ -1592,31 +1617,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   }
                 />
               </Tooltip>
-            </div>
-          </div>
-
-          <div class="pointer-events-none absolute bottom-2 left-2">
-            <div class="pointer-events-auto">
-              <TooltipKeybind
-                placement="top"
-                gutter={8}
-                title={language.t("prompt.action.attachFile")}
-                keybind={command.keybind("file.attach")}
-              >
-                <Button
-                  data-action="prompt-attach"
-                  type="button"
-                  variant="ghost"
-                  class="size-8 p-0"
-                  style={buttons()}
-                  onClick={pick}
-                  disabled={store.mode !== "normal"}
-                  tabIndex={store.mode === "normal" ? undefined : -1}
-                  aria-label={language.t("prompt.action.attachFile")}
-                >
-                  <Icon name="plus" class="size-4.5" />
-                </Button>
-              </TooltipKeybind>
             </div>
           </div>
         </div>

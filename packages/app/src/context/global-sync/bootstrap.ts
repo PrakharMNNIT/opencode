@@ -152,7 +152,12 @@ export async function bootstrapDirectory(input: {
     input.sdk.path.get().then((x) => input.setStore("path", x.data!)),
     input.sdk.command.list().then((x) => input.setStore("command", x.data ?? [])),
     // Load available skills for $ popover (non-blocking — popover shows empty state until loaded)
-    input.sdk.app.skills().then((x) => input.setStore("skill", x.data ?? [])).catch(() => {}),
+    // Code review fix: sdk.app.skills() may not exist if SDK wasn't regenerated with /skill endpoint.
+    // Fallback to raw fetch if method doesn't exist. .catch() ensures graceful degradation.
+    (typeof input.sdk.app.skills === "function"
+      ? input.sdk.app.skills().then((x) => input.setStore("skill", x.data ?? []))
+      : fetch(`${input.sdk.baseUrl ?? ""}/skill`).then((r) => r.json()).then((data) => input.setStore("skill", data ?? []))
+    ).catch(() => {}),
     input.sdk.session.status().then((x) => input.setStore("session_status", x.data!)),
     input.loadSessions(input.directory),
     input.sdk.mcp.status().then((x) => input.setStore("mcp", x.data!)),

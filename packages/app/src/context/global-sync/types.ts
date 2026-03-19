@@ -49,6 +49,11 @@ export type State = {
   steer_queue: {
     [sessionID: string]: { id: string; text: string; time: number; mode: "queue" | "steer" }[]
   }
+  // Active $skill mentions per session — from SessionSkills.Event.Changed
+  // Used by badge strip and popover to show which skills are loaded
+  session_skill: {
+    [sessionID: string]: { name: string; added_at: number; token_estimate: number | null }[]
+  }
   session_diff: {
     [sessionID: string]: FileDiff[]
   }

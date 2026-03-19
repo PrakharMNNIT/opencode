@@ -257,7 +257,7 @@ describe("enhance button UI (prompt-input.tsx)", () => {
 
     test("shows sparkle icon", async () => {
       const src = await fs.readFile(file, "utf-8")
-      expect(src).toContain('name="sparkle"')
+      expect(src).toContain('icon="sparkle"')
     })
 
     test("pulses while enhancing", async () => {

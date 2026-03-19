@@ -1474,7 +1474,26 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               }}
             />
 
-            <div class="flex items-center gap-1 pointer-events-auto">
+            <div class="flex items-center gap-1.5 pointer-events-auto">
+              <Show when={prompt.dirty() && !working()}>
+                <Tooltip
+                  placement="top"
+                  value={language.t("prompt.action.enhance") ?? "Enhance prompt"}
+                >
+                  <IconButton
+                    data-action="prompt-enhance"
+                    type="button"
+                    icon="sparkle"
+                    variant="ghost"
+                    class="size-8"
+                    style={buttons()}
+                    onClick={enhancePrompt}
+                    disabled={enhancing() || store.mode !== "normal"}
+                    aria-label={language.t("prompt.action.enhance") ?? "Enhance prompt"}
+                    classList={{ "animate-pulse": enhancing() }}
+                  />
+                </Tooltip>
+              </Show>
               <Show when={working() && prompt.dirty()}>
                 <Tooltip
                   placement="top"
@@ -1598,32 +1617,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   <Icon name="plus" class="size-4.5" />
                 </Button>
               </TooltipKeybind>
-
-              <Show when={prompt.dirty() && !working()}>
-                <Tooltip
-                  placement="top"
-                  value={language.t("prompt.action.enhance") ?? "Enhance prompt"}
-                >
-                  <Button
-                    data-action="prompt-enhance"
-                    type="button"
-                    variant="ghost"
-                    class="size-8 p-0"
-                    style={buttons()}
-                    onClick={enhancePrompt}
-                    disabled={enhancing() || store.mode !== "normal"}
-                    aria-label={language.t("prompt.action.enhance") ?? "Enhance prompt"}
-                  >
-                    <Icon
-                      name="sparkle"
-                      class="size-4.5"
-                      classList={{
-                        "animate-pulse": enhancing(),
-                      }}
-                    />
-                  </Button>
-                </Tooltip>
-              </Show>
             </div>
           </div>
         </div>

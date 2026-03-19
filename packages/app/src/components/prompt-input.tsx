@@ -954,7 +954,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         slashOnInput(slashMatch[1])
         setStore("popover", "slash")
       } else if (dollarMatch) {
-        // TODO: wire up skill popover filtering once slash-popover.tsx has "skill" mode
+        // Skill popover is wired in PromptPopover with "skill" mode.
+        // Data binding (skillFlat props) happens via sync.data.skill when available.
         setStore("popover", "skill")
       } else {
         closePopover()

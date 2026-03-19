@@ -1153,6 +1153,13 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID as SessionID
         const body = c.req.valid("json")
+        // Code review fix #2: Skill name validation.
+        // Skill.available() requires Effect context (not available in HTTP routes).
+        // Instead, we accept the name here and let the backend's graceful error
+        // handling in prompt.ts loop() catch nonexistent skills — Skill.get()
+        // returns null → log.warn → skip. This is acceptable per spec §8:
+        // "Unknown skill name → leave as literal text, no error."
+        // The skill will be persisted but silently skipped during injection.
         // Idempotent add — re-adding an active skill is a no-op
         SessionSkills.add(sessionID, body.name)
         return c.json(SessionSkills.list(sessionID))

@@ -49,9 +49,13 @@ export namespace ProviderTransform {
     model: Provider.Model,
     options: Record<string, unknown>,
   ): ModelMessage[] {
-    // Anthropic rejects messages with empty content - filter out empty string messages
-    // and remove empty text/reasoning parts from array content
-    if (model.api.npm === "@ai-sdk/anthropic") {
+    // Anthropic (and Bedrock/Vertex Anthropic) rejects messages with empty content -
+    // filter out empty string messages and remove empty text/reasoning parts from array content
+    if (
+      model.api.npm === "@ai-sdk/anthropic" ||
+      model.api.npm === "@ai-sdk/amazon-bedrock" ||
+      model.api.npm === "@ai-sdk/google-vertex/anthropic"
+    ) {
       msgs = msgs
         .map((msg) => {
           if (typeof msg.content === "string") {
@@ -194,6 +198,10 @@ export namespace ProviderTransform {
     }
 
     for (const msg of unique([...system, ...final])) {
+      // Skip messages with empty content — APIs reject cache points on empty messages
+      if (typeof msg.content === "string" && msg.content === "") continue
+      if (Array.isArray(msg.content) && msg.content.length === 0) continue
+
       const useMessageLevelOptions = model.providerID === "anthropic" || model.providerID.includes("bedrock")
       const shouldUseContentOptions = !useMessageLevelOptions && Array.isArray(msg.content) && msg.content.length > 0
 
@@ -254,11 +262,14 @@ export namespace ProviderTransform {
     msgs = normalizeMessages(msgs, model, options)
     if (
       (model.providerID === "anthropic" ||
+        model.providerID.includes("bedrock") ||
         model.api.id.includes("anthropic") ||
         model.api.id.includes("claude") ||
         model.id.includes("anthropic") ||
         model.id.includes("claude") ||
-        model.api.npm === "@ai-sdk/anthropic") &&
+        model.api.npm === "@ai-sdk/anthropic" ||
+        model.api.npm === "@ai-sdk/amazon-bedrock" ||
+        model.api.npm === "@ai-sdk/google-vertex/anthropic") &&
       model.api.npm !== "@ai-sdk/gateway"
     ) {
       msgs = applyCaching(msgs, model)

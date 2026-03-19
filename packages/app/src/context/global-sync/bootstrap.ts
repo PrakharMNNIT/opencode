@@ -156,7 +156,7 @@ export async function bootstrapDirectory(input: {
     // Fallback to raw fetch if method doesn't exist. .catch() ensures graceful degradation.
     (typeof input.sdk.app.skills === "function"
       ? input.sdk.app.skills().then((x) => input.setStore("skill", x.data ?? []))
-      : fetch(`${input.sdk.baseUrl ?? ""}/skill`).then((r) => r.json()).then((data) => input.setStore("skill", data ?? []))
+      : fetch(`/skill`).then((r) => r.json()).then((data) => input.setStore("skill", data ?? []))
     ).catch(() => {}),
     input.sdk.session.status().then((x) => input.setStore("session_status", x.data!)),
     input.loadSessions(input.directory),

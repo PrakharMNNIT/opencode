@@ -746,6 +746,34 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     onSelect: handleSlashSelect,
   })
 
+  // ─── Skill popover: useFilteredList for arrow key + Enter navigation ──
+  const skillItems = createMemo<SkillOption[]>(() =>
+    sync.data.skill.map((s): SkillOption => ({ type: "skill", name: s.name, description: s.description })),
+  )
+
+  const handleSkillSelect = (skill: SkillOption | undefined) => {
+    if (!skill) return
+    skillApi("POST", skill.name)
+    showToast({
+      title: `✓ Loaded $${skill.name}`,
+      description: "Skill added to session context",
+    })
+    closePopover()
+  }
+
+  const {
+    flat: skillFlat,
+    active: skillActive,
+    setActive: setSkillActive,
+    onInput: skillOnInput,
+    onKeyDown: skillOnKeyDown,
+  } = useFilteredList<SkillOption>({
+    items: skillItems,
+    key: (x) => x?.name,
+    filterKeys: ["name", "description"],
+    onSelect: handleSkillSelect,
+  })
+
   const createPill = (part: FileAttachmentPart | AgentPart) => {
     const pill = document.createElement("span")
     pill.textContent = part.content
@@ -836,6 +864,15 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const active = slashActive()
       const item = items.find((entry) => entry.id === active) ?? items[0]
       handleSlashSelect(item)
+      return
+    }
+
+    if (store.popover === "skill") {
+      const items = skillFlat()
+      if (items.length === 0) return
+      const active = skillActive()
+      const item = items.find((entry) => entry.name === active) ?? items[0]
+      handleSkillSelect(item)
     }
   }
 
@@ -1012,7 +1049,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             setStore("popover", "skill")
           }
         } else {
-          // Normal $ prefix — open skill popover
+          // Normal $ prefix — open skill popover with filtering
+          skillOnInput(query)
           setStore("popover", "skill")
         }
       } else {
@@ -1343,6 +1381,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         if (store.popover === "slash") {
           slashOnKeyDown(event)
         }
+        if (store.popover === "skill") {
+          skillOnKeyDown(event)
+        }
         event.preventDefault()
         return
       }
@@ -1401,12 +1442,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         onSlashSelect={handleSlashSelect}
         commandKeybind={command.keybind}
         t={(key) => language.t(key as Parameters<typeof language.t>[0])}
-        skillFlat={sync.data.skill.map((s): SkillOption => ({ type: "skill", name: s.name, description: s.description }))}
-        onSkillSelect={(skill) => {
-          // When a skill is selected from popover, add it via API
-          skillApi("POST", skill.name)
-          closePopover()
-        }}
+        skillFlat={skillFlat()}
+        skillActive={skillActive() ?? undefined}
+        setSkillActive={setSkillActive}
+        onSkillSelect={handleSkillSelect}
       />
       <DockShellForm
         onSubmit={handleSubmit}

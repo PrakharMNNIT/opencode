@@ -662,11 +662,18 @@ export namespace MessageV2 {
                 text: `[Attached ${part.mime}: ${part.filename ?? "file"}]`,
               })
             } else {
+              // Sanitize filename for Anthropic API — only allows alphanumeric,
+              // whitespace, hyphens, parentheses, and square brackets.
+              // Replace underscores/dots (except extension) with hyphens.
+              const raw = part.filename ?? "file"
+              const ext = raw.lastIndexOf(".") > 0 ? raw.slice(raw.lastIndexOf(".")) : ""
+              const base = ext ? raw.slice(0, -ext.length) : raw
+              const clean = base.replace(/[^a-zA-Z0-9\s\-\(\)\[\]]/g, "-").replace(/-{2,}/g, "-") + ext
               userMessage.parts.push({
                 type: "file",
                 url: part.url,
                 mediaType: part.mime,
-                filename: part.filename,
+                filename: clean,
               })
             }
           }

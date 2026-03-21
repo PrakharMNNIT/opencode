@@ -1,3 +1,4 @@
+import path from "path"
 import { Installation } from "@/installation"
 import { Provider } from "@/provider/provider"
 import { Log } from "@/util/log"
@@ -169,6 +170,34 @@ export namespace LLM {
         execute: async () => ({ output: "", title: "", metadata: {} }),
       })
     }
+
+    // ─── Context Logging ─────────────────────────────────────────
+    // Logs the full context being sent to the API provider.
+    // Files written to .opencode/log/context/ with workspace-session-datetime naming.
+    try {
+      const fs = await import("fs")
+      const dir = path.join(process.cwd(), ".opencode", "log", "context")
+      fs.mkdirSync(dir, { recursive: true })
+      const ts = new Date().toISOString().replace(/[:.]/g, "-")
+      const name = `${input.sessionID.slice(0, 8)}-${ts}.json`
+      const payload = {
+        timestamp: new Date().toISOString(),
+        sessionID: input.sessionID,
+        model: `${input.model.providerID}/${input.model.id}`,
+        agent: input.agent.name,
+        systemPromptCount: system.length,
+        systemPromptChars: system.reduce((s, x) => s + x.length, 0),
+        messageCount: input.messages.length,
+        system: system.map((x, i) => ({ index: i, chars: x.length, preview: x.slice(0, 200) })),
+        messages: input.messages.map((m, i) => ({
+          index: i,
+          role: m.role,
+          contentPreview: typeof m.content === "string" ? m.content.slice(0, 300) : JSON.stringify(m.content).slice(0, 300),
+        })),
+      }
+      Bun.write(path.join(dir, name), JSON.stringify(payload, null, 2)).catch(() => {})
+      l.info("context logged", { file: name, system: system.length, messages: input.messages.length })
+    } catch {}
 
     return streamText({
       onError(error) {

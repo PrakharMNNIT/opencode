@@ -754,6 +754,40 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const handleSkillSelect = (skill: SkillOption | undefined) => {
     if (!skill) return
     skillApi("POST", skill.name)
+
+    // Insert Codex-style inline pill into editor — replaces the $query text
+    // with a styled span[data-type="skill"] pill, matching how @file works.
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0 && editorRef.contains(sel.anchorNode)) {
+      const cursor = getCursorPosition(editorRef)
+      const raw = prompt.current().map((p) => ("content" in p ? p.content : "")).join("")
+      const before = raw.substring(0, cursor)
+      const match = before.match(/\$\S*$/)
+      const range = sel.getRangeAt(0)
+      if (match) {
+        const start = match.index ?? cursor - match[0].length
+        setRangeEdge(editorRef, range, "start", start)
+        setRangeEdge(editorRef, range, "end", cursor)
+      }
+      // Create skill pill with data-type="skill" for text-syntax-string styling
+      const pill = document.createElement("span")
+      pill.textContent = `🔮 ${skill.name}`
+      pill.setAttribute("data-type", "skill")
+      pill.setAttribute("data-name", skill.name)
+      pill.setAttribute("contenteditable", "false")
+      pill.style.userSelect = "text"
+      pill.style.cursor = "default"
+      const gap = document.createTextNode(" ")
+      range.deleteContents()
+      range.insertNode(gap)
+      range.insertNode(pill)
+      range.setStartAfter(gap)
+      range.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(range)
+      handleInput()
+    }
+
     showToast({
       title: `✓ Loaded $${skill.name}`,
       description: "Skill added to session context",
@@ -802,6 +836,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const el = node as HTMLElement
       if (el.dataset.type === "file") return true
       if (el.dataset.type === "agent") return true
+      if (el.dataset.type === "skill") return true
       return el.tagName === "BR"
     })
 
@@ -956,6 +991,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       if (el.dataset.type === "agent") {
         flushText()
         pushAgent(el)
+        return
+      }
+      // Skill pills (data-type="skill") are treated as agent parts for DOM parsing
+      if (el.dataset.type === "skill") {
+        flushText()
+        const content = el.textContent ?? ""
+        parts.push({
+          type: "agent",
+          name: el.dataset.name!,
+          content,
+          start: position,
+          end: position + content.length,
+        })
+        position += content.length
         return
       }
       if (el.tagName === "BR") {

@@ -757,9 +757,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     // Insert Codex-style inline pill into editor — replaces the $query text
     // with a styled span[data-type="skill"] pill, matching how @file works.
+    // Re-focus editor first (clicking popover steals focus).
+    editorRef.focus()
+    const cursor = prompt.cursor() ?? promptLength(prompt.current())
+    setCursorPosition(editorRef, cursor)
     const sel = window.getSelection()
-    if (sel && sel.rangeCount > 0 && editorRef.contains(sel.anchorNode)) {
-      const cursor = getCursorPosition(editorRef)
+    if (sel && sel.rangeCount > 0) {
       const raw = prompt.current().map((p) => ("content" in p ? p.content : "")).join("")
       const before = raw.substring(0, cursor)
       const match = before.match(/\$\S*$/)

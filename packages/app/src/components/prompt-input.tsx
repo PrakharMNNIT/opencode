@@ -774,7 +774,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       }
       // Create skill pill with data-type="skill" for text-syntax-string styling
       const pill = document.createElement("span")
-      pill.textContent = `🔮 ${skill.name}`
+      const emojis = ["✨", "🔮", "💎", "🌟", "⚡", "🎯", "🪄", "💫", "🌈", "🦋"]
+      pill.textContent = `${emojis[Math.floor(Math.random() * emojis.length)]} ${skill.name}`
       pill.setAttribute("data-type", "skill")
       pill.setAttribute("data-name", skill.name)
       pill.setAttribute("contenteditable", "false")

@@ -584,6 +584,23 @@ export namespace MessageV2 {
   ): ModelMessage[] {
     const result: UIMessage[] = []
     const toolNames = new Set<string>()
+
+    // Pre-scan: collect user message IDs whose assistant response errored.
+    // When a file attachment causes an API error, the user message is preserved
+    // in DB with the bad file. On replay, we strip file/media parts from these
+    // user messages to prevent the same error from poisoning the session forever.
+    const poisoned = new Set<string>()
+    for (const msg of input) {
+      if (msg.info.role !== "assistant") continue
+      if (!msg.info.error) continue
+      // Skip AbortedError with real content (those are kept, not errors)
+      if (
+        MessageV2.AbortedError.isInstance(msg.info.error) &&
+        msg.parts.some((part) => part.type !== "step-start" && part.type !== "reasoning")
+      )
+        continue
+      poisoned.add(msg.info.parentID)
+    }
     // Track media from tool results that need to be injected as user messages
     // for providers that don't support media in tool results.
     //
@@ -656,7 +673,15 @@ export namespace MessageV2 {
             })
           // text/plain and directory files are converted into text parts, ignore them
           if (part.type === "file" && part.mime !== "text/plain" && part.mime !== "application/x-directory") {
-            if (options?.stripMedia && isMedia(part.mime)) {
+            // If this user message caused an API error, strip media/file parts
+            // to prevent the same error from poisoning the session forever.
+            // Text content is preserved so conversation context isn't lost.
+            if (poisoned.has(msg.info.id)) {
+              userMessage.parts.push({
+                type: "text",
+                text: `[Removed attachment: ${part.filename ?? part.mime} — caused API error]`,
+              })
+            } else if (options?.stripMedia && isMedia(part.mime)) {
               userMessage.parts.push({
                 type: "text",
                 text: `[Attached ${part.mime}: ${part.filename ?? "file"}]`,

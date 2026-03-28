@@ -11,7 +11,7 @@ import { Session } from "."
 import { Agent } from "../agent/agent"
 import { Provider } from "../provider/provider"
 import { ModelID, ProviderID } from "../provider/schema"
-import { type Tool as AITool, tool, jsonSchema, type ToolExecutionOptions, asSchema } from "ai"
+import { type Tool as AITool, tool, jsonSchema, type ToolCallOptions, asSchema } from "ai"
 import { SessionCompaction } from "./compaction"
 import { Instance } from "../project/instance"
 import { Bus } from "../bus"
@@ -28,11 +28,11 @@ import { MCP } from "../mcp"
 import { LSP } from "../lsp"
 import { ReadTool } from "../tool/read"
 import { FileTime } from "../file/time"
-import { NotFoundError } from "@/storage/db"
 import { Flag } from "../flag/flag"
 import { ulid } from "ulid"
 import { spawn } from "child_process"
 import { Command } from "../command"
+import { $ } from "bun"
 import { pathToFileURL, fileURLToPath } from "url"
 import { ConfigMarkdown } from "../config/markdown"
 import { SessionSummary } from "./summary"
@@ -41,14 +41,16 @@ import { fn } from "@/util/fn"
 import { SessionProcessor } from "./processor"
 import { TaskTool } from "@/tool/task"
 import { Tool } from "@/tool/tool"
-import { Permission } from "@/permission"
+import { PermissionNext } from "@/permission"
 import { SessionStatus } from "./status"
 import { LLM } from "./llm"
 import { iife } from "@/util/iife"
 import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncate"
+import { SessionSteer } from "./steer"
+import { SessionSkills, SkillContentCache } from "./skill.service"
+import { Skill } from "../skill/skill"
 import { decodeDataUrl } from "@/util/data-url"
-import { Process } from "@/util/process"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -154,6 +156,20 @@ export namespace SessionPrompt {
           .meta({
             ref: "SubtaskPartInput",
           }),
+        // SkillPart — user-initiated $skill mentions.
+        // When the user types "$brainstorming", the frontend creates a SkillPart
+        // and includes it in the parts array. createUserMessage() extracts it
+        // and persists it to SessionSkills for the session.
+        MessageV2.SkillPart.omit({
+          messageID: true,
+          sessionID: true,
+        })
+          .partial({
+            id: true,
+          })
+          .meta({
+            ref: "SkillPartInput",
+          }),
       ]),
     ),
   })
@@ -168,7 +184,7 @@ export namespace SessionPrompt {
 
     // this is backwards compatibility for allowing `tools` to be specified when
     // prompting
-    const permissions: Permission.Ruleset = []
+    const permissions: PermissionNext.Ruleset = []
     for (const [tool, enabled] of Object.entries(input.tools ?? {})) {
       permissions.push({
         permission: tool,
@@ -257,17 +273,18 @@ export namespace SessionPrompt {
     return s[sessionID].abort.signal
   }
 
-  export async function cancel(sessionID: SessionID) {
+  export function cancel(sessionID: SessionID) {
     log.info("cancel", { sessionID })
+    SessionSteer.clear(sessionID)
     const s = state()
     const match = s[sessionID]
     if (!match) {
-      await SessionStatus.set(sessionID, { type: "idle" })
+      SessionStatus.set(sessionID, { type: "idle" })
       return
     }
     match.abort.abort()
     delete s[sessionID]
-    await SessionStatus.set(sessionID, { type: "idle" })
+    SessionStatus.set(sessionID, { type: "idle" })
     return
   }
 
@@ -286,7 +303,7 @@ export namespace SessionPrompt {
       })
     }
 
-    await using _ = defer(() => cancel(sessionID))
+    using _ = defer(() => cancel(sessionID))
 
     // Structured output state
     // Note: On session resumption, state is reset but outputFormat is preserved
@@ -296,7 +313,7 @@ export namespace SessionPrompt {
     let step = 0
     const session = await Session.get(sessionID)
     while (true) {
-      await SessionStatus.set(sessionID, { type: "busy" })
+      SessionStatus.set(sessionID, { type: "busy" })
       log.info("loop", { step, sessionID })
       if (abort.aborted) break
       let msgs = await MessageV2.filterCompacted(MessageV2.stream(sessionID))
@@ -321,15 +338,59 @@ export namespace SessionPrompt {
       if (!lastUser) throw new Error("No user message found in stream. This should never happen.")
       if (
         lastAssistant?.finish &&
-        ![
-          "tool-calls",
-          // in v6 unknown became other but other existed in v5 too and was distinctly different
-          // I think there are certain providers that used to have bad stop reasons, not rlly sure which
-          // ones if any still have this?
-          // "unknown",
-        ].includes(lastAssistant.finish) &&
+        !["tool-calls", "unknown"].includes(lastAssistant.finish) &&
         lastUser.id < lastAssistant.id
       ) {
+        // Check for "steer" mode messages — inject mid-turn at loop boundaries
+        const steered = SessionSteer.takeByMode(sessionID, "steer")
+        if (steered.length > 0) {
+          log.info("steer: injecting pending input", { sessionID, count: steered.length })
+          const text = steered.map((m) => m.text).join("\n\n")
+          const steerMsg: MessageV2.User = {
+            id: MessageID.ascending(),
+            sessionID,
+            role: "user",
+            time: { created: Date.now() },
+            agent: lastUser.agent,
+            model: lastUser.model,
+            variant: lastUser.variant,
+          }
+          await Session.updateMessage(steerMsg)
+          await Session.updatePart({
+            id: PartID.ascending(),
+            messageID: steerMsg.id,
+            sessionID,
+            type: "text",
+            text,
+          } satisfies MessageV2.TextPart)
+          continue
+        }
+
+        // Turn finished. Drain "queue" mode messages and auto-submit as new user messages.
+        const queued = SessionSteer.takeByMode(sessionID, "queue")
+        if (queued.length > 0) {
+          log.info("steer: auto-submitting queued input", { sessionID, count: queued.length })
+          const text = queued.map((m) => m.text).join("\n\n")
+          const queueMsg: MessageV2.User = {
+            id: MessageID.ascending(),
+            sessionID,
+            role: "user",
+            time: { created: Date.now() },
+            agent: lastUser.agent,
+            model: lastUser.model,
+            variant: lastUser.variant,
+          }
+          await Session.updateMessage(queueMsg)
+          await Session.updatePart({
+            id: PartID.ascending(),
+            messageID: queueMsg.id,
+            sessionID,
+            type: "text",
+            text,
+          } satisfies MessageV2.TextPart)
+          continue
+        }
+
         log.info("exiting loop", { sessionID })
         break
       }
@@ -424,16 +485,6 @@ export namespace SessionPrompt {
         )
         let executionError: Error | undefined
         const taskAgent = await Agent.get(task.agent)
-        if (!taskAgent) {
-          const available = await Agent.list().then((agents) => agents.filter((a) => !a.hidden).map((a) => a.name))
-          const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-          const error = new NamedError.Unknown({ message: `Agent not found: "${task.agent}".${hint}` })
-          Bus.publish(Session.Event.Error, {
-            sessionID,
-            error: error.toObject(),
-          })
-          throw error
-        }
         const taskCtx: Tool.Context = {
           agent: task.agent,
           messageID: assistantMessage.id,
@@ -453,10 +504,10 @@ export namespace SessionPrompt {
             } satisfies MessageV2.ToolPart)) as MessageV2.ToolPart
           },
           async ask(req) {
-            await Permission.ask({
+            await PermissionNext.ask({
               ...req,
               sessionID: sessionID,
-              ruleset: Permission.merge(taskAgent.permission, session.permission ?? []),
+              ruleset: PermissionNext.merge(taskAgent.permission, session.permission ?? []),
             })
           },
         }
@@ -576,16 +627,6 @@ export namespace SessionPrompt {
 
       // normal processing
       const agent = await Agent.get(lastUser.agent)
-      if (!agent) {
-        const available = await Agent.list().then((agents) => agents.filter((a) => !a.hidden).map((a) => a.name))
-        const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Agent not found: "${lastUser.agent}".${hint}` })
-        Bus.publish(Session.Event.Error, {
-          sessionID,
-          error: error.toObject(),
-        })
-        throw error
-      }
       const maxSteps = agent.steps ?? Infinity
       const isLastStep = step >= maxSteps
       msgs = await insertReminders({
@@ -679,11 +720,57 @@ export namespace SessionPrompt {
       await Plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
       // Build system prompt, adding structured output instruction if needed
+      //
+      // ─── Skill injection flow (from $skill mentions) ─────────────────
+      //   SessionSkills.list(sessionID) → active skill names
+      //        ↓
+      //   LRU cache (5-min TTL) → Skill.load() on miss
+      //        ↓
+      //   Dedup against auto-discovered skills (already in `skills` var)
+      //        ↓
+      //   Wrap in <skill> XML → append to system prompt array
+      //
+      // Auto-discovered skills (from SystemPrompt.skills) are UNCHANGED.
+      // User $-mentioned skills are ADDITIVE — they never remove auto skills.
+      // If a skill was both auto-discovered and $-mentioned, it's deduped.
       const skills = await SystemPrompt.skills(agent)
+
+      // Load user-initiated $skill mentions from server-side session_skills table.
+      // These are skills the user explicitly loaded via "$brainstorming" or the API.
+      // They persist for the session (survive page reloads).
+      const activeSkills = SessionSkills.list(sessionID)
+      const userSkills: string[] = []
+      for (const active of activeSkills) {
+        // Dedup: skip if this skill is already in auto-discovered system prompt.
+        // The auto-discovered skills section contains <name>skillname</name> tags.
+        if (skills && skills.includes(`<name>${active.name}</name>`)) continue
+        try {
+          // Check LRU cache first (5-min TTL), then fall back to disk read.
+          const cached = SkillContentCache.get(active.name)
+          if (cached) {
+            userSkills.push(`<skill>\n<name>${active.name}</name>\n${cached.content}\n</skill>`)
+            continue
+          }
+          // Cache miss — load from disk via Skill.get() and cache the result.
+          const loaded = await Skill.get(active.name).catch(() => null)
+          if (!loaded) {
+            log.warn("skill.get.notfound", { sessionID, name: active.name })
+            continue
+          }
+          SkillContentCache.set(active.name, loaded.content)
+          userSkills.push(`<skill>\n<name>${active.name}</name>\n${loaded.content}\n</skill>`)
+        } catch (err) {
+          // ParseError or FileNotFoundError — skip this skill gracefully.
+          // Don't crash the loop; just log and continue without this skill.
+          log.warn("skill.load.failed", { sessionID, name: active.name, error: String(err) })
+        }
+      }
+
       const system = [
         ...(await SystemPrompt.environment(model)),
         ...(skills ? [skills] : []),
         ...(await InstructionPrompt.system()),
+        ...userSkills, // User $-mentioned skills (additive, deduped, per-session persistent)
       ]
       const format = lastUser.format ?? { type: "text" }
       if (format.type === "json_schema") {
@@ -698,7 +785,7 @@ export namespace SessionPrompt {
         sessionID,
         system,
         messages: [
-          ...(await MessageV2.toModelMessages(msgs, model)),
+          ...MessageV2.toModelMessages(msgs, model),
           ...(isLastStep
             ? [
                 {
@@ -781,7 +868,7 @@ export namespace SessionPrompt {
     using _ = log.time("resolveTools")
     const tools: Record<string, AITool> = {}
 
-    const context = (args: any, options: ToolExecutionOptions): Tool.Context => ({
+    const context = (args: any, options: ToolCallOptions): Tool.Context => ({
       sessionID: input.session.id,
       abort: options.abortSignal!,
       messageID: input.processor.message.id,
@@ -807,11 +894,11 @@ export namespace SessionPrompt {
         }
       },
       async ask(req) {
-        await Permission.ask({
+        await PermissionNext.ask({
           ...req,
           sessionID: input.session.id,
           tool: { messageID: input.processor.message.id, callID: options.toolCallId },
-          ruleset: Permission.merge(input.agent.permission, input.session.permission ?? []),
+          ruleset: PermissionNext.merge(input.agent.permission, input.session.permission ?? []),
         })
       },
     })
@@ -867,8 +954,7 @@ export namespace SessionPrompt {
       const execute = item.execute
       if (!execute) continue
 
-      const schema = await asSchema(item.inputSchema).jsonSchema
-      const transformed = ProviderTransform.schema(input.model, schema)
+      const transformed = ProviderTransform.schema(input.model, asSchema(item.inputSchema).jsonSchema)
       item.inputSchema = jsonSchema(transformed)
       // Wrap execute to add plugin hooks and format output
       item.execute = async (args, opts) => {
@@ -981,28 +1067,17 @@ export namespace SessionPrompt {
           metadata: { valid: true },
         }
       },
-      toModelOutput({ output }) {
+      toModelOutput(result) {
         return {
           type: "text",
-          value: output.output,
+          value: result.output,
         }
       },
     })
   }
 
   async function createUserMessage(input: PromptInput) {
-    const agentName = input.agent || (await Agent.defaultAgent())
-    const agent = await Agent.get(agentName)
-    if (!agent) {
-      const available = await Agent.list().then((agents) => agents.filter((a) => !a.hidden).map((a) => a.name))
-      const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-      const error = new NamedError.Unknown({ message: `Agent not found: "${agentName}".${hint}` })
-      Bus.publish(Session.Event.Error, {
-        sessionID: input.sessionID,
-        error: error.toObject(),
-      })
-      throw error
-    }
+    const agent = await Agent.get(input.agent ?? (await Agent.defaultAgent()))
 
     const model = input.model ?? agent.model ?? (await lastModel(input.sessionID))
     const full =
@@ -1309,7 +1384,7 @@ export namespace SessionPrompt {
 
         if (part.type === "agent") {
           // Check if this agent would be denied by task permission
-          const perm = Permission.evaluate("task", part.name, agent.permission)
+          const perm = PermissionNext.evaluate("task", part.name, agent.permission)
           const hint = perm.action === "deny" ? " . Invoked by user; guaranteed to exist." : ""
           return [
             {
@@ -1328,6 +1403,35 @@ export namespace SessionPrompt {
                 " Use the above message and context to generate a prompt and call the task tool with subagent: " +
                 part.name +
                 hint,
+            },
+          ]
+        }
+
+        // ─── Skill Part Handling ────────────────────────────────────────
+        // When user types "$brainstorming", the frontend creates a SkillPart.
+        // Here we persist it to SessionSkills (server-side DB) so the skill
+        // stays active for the entire session, and create a synthetic log
+        // message visible in the chat history.
+        //
+        // The actual SKILL.md content injection happens later in loop(),
+        // NOT here. This function only persists the skill name and logs it.
+        //
+        // Flow: SkillPart in parts → SessionSkills.add() → synthetic log
+        //       → loop() reads SessionSkills.list() → injects into system prompt
+        if (part.type === "skill") {
+          SessionSkills.add(input.sessionID, part.name)
+          return [
+            {
+              ...part,
+              messageID: info.id,
+              sessionID: input.sessionID,
+            },
+            {
+              messageID: info.id,
+              sessionID: input.sessionID,
+              type: "text",
+              synthetic: true,
+              text: `Loaded skill: ${part.name}`,
             },
           ]
         }
@@ -1569,16 +1673,6 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       await SessionRevert.cleanup(session)
     }
     const agent = await Agent.get(input.agent)
-    if (!agent) {
-      const available = await Agent.list().then((agents) => agents.filter((a) => !a.hidden).map((a) => a.name))
-      const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-      const error = new NamedError.Unknown({ message: `Agent not found: "${input.agent}".${hint}` })
-      Bus.publish(Session.Event.Error, {
-        sessionID: input.sessionID,
-        error: error.toObject(),
-      })
-      throw error
-    }
     const model = input.model ?? agent.model ?? (await lastModel(input.sessionID))
     const userMsg: MessageV2.User = {
       id: MessageID.ascending(),
@@ -1830,16 +1924,6 @@ NOTE: At any point in time through this workflow you should feel free to ask the
   export async function command(input: CommandInput) {
     log.info("command", input)
     const command = await Command.get(input.command)
-    if (!command) {
-      const available = await Command.list().then((cmds) => cmds.map((c) => c.name))
-      const hint = available.length ? ` Available commands: ${available.join(", ")}` : ""
-      const error = new NamedError.Unknown({ message: `Command not found: "${input.command}".${hint}` })
-      Bus.publish(Session.Event.Error, {
-        sessionID: input.sessionID,
-        error: error.toObject(),
-      })
-      throw error
-    }
     const agentName = command.agent ?? input.agent ?? (await Agent.defaultAgent())
 
     const raw = input.arguments.match(argsRegex) ?? []
@@ -1871,13 +1955,15 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       template = template + "\n\n" + input.arguments
     }
 
-    const shellMatches = ConfigMarkdown.shell(template)
-    if (shellMatches.length > 0) {
-      const sh = Shell.preferred()
+    const shell = ConfigMarkdown.shell(template)
+    if (shell.length > 0) {
       const results = await Promise.all(
-        shellMatches.map(async ([, cmd]) => {
-          const out = await Process.text([cmd], { shell: sh, nothrow: true })
-          return out.text
+        shell.map(async ([, cmd]) => {
+          try {
+            return await $`${{ raw: cmd }}`.quiet().nothrow().text()
+          } catch (error) {
+            return `Error executing command: ${error instanceof Error ? error.message : String(error)}`
+          }
         }),
       )
       let index = 0
@@ -2017,28 +2103,28 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         (await Provider.getSmallModel(input.providerID)) ?? (await Provider.getModel(input.providerID, input.modelID))
       )
     })
-    try {
-      const result = await LLM.stream({
-        agent,
-        user: firstRealUser.info as MessageV2.User,
-        system: [],
-        small: true,
-        tools: {},
-        model,
-        abort: new AbortController().signal,
-        sessionID: input.session.id,
-        retries: 2,
-        messages: [
-          {
-            role: "user",
-            content: "Generate a title for this conversation:\n",
-          },
-          ...(hasOnlySubtaskParts
-            ? [{ role: "user" as const, content: subtaskParts.map((p) => p.prompt).join("\n") }]
-            : await MessageV2.toModelMessages(contextMessages, model)),
-        ],
-      })
-      const text = await result.text
+    const result = await LLM.stream({
+      agent,
+      user: firstRealUser.info as MessageV2.User,
+      system: [],
+      small: true,
+      tools: {},
+      model,
+      abort: new AbortController().signal,
+      sessionID: input.session.id,
+      retries: 2,
+      messages: [
+        {
+          role: "user",
+          content: "Generate a title for this conversation:\n",
+        },
+        ...(hasOnlySubtaskParts
+          ? [{ role: "user" as const, content: subtaskParts.map((p) => p.prompt).join("\n") }]
+          : MessageV2.toModelMessages(contextMessages, model)),
+      ],
+    })
+    const text = await result.text.catch((err) => log.error("failed to generate title", { error: err }))
+    if (text) {
       const cleaned = text
         .replace(/<think>[\s\S]*?<\/think>\s*/g, "")
         .split("\n")
@@ -2047,12 +2133,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       if (!cleaned) return
 
       const title = cleaned.length > 100 ? cleaned.substring(0, 97) + "..." : cleaned
-      return Session.setTitle({ sessionID: input.session.id, title }).catch((err) => {
-        if (NotFoundError.isInstance(err)) return
-        throw err
-      })
-    } catch (error) {
-      log.error("failed to generate title", { error })
+      return Session.setTitle({ sessionID: input.session.id, title })
     }
   }
 }

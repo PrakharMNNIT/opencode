@@ -14,13 +14,13 @@ import { Todo } from "../../session/todo"
 import { Agent } from "../../agent/agent"
 import { Snapshot } from "@/snapshot"
 import { Log } from "../../util/log"
-import { Permission } from "@/permission"
+import { PermissionNext } from "@/permission"
 import { PermissionID } from "@/permission/schema"
 import { ModelID, ProviderID } from "@/provider/schema"
+import { SessionSteer } from "@/session/steer"
+import { SessionSkills } from "@/session/skill.service"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
-import { Bus } from "../../bus"
-import { NamedError } from "@opencode-ai/util/error"
 
 const log = Log.create({ service: "server" })
 
@@ -90,8 +90,8 @@ export const SessionRoutes = lazy(() =>
         },
       }),
       async (c) => {
-        const result = await SessionStatus.list()
-        return c.json(Object.fromEntries(result))
+        const result = SessionStatus.list()
+        return c.json(result)
       },
     )
     .get(
@@ -281,14 +281,14 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.valid("param").sessionID
         const updates = c.req.valid("json")
 
+        let session = await Session.get(sessionID)
         if (updates.title !== undefined) {
-          await Session.setTitle({ sessionID, title: updates.title })
+          session = await Session.setTitle({ sessionID, title: updates.title })
         }
         if (updates.time?.archived !== undefined) {
-          await Session.setArchived({ sessionID, time: updates.time.archived })
+          session = await Session.setArchived({ sessionID, time: updates.time.archived })
         }
 
-        const session = await Session.get(sessionID)
         return c.json(session)
       },
     )
@@ -848,13 +848,7 @@ export const SessionRoutes = lazy(() =>
         return stream(c, async () => {
           const sessionID = c.req.valid("param").sessionID
           const body = c.req.valid("json")
-          SessionPrompt.prompt({ ...body, sessionID }).catch((err) => {
-            log.error("prompt_async failed", { sessionID, error: err })
-            Bus.publish(Session.Event.Error, {
-              sessionID,
-              error: new NamedError.Unknown({ message: err instanceof Error ? err.message : String(err) }).toObject(),
-            })
-          })
+          SessionPrompt.prompt({ ...body, sessionID })
         })
       },
     )
@@ -993,6 +987,254 @@ export const SessionRoutes = lazy(() =>
       },
     )
     .post(
+      "/:sessionID/steer",
+      describeRoute({
+        summary: "Steer session",
+        description:
+          "Push a message into the session's pending input buffer. If the session is busy, the message will be injected at the next agentic loop boundary. If idle, it is queued for the next turn.",
+        operationId: "session.steer",
+        responses: {
+          200: {
+            description: "Queued message",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    id: z.string(),
+                    text: z.string(),
+                    time: z.number(),
+                    mode: z.enum(["queue", "steer"]),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          text: z.string().min(1).meta({ description: "The message text to inject" }),
+          mode: z.enum(["queue", "steer"]).optional().default("queue").meta({ description: "queue waits for turn end, steer injects mid-turn" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID as SessionID
+        const body = c.req.valid("json")
+        const entry = SessionSteer.push(sessionID, body.text, body.mode)
+        if (SessionStatus.get(sessionID).type === "idle") {
+          SessionPrompt.loop({ sessionID }).catch(() => {
+            SessionSteer.clear(sessionID)
+          })
+        }
+        return c.json(entry)
+      },
+    )
+    .get(
+      "/:sessionID/steer",
+      describeRoute({
+        summary: "Get steer queue",
+        description: "List all pending steered messages for a session without draining the queue.",
+        operationId: "session.steer.list",
+        responses: {
+          200: {
+            description: "Pending steered messages",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.array(
+                    z.object({
+                      id: z.string(),
+                      text: z.string(),
+                      time: z.number(),
+                      mode: z.enum(["queue", "steer"]),
+                    }),
+                  ),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID as SessionID
+        const queue = SessionSteer.list(sessionID)
+        return c.json(queue)
+      },
+    )
+    .delete(
+      "/:sessionID/steer/:steerID",
+      describeRoute({
+        summary: "Remove steered message",
+        description: "Remove a specific queued steered message by its ID before it gets injected.",
+        operationId: "session.steer.remove",
+        responses: {
+          200: {
+            description: "Whether the message was found and removed",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+          steerID: z.string().meta({ description: "Steer message ID" }),
+        }),
+      ),
+      async (c) => {
+        const params = c.req.valid("param")
+        const removed = SessionSteer.remove(params.sessionID as SessionID, params.steerID)
+        return c.json(removed)
+      },
+    )
+    // ─── Skill Routes ───────────────────────────────────────────────────────
+    // User-initiated $skill mentions. Persists skills per session in the
+    // session_skills SQL table. Frontend reads via sync channel.
+    // See: docs/designs/dollar-skill-mentions.md
+    .post(
+      "/:sessionID/skill",
+      describeRoute({
+        summary: "Add skill to session",
+        description:
+          "Add a user-initiated skill to the session. The skill's SKILL.md content will be injected into the system prompt for all subsequent messages in this session.",
+        operationId: "session.skill.add",
+        responses: {
+          200: {
+            description: "Active skills after addition",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.array(
+                    z.object({
+                      name: z.string(),
+                      added_at: z.number(),
+                      token_estimate: z.number().nullable(),
+                    }),
+                  ),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          name: z.string().min(1).meta({ description: "Skill name (e.g., 'brainstorming')" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID as SessionID
+        const body = c.req.valid("json")
+        // Code review fix #2: Skill name validation.
+        // Skill.available() requires Effect context (not available in HTTP routes).
+        // Instead, we accept the name here and let the backend's graceful error
+        // handling in prompt.ts loop() catch nonexistent skills — Skill.get()
+        // returns null → log.warn → skip. This is acceptable per spec §8:
+        // "Unknown skill name → leave as literal text, no error."
+        // The skill will be persisted but silently skipped during injection.
+        // Idempotent add — re-adding an active skill is a no-op
+        SessionSkills.add(sessionID, body.name)
+        return c.json(SessionSkills.list(sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/skill",
+      describeRoute({
+        summary: "List active skills",
+        description: "List all user-initiated skills currently active for this session.",
+        operationId: "session.skill.list",
+        responses: {
+          200: {
+            description: "Active skills",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.array(
+                    z.object({
+                      name: z.string(),
+                      added_at: z.number(),
+                      token_estimate: z.number().nullable(),
+                    }),
+                  ),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID as SessionID
+        return c.json(SessionSkills.list(sessionID))
+      },
+    )
+    .delete(
+      "/:sessionID/skill/:skillName",
+      describeRoute({
+        summary: "Remove skill from session",
+        description:
+          "Remove a user-initiated skill from the session. Only removes skills added via $ prefix or this API — does not affect AI auto-loaded skills.",
+        operationId: "session.skill.remove",
+        responses: {
+          200: {
+            description: "Whether the skill was found and removed",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+          skillName: z.string().meta({ description: "Skill name to remove" }),
+        }),
+      ),
+      async (c) => {
+        const params = c.req.valid("param")
+        const removed = SessionSkills.remove(params.sessionID as SessionID, params.skillName)
+        return c.json(removed)
+      },
+    )
+    .post(
       "/:sessionID/permissions/:permissionID",
       describeRoute({
         summary: "Respond to permission",
@@ -1018,10 +1260,10 @@ export const SessionRoutes = lazy(() =>
           permissionID: PermissionID.zod,
         }),
       ),
-      validator("json", z.object({ response: Permission.Reply })),
+      validator("json", z.object({ response: PermissionNext.Reply })),
       async (c) => {
         const params = c.req.valid("param")
-        Permission.reply({
+        PermissionNext.reply({
           requestID: params.permissionID,
           reply: c.req.valid("json").response,
         })

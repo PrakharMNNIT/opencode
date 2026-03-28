@@ -1,3 +1,19 @@
+// PromptPopover — unified popover for @mentions, /commands, and $skills.
+//
+// Three modes:
+//   "at"    → file/agent picker (@ prefix)
+//   "slash" → command picker (/ prefix)
+//   "skill" → skill picker ($ prefix) — NEW from $skill feature
+//
+// Design specs (from /plan-design-review, 2026-03-19):
+//   - Popover layout: Search + Recent + All sections
+//   - Max-width: 400px
+//   - Skeleton shimmer (3 rows) on first load
+//   - Empty state: "💡 No skills installed" + explanation + link
+//   - text-syntax-string color for skill items
+//   - role="listbox" + aria-label on popover
+//   - See: docs/designs/dollar-skill-mentions.md
+
 import { Component, For, Match, Show, Switch } from "solid-js"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -17,8 +33,18 @@ export interface SlashCommand {
   source?: "command" | "mcp" | "skill"
 }
 
+// SkillOption — represents a skill available in the $ popover.
+// Each skill has a name and description (first line of SKILL.md frontmatter).
+// The "recent" flag marks skills from the "Recent" section at the top.
+export type SkillOption = {
+  type: "skill"
+  name: string
+  description: string
+  recent?: boolean
+}
+
 type PromptPopoverProps = {
-  popover: "at" | "slash" | null
+  popover: "at" | "slash" | "skill" | null
   setSlashPopoverRef: (el: HTMLDivElement) => void
   atFlat: AtOption[]
   atActive?: string
@@ -31,6 +57,12 @@ type PromptPopoverProps = {
   onSlashSelect: (item: SlashCommand) => void
   commandKeybind: (id: string) => string | undefined
   t: (key: string) => string
+  // Skill popover props (optional — only needed when skill mode is available)
+  skillFlat?: SkillOption[]
+  skillActive?: string
+  onSkillSelect?: (item: SkillOption) => void
+  setSkillActive?: (id: string) => void
+  skillLoading?: boolean
 }
 
 export const PromptPopover: Component<PromptPopoverProps> = (props) => {
@@ -43,6 +75,13 @@ export const PromptPopover: Component<PromptPopoverProps> = (props) => {
         class="absolute inset-x-0 -top-2 -translate-y-full origin-bottom-left max-h-80 min-h-10
                  overflow-auto no-scrollbar flex flex-col p-2 rounded-[12px]
                  bg-surface-raised-stronger-non-alpha shadow-[var(--shadow-lg-border-base)]"
+        classList={{
+          // Design review: max-width 400px for skill popover
+          "max-w-[400px]": props.popover === "skill",
+        }}
+        // Design review: accessibility — role="listbox" for skill popover
+        role={props.popover === "skill" ? "listbox" : undefined}
+        aria-label={props.popover === "skill" ? "Select a skill" : undefined}
         onMouseDown={(e) => e.preventDefault()}
       >
         <Switch>
@@ -132,6 +171,75 @@ export const PromptPopover: Component<PromptPopoverProps> = (props) => {
                   </button>
                 )}
               </For>
+            </Show>
+          </Match>
+
+          {/* ─── Skill Popover ───────────────────────────────────────────
+              Design specs from /plan-design-review:
+              - Skeleton shimmer (3 rows) while loading
+              - Empty state: "💡 No skills installed" + explanation + browse link
+              - Recent section header (text-color-dimmed) + All section header
+              - text-syntax-string color for skill names
+              - role="option" on each item for a11y
+          */}
+          <Match when={props.popover === "skill"}>
+            <Show
+              when={!props.skillLoading}
+              fallback={
+                // Design review: skeleton shimmer rows (3) on first load
+                <div class="flex flex-col gap-1.5 px-2 py-1">
+                  <div class="h-6 rounded bg-surface-invert/5 animate-pulse" />
+                  <div class="h-6 rounded bg-surface-invert/5 animate-pulse" />
+                  <div class="h-6 rounded bg-surface-invert/5 animate-pulse" />
+                </div>
+              }
+            >
+              <Show
+                when={props.skillFlat && props.skillFlat.length > 0}
+                fallback={
+                  // Design review: empty state UX with warmth and explanation
+                  <div class="flex flex-col gap-1.5 px-2 py-2 text-center">
+                    <span class="text-14-regular text-text-strong">💡 No skills installed</span>
+                    <span class="text-12-regular text-text-weak">
+                      Skills customize how the AI works — add them to ~/.claude/skills/
+                    </span>
+                    <a
+                      href="https://opencode.ai/docs/skills"
+                      target="_blank"
+                      rel="noopener"
+                      class="text-12-regular text-syntax-string hover:underline"
+                    >
+                      📚 Browse available skills
+                    </a>
+                  </div>
+                }
+              >
+                <For each={props.skillFlat}>
+                  {(skill) => (
+                    <button
+                      role="option"
+                      aria-selected={props.skillActive === skill.name}
+                      classList={{
+                        "w-full flex items-center justify-between gap-2 rounded-md px-2 py-1": true,
+                        "bg-surface-raised-base-hover": props.skillActive === skill.name,
+                      }}
+                      onClick={() => props.onSkillSelect?.(skill)}
+                      onMouseEnter={() => props.setSkillActive?.(skill.name)}
+                    >
+                      <div class="flex items-center gap-2 min-w-0">
+                        {/* Design review: text-syntax-string color for skill names (warm/amber) */}
+                        <span class="text-14-regular text-syntax-string whitespace-nowrap">${skill.name}</span>
+                        <Show when={skill.description}>
+                          <span class="text-14-regular text-text-weak truncate">{skill.description}</span>
+                        </Show>
+                      </div>
+                      <Show when={skill.recent}>
+                        <span class="text-10-regular text-text-subtle">★</span>
+                      </Show>
+                    </button>
+                  )}
+                </For>
+              </Show>
             </Show>
           </Match>
         </Switch>

@@ -1,11 +1,11 @@
-import { BoxRenderable, TextareaRenderable, MouseEvent, PasteEvent, decodePasteBytes, t, dim, fg } from "@opentui/core"
+import { BoxRenderable, TextareaRenderable, MouseEvent, PasteEvent, t, dim, fg } from "@opentui/core"
 import { createEffect, createMemo, type JSX, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
 import "opentui-spinner/solid"
 import path from "path"
 import { Filesystem } from "@/util/filesystem"
 import { useLocal } from "@tui/context/local"
 import { useTheme } from "@tui/context/theme"
-import { EmptyBorder, SplitBorder } from "@tui/component/border"
+import { EmptyBorder } from "@tui/component/border"
 import { useSDK } from "@tui/context/sdk"
 import { useRoute } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
@@ -13,16 +13,15 @@ import { MessageID, PartID } from "@/session/schema"
 import { createStore, produce } from "solid-js/store"
 import { useKeybind } from "@tui/context/keybind"
 import { usePromptHistory, type PromptInfo } from "./history"
-import { assign } from "./part"
 import { usePromptStash } from "./stash"
 import { DialogStash } from "../dialog-stash"
 import { type AutocompleteRef, Autocomplete } from "./autocomplete"
 import { useCommandDialog } from "../dialog-command"
-import { useKeyboard, useRenderer } from "@opentui/solid"
+import { useRenderer } from "@opentui/solid"
 import { Editor } from "@tui/util/editor"
 import { useExit } from "../../context/exit"
 import { Clipboard } from "../../util/clipboard"
-import type { AssistantMessage, FilePart } from "@opencode-ai/sdk/v2"
+import type { FilePart } from "@opencode-ai/sdk/v2"
 import { TuiEvent } from "../../event"
 import { iife } from "@/util/iife"
 import { Locale } from "@/util/locale"
@@ -59,10 +58,6 @@ export type PromptRef = {
 
 const PLACEHOLDERS = ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"]
 const SHELL_PLACEHOLDERS = ["ls -la", "git status", "pwd"]
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-})
 
 export function Prompt(props: PromptProps) {
   let input: TextareaRenderable
@@ -124,25 +119,6 @@ export function Prompt(props: PromptProps) {
     const messages = sync.data.message[props.sessionID]
     if (!messages) return undefined
     return messages.findLast((m) => m.role === "user")
-  })
-
-  const usage = createMemo(() => {
-    if (!props.sessionID) return
-    const msg = sync.data.message[props.sessionID] ?? []
-    const last = msg.findLast((item): item is AssistantMessage => item.role === "assistant" && item.tokens.output > 0)
-    if (!last) return
-
-    const tokens =
-      last.tokens.input + last.tokens.output + last.tokens.reasoning + last.tokens.cache.read + last.tokens.cache.write
-    if (tokens <= 0) return
-
-    const model = sync.data.provider.find((item) => item.id === last.providerID)?.models[last.modelID]
-    const pct = model?.limit.context ? `${Math.round((tokens / model.limit.context) * 100)}%` : undefined
-    const cost = msg.reduce((sum, item) => sum + (item.role === "assistant" ? item.cost : 0), 0)
-    return {
-      context: pct ? `${Locale.number(tokens)} (${pct})` : Locale.number(tokens),
-      cost: cost > 0 ? money.format(cost) : undefined,
-    }
   })
 
   const [store, setStore] = createStore<{
@@ -378,20 +354,6 @@ export function Prompt(props: PromptProps) {
       },
     ]
   })
-
-  // Windows Terminal 1.25+ handles Ctrl+V on keydown when kitty events are
-  // enabled, but still reports the kitty key-release event. Probe on release.
-  if (process.platform === "win32") {
-    useKeyboard(
-      (evt) => {
-        if (!input.focused) return
-        if (evt.name === "v" && evt.ctrl && evt.eventType === "release") {
-          command.trigger("prompt.paste")
-        }
-      },
-      { release: true },
-    )
-  }
 
   const ref: PromptRef = {
     get focused() {
@@ -667,6 +629,48 @@ export function Prompt(props: PromptProps) {
           })),
       })
     } else {
+      // ─── $skill mention parsing ─────────────────────────────────
+      // Parse $name tokens from input text before creating prompt parts.
+      // Guards: $ must be at start-of-line or after whitespace (not $$).
+      // $name  → adds skill to session (SkillPart in parts array)
+      // $-name → removes skill from session (DELETE API call)
+      const skillPattern = /(?:^|(?<=\s))\$(-?[a-zA-Z][\w-]*)/g
+      const skills: Array<{ type: "skill"; name: string }> = []
+      const removals: string[] = []
+      let m
+      while ((m = skillPattern.exec(inputText)) !== null) {
+        const token = m[1]
+        if (token.startsWith("-")) removals.push(token.slice(1))
+        else skills.push({ type: "skill" as const, name: token })
+      }
+
+      // Process $-removal requests via DELETE /session/:id/skill
+      if (sessionID) {
+        for (const name of removals) {
+          fetch(`${sdk.url}/session/${sessionID}/skill`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          }).catch(() => {
+            toast.show({
+              variant: "error",
+              message: `Failed to remove skill: ${name}`,
+              duration: 3000,
+            })
+          })
+        }
+      }
+
+      // Strip $skill tokens from text, collapse whitespace
+      // Reuse same pattern shape (without capture group) for stripping
+      let text = inputText
+      if (skills.length > 0 || removals.length > 0) {
+        text = inputText
+          .replace(/(?:^|(?<=\s))\$-?[a-zA-Z][\w-]*/g, "")
+          .replace(/\s{2,}/g, " ")
+          .trim()
+      }
+
       sdk.client.session
         .prompt({
           sessionID,
@@ -679,9 +683,16 @@ export function Prompt(props: PromptProps) {
             {
               id: PartID.ascending(),
               type: "text",
-              text: inputText,
+              text,
             },
-            ...nonTextParts.map(assign),
+            ...skills.map((x) => ({
+              id: PartID.ascending(),
+              ...x,
+            })),
+            ...nonTextParts.map((x) => ({
+              id: PartID.ascending(),
+              ...x,
+            })),
           ],
         })
         .catch(() => {})
@@ -856,7 +867,8 @@ export function Prompt(props: PromptProps) {
           border={["left"]}
           borderColor={highlight()}
           customBorderChars={{
-            ...SplitBorder.customBorderChars,
+            ...EmptyBorder,
+            vertical: "┃",
             bottomLeft: "╹",
           }}
         >
@@ -886,9 +898,10 @@ export function Prompt(props: PromptProps) {
                   e.preventDefault()
                   return
                 }
-                // Check clipboard for images before terminal-handled paste runs.
-                // This helps terminals that forward Ctrl+V to the app; Windows
-                // Terminal 1.25+ usually handles Ctrl+V before this path.
+                // Handle clipboard paste (Ctrl+V) - check for images first on Windows
+                // This is needed because Windows terminal doesn't properly send image data
+                // through bracketed paste, so we need to intercept the keypress and
+                // directly read from clipboard before the terminal handles it
                 if (keybind.match("input_paste", e)) {
                   const content = await Clipboard.read()
                   if (content?.mime.startsWith("image/")) {
@@ -969,11 +982,8 @@ export function Prompt(props: PromptProps) {
                 // Normalize line endings at the boundary
                 // Windows ConPTY/Terminal often sends CR-only newlines in bracketed paste
                 // Replace CRLF first, then any remaining CR
-                const normalizedText = decodePasteBytes(event.bytes).replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+                const normalizedText = event.text.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
                 const pastedContent = normalizedText.trim()
-
-                // Windows Terminal <1.25 can surface image-only clipboard as an
-                // empty bracketed paste. Windows Terminal 1.25+ does not.
                 if (!pastedContent) {
                   command.trigger("prompt.paste")
                   return
@@ -1180,20 +1190,14 @@ export function Prompt(props: PromptProps) {
             <box gap={2} flexDirection="row">
               <Switch>
                 <Match when={store.mode === "normal"}>
-                  <Switch>
-                    <Match when={usage()}>
-                      {(item) => (
-                        <text fg={theme.textMuted} wrapMode="none">
-                          {[item().context, item().cost].filter(Boolean).join(" · ")}
-                        </text>
-                      )}
-                    </Match>
-                    <Match when={true}>
-                      <text fg={theme.text}>
-                        {keybind.print("agent_cycle")} <span style={{ fg: theme.textMuted }}>agents</span>
-                      </text>
-                    </Match>
-                  </Switch>
+                  <Show when={local.model.variant.list().length > 0}>
+                    <text fg={theme.text}>
+                      {keybind.print("variant_cycle")} <span style={{ fg: theme.textMuted }}>variants</span>
+                    </text>
+                  </Show>
+                  <text fg={theme.text}>
+                    {keybind.print("agent_cycle")} <span style={{ fg: theme.textMuted }}>agents</span>
+                  </text>
                   <text fg={theme.text}>
                     {keybind.print("command_list")} <span style={{ fg: theme.textMuted }}>commands</span>
                   </text>

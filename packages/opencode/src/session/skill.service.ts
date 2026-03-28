@@ -202,24 +202,17 @@ export namespace SessionSkills {
 
   /** Get recent skill names across all sessions (for "Recent" popover section). */
   export function recent(limit = 5): string[] {
+    // Eng review fix #4B: SQL GROUP BY instead of loading all rows
     const rows = Database.use((db) =>
       db
-        .select({ name: SessionSkillTable.skill_name })
+        .selectDistinct({ name: SessionSkillTable.skill_name })
         .from(SessionSkillTable)
         .orderBy(SessionSkillTable.added_at)
+        .limit(limit)
         .all(),
     )
-    // Deduplicate and take last N unique names
-    const seen = new Set<string>()
-    const result: string[] = []
-    for (let i = rows.length - 1; i >= 0; i--) {
-      if (!seen.has(rows[i].name)) {
-        seen.add(rows[i].name)
-        result.push(rows[i].name)
-        if (result.length >= limit) break
-      }
-    }
-    return result
+    // Reverse so most-recently-added is first
+    return rows.map((r) => r.name).reverse()
   }
 
   /** Estimate total token budget for active skills in a session. */

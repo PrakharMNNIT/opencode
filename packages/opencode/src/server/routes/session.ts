@@ -848,7 +848,9 @@ export const SessionRoutes = lazy(() =>
         return stream(c, async () => {
           const sessionID = c.req.valid("param").sessionID
           const body = c.req.valid("json")
-          SessionPrompt.prompt({ ...body, sessionID })
+          SessionPrompt.prompt({ ...body, sessionID }).catch((err) => {
+            log.error("prompt_async failed", { sessionID, error: err })
+          })
         })
       },
     )
@@ -1152,15 +1154,11 @@ export const SessionRoutes = lazy(() =>
       ),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID as SessionID
+        await Session.get(sessionID) // validates session exists → 404 if not
         const body = c.req.valid("json")
-        // Code review fix #2: Skill name validation.
-        // Skill.available() requires Effect context (not available in HTTP routes).
-        // Instead, we accept the name here and let the backend's graceful error
-        // handling in prompt.ts loop() catch nonexistent skills — Skill.get()
-        // returns null → log.warn → skip. This is acceptable per spec §8:
-        // "Unknown skill name → leave as literal text, no error."
-        // The skill will be persisted but silently skipped during injection.
-        // Idempotent add — re-adding an active skill is a no-op
+        // Skill name validation: accept any name, let prompt.ts loop()
+        // gracefully skip nonexistent skills (Skill.get() → null → log.warn).
+        // Idempotent — re-adding an active skill is a no-op.
         SessionSkills.add(sessionID, body.name)
         return c.json(SessionSkills.list(sessionID))
       },
@@ -1230,6 +1228,7 @@ export const SessionRoutes = lazy(() =>
       ),
       async (c) => {
         const params = c.req.valid("param")
+        await Session.get(params.sessionID as SessionID) // validates session exists → 404 if not
         const removed = SessionSkills.remove(params.sessionID as SessionID, params.skillName)
         return c.json(removed)
       },

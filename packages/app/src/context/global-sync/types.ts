@@ -34,11 +34,11 @@ export type ProjectMeta = {
 export type State = {
   status: "loading" | "partial" | "complete"
   agent: Agent[]
-  skill: { name: string; description: string; location: string; content: string }[]
   command: Command[]
   project: string
   projectMeta: ProjectMeta | undefined
   icon: string | undefined
+  provider_ready: boolean
   provider: ProviderListResponse
   config: Config
   path: Path
@@ -47,19 +47,15 @@ export type State = {
   session_status: {
     [sessionID: string]: SessionStatus
   }
-  steer_queue: {
-    [sessionID: string]: { id: string; text: string; time: number; mode: "queue" | "steer" }[]
-  }
-  // Active $skill mentions per session — from SessionSkills.Event.Changed
-  // Used by badge strip and popover to show which skills are loaded
-  session_skill: {
-    [sessionID: string]: { name: string; added_at: number; token_estimate: number | null }[]
-  }
   session_diff: {
     [sessionID: string]: FileDiff[]
   }
   todo: {
     [sessionID: string]: Todo[]
+  }
+  skill: { name: string; description: string; location: string; content: string }[]
+  session_skill: {
+    [sessionID: string]: { name: string; added_at: number; token_estimate: number | null }[]
   }
   permission: {
     [sessionID: string]: PermissionRequest[]
@@ -67,9 +63,11 @@ export type State = {
   question: {
     [sessionID: string]: QuestionRequest[]
   }
+  mcp_ready: boolean
   mcp: {
     [name: string]: McpStatus
   }
+  lsp_ready: boolean
   lsp: LspStatus[]
   vcs: VcsInfo | undefined
   limit: number

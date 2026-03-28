@@ -1,6 +1,6 @@
 import { useFilteredList } from "@opencode-ai/ui/hooks"
 import { useSpring } from "@opencode-ai/ui/motion-spring"
-import { createEffect, on, Component, Show, For, Switch, Match, onCleanup, createMemo, createSignal } from "solid-js"
+import { createEffect, on, Component, Show, onCleanup, createMemo, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLocal } from "@/context/local"
 import { selectionFromLines, type SelectedLineRange, useFile } from "@/context/file"
@@ -24,18 +24,15 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { IconButton } from "@opencode-ai/ui/icon-button"
-import { showToast } from "@opencode-ai/ui/toast"
 import { Select } from "@opencode-ai/ui/select"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ModelSelectorPopover } from "@/components/dialog-select-model"
-import { DialogSelectModelUnpaid } from "@/components/dialog-select-model-unpaid"
 import { useProviders } from "@/hooks/use-providers"
 import { useCommand } from "@/context/command"
 import { Persist, persisted } from "@/utils/persist"
 import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
-import { useServer } from "@/context/server"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { promptEnabled, promptProbe } from "@/testing/prompt"
@@ -52,7 +49,7 @@ import {
   promptLength,
 } from "./prompt-input/history"
 import { createPromptSubmit, type FollowupDraft } from "./prompt-input/submit"
-import { PromptPopover, type AtOption, type SlashCommand, type SkillOption } from "./prompt-input/slash-popover"
+import { PromptPopover, type AtOption, type SlashCommand } from "./prompt-input/slash-popover"
 import { PromptContextItems } from "./prompt-input/context-items"
 import { PromptImageAttachments } from "./prompt-input/image-attachments"
 import { PromptDragOverlay } from "./prompt-input/drag-overlay"
@@ -116,7 +113,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const permission = usePermission()
   const language = useLanguage()
   const platform = usePlatform()
-  const server = useServer()
   const { params, tabs, view } = useSessionLayout()
   let editorRef!: HTMLDivElement
   let fileInputRef: HTMLInputElement | undefined
@@ -247,101 +243,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       },
   )
   const working = createMemo(() => status()?.type !== "idle")
-  const steerQueue = createMemo(() => sync.data.steer_queue[params.id ?? ""] ?? [])
-  // Active $skills for this session — reads from sync layer (server-side persisted)
-  // Used by badge strip above editor and to populate popover
-  const activeSkills = createMemo(() => sync.data.session_skill[params.id ?? ""] ?? [])
-
-  // CEO expansion: context budget warning toast when >30K estimated tokens.
-  // Shows a non-blocking toast when too many skills are loaded.
-  // Token estimate comes from session_skills table (chars÷4 per skill content).
-  const SKILL_TOKEN_BUDGET = 30000 // ~30K tokens threshold
-  createEffect(() => {
-    const skills = activeSkills()
-    const budget = skills.reduce((sum, s) => sum + (s.token_estimate ?? 0), 0)
-    if (skills.length > 0 && budget > SKILL_TOKEN_BUDGET) {
-      showToast({
-        title: `⚠️ ${skills.length} skills loaded (~${Math.round(budget / 1000)}K tokens)`,
-        description: "Consider removing some to leave room for conversation.",
-      })
-    }
-  })
-
-  // Helper: call skill API endpoints with proper auth headers.
-  // Extracted to DRY up badge × click, $-removal, and future call sites.
-  // (Code review fix #1: DRY violation — 3 identical fetch patterns)
-  const skillApi = (method: "POST" | "DELETE", name: string) => {
-    const sessionID = params.id
-    if (!sessionID) return
-    const headers: Record<string, string> = {}
-    if (server.current?.http?.password) {
-      headers.Authorization = `Basic ${btoa(`${server.current.http.username ?? "opencode"}:${server.current.http.password}`)}`
-    }
-    fetch(`${sdk.url}/session/${sessionID}/skill/${name}`, { method, headers }).catch(() => {
-      // Silently ignore — badge strip will re-sync from server.
-      // (Code review note: acceptable for UI removals)
-    })
-  }
-
-  const [steerPending, setSteerPending] = createSignal(false)
-  // TODO(contamination): enhancePrompt belongs to prax/enhance-prompt (PR #9).
-  // It leaked into this branch during extraction from prax-dev.
-  // Remove when prax/enhance-prompt is merged via prax-build.sh.
-  const [enhancing, setEnhancing] = createSignal(false)
-
-  const enhancePrompt = async () => {
-    const textParts = prompt.current().filter((p): p is ContentPart & { type: "text" } => p.type === "text")
-    const text = textParts.map((p) => p.content).join("").trim()
-    if (!text || enhancing()) return
-    setEnhancing(true)
-    try {
-      const http = server.current?.http
-      const headers: Record<string, string> = { "Content-Type": "application/json" }
-      if (http?.password) headers["Authorization"] = `Basic ${btoa(`${http.username ?? "opencode"}:${http.password}`)}`
-      const fetcher = platform.fetch ?? fetch
-      const res = await fetcher(`${sdk.url}/experimental/enhance`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ text }),
-      })
-      if (!res.ok) throw new Error("Enhance failed")
-      const data = (await res.json()) as { text: string }
-      if (data.text && data.text !== text) {
-        const nonText = prompt.current().filter((p) => p.type !== "text")
-        const enhanced: ContentPart = { type: "text", content: data.text, start: 0, end: data.text.length }
-        prompt.set([...nonText, enhanced], data.text.length)
-        if (editorRef) {
-          editorRef.textContent = data.text
-          requestAnimationFrame(() => {
-            const range = document.createRange()
-            const sel = window.getSelection()
-            range.selectNodeContents(editorRef)
-            range.collapse(false)
-            sel?.removeAllRanges()
-            sel?.addRange(range)
-          })
-        }
-      }
-    } catch {
-      showToast({
-        title: language.t("common.requestFailed") ?? "Failed to enhance prompt",
-      })
-    } finally {
-      setEnhancing(false)
-    }
-  }
-
-  /** Clear text parts after steer/queue, preserving non-text attachments. */
-  const clearText = () => {
-    const kept = prompt.current().filter((p) => p.type !== "text")
-    if (kept.length > 0) {
-      prompt.set(kept, 0)
-      return true
-    }
-    prompt.reset()
-    return false
-  }
-
   const tip = () => {
     if (working()) {
       return (
@@ -364,7 +265,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
 
   const [store, setStore] = createStore<{
-    popover: "at" | "slash" | "skill" | null
+    popover: "at" | "slash" | null
     historyIndex: number
     savedPrompt: PromptHistoryEntry | null
     placeholder: number
@@ -670,6 +571,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const open = recent()
       const seen = new Set(open)
       const pinned: AtOption[] = open.map((path) => ({ type: "file", path, display: path, recent: true }))
+      if (!query.trim()) return [...agents, ...pinned]
       const paths = await files.searchFilesAndDirectories(query)
       const fileOptions: AtOption[] = paths
         .filter((path) => !seen.has(path))
@@ -749,82 +651,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     onSelect: handleSlashSelect,
   })
 
-  // ─── Skill popover: useFilteredList for arrow key + Enter navigation ──
-  const skillItems = createMemo<SkillOption[]>(() =>
-    sync.data.skill.map((s): SkillOption => ({ type: "skill", name: s.name, description: s.description })),
-  )
-
-  const MAX_SKILLS = 5
-
-  const handleSkillSelect = (skill: SkillOption | undefined) => {
-    if (!skill) return
-    if (activeSkills().length >= MAX_SKILLS) {
-      showToast({ title: `Max ${MAX_SKILLS} skills per session`, description: "Remove a skill before adding another", variant: "error" })
-      return
-    }
-    if (activeSkills().some((s) => s.name === skill.name)) {
-      showToast({ title: `$${skill.name} already active`, variant: "error" })
-      return
-    }
-    skillApi("POST", skill.name)
-
-    // Insert Codex-style inline pill into editor — replaces the $query text
-    // with a styled span[data-type="skill"] pill, matching how @file works.
-    // Re-focus editor first (clicking popover steals focus).
-    editorRef.focus()
-    const cursor = prompt.cursor() ?? promptLength(prompt.current())
-    setCursorPosition(editorRef, cursor)
-    const sel = window.getSelection()
-    if (sel && sel.rangeCount > 0) {
-      const raw = prompt.current().map((p) => ("content" in p ? p.content : "")).join("")
-      const before = raw.substring(0, cursor)
-      const match = before.match(/\$\S*$/)
-      const range = sel.getRangeAt(0)
-      if (match) {
-        const start = match.index ?? cursor - match[0].length
-        setRangeEdge(editorRef, range, "start", start)
-        setRangeEdge(editorRef, range, "end", cursor)
-      }
-      // Create skill pill with data-type="skill" for text-syntax-string styling
-      const pill = document.createElement("span")
-      const emojis = ["✨", "🔮", "💎", "🌟", "⚡", "🎯", "🪄", "💫", "🌈", "🦋"]
-      pill.textContent = `${emojis[Math.floor(Math.random() * emojis.length)]} ${skill.name}`
-      pill.setAttribute("data-type", "skill")
-      pill.setAttribute("data-name", skill.name)
-      pill.setAttribute("contenteditable", "false")
-      pill.style.userSelect = "text"
-      pill.style.cursor = "default"
-      const gap = document.createTextNode(" ")
-      range.deleteContents()
-      range.insertNode(gap)
-      range.insertNode(pill)
-      range.setStartAfter(gap)
-      range.collapse(true)
-      sel.removeAllRanges()
-      sel.addRange(range)
-      handleInput()
-    }
-
-    showToast({
-      title: `✓ Loaded $${skill.name}`,
-      description: "Skill added to session context",
-    })
-    closePopover()
-  }
-
-  const {
-    flat: skillFlat,
-    active: skillActive,
-    setActive: setSkillActive,
-    onInput: skillOnInput,
-    onKeyDown: skillOnKeyDown,
-  } = useFilteredList<SkillOption>({
-    items: skillItems,
-    key: (x) => x?.name,
-    filterKeys: ["name", "description"],
-    onSelect: handleSkillSelect,
-  })
-
   const createPill = (part: FileAttachmentPart | AgentPart) => {
     const pill = document.createElement("span")
     pill.textContent = part.content
@@ -853,7 +679,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const el = node as HTMLElement
       if (el.dataset.type === "file") return true
       if (el.dataset.type === "agent") return true
-      if (el.dataset.type === "skill") return true
       return el.tagName === "BR"
     })
 
@@ -916,15 +741,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const active = slashActive()
       const item = items.find((entry) => entry.id === active) ?? items[0]
       handleSlashSelect(item)
-      return
-    }
-
-    if (store.popover === "skill") {
-      const items = skillFlat()
-      if (items.length === 0) return
-      const active = skillActive()
-      const item = items.find((entry) => entry.name === active) ?? items[0]
-      handleSkillSelect(item)
     }
   }
 
@@ -1010,20 +826,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         pushAgent(el)
         return
       }
-      // Skill pills (data-type="skill") are treated as agent parts for DOM parsing
-      if (el.dataset.type === "skill") {
-        flushText()
-        const content = el.textContent ?? ""
-        parts.push({
-          type: "agent",
-          name: el.dataset.name!,
-          content,
-          start: position,
-          end: position + content.length,
-        })
-        position += content.length
-        return
-      }
       if (el.tagName === "BR") {
         buffer += "\n"
         return
@@ -1076,14 +878,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (!shellMode) {
       const atMatch = rawText.substring(0, cursorPosition).match(/@(\S*)$/)
       const slashMatch = rawText.match(/^\/(\S*)$/)
-      // ─── $ prefix detection for skill mentions ──────────────────────
-      // Matches "$" preceded by whitespace or start-of-line (NOT another "$").
-      // Guards (from CEO/Eng/Design reviews):
-      //   - Shell mode: disabled above (shellMode check)
-      //   - $$: negative lookbehind (?<!\$) prevents double-dollar triggering
-      //   - SOL/whitespace: (?:^|(?<=\s)) ensures $ isn't mid-word
-      // When triggered, opens the "skill" popover mode.
-      const dollarMatch = rawText.substring(0, cursorPosition).match(/(?:^|(?<=\s))\$(?!\$)(\S*)$/)
 
       if (atMatch) {
         atOnInput(atMatch[1])
@@ -1091,34 +885,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       } else if (slashMatch) {
         slashOnInput(slashMatch[1])
         setStore("popover", "slash")
-      } else if (dollarMatch) {
-        const query = dollarMatch[1]
-        // $-removal syntax: typing "$-brainstorming" removes a skill from the session.
-        // Only removes user-added skills (not AI auto-loaded). Per spec §11.
-        if (query.startsWith("-") && query.length > 1) {
-          const name = query.slice(1)
-          const sessionID = params.id
-          if (sessionID && activeSkills().some((s) => s.name === name)) {
-            // Remove skill via extracted helper (code review fix #1: DRY)
-            // $-removal requires exact full name match — intentional per spec §11.
-            // (Code review fix #2: documented as intentional behavior)
-            skillApi("DELETE", name)
-            // Clear the $-removal text from the editor
-            const cleaned = rawText.replace(/(?:^|\s)\$-\S+\s*$/, "").trim()
-            if (!cleaned) {
-              prompt.set(DEFAULT_PROMPT, 0)
-              clearEditor()
-            }
-            closePopover()
-          } else {
-            // Unknown skill or no session — show popover for discovery
-            setStore("popover", "skill")
-          }
-        } else {
-          // Normal $ prefix — open skill popover with filtering
-          skillOnInput(query)
-          setStore("popover", "skill")
-        }
       } else {
         closePopover()
       }
@@ -1277,7 +1043,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     return true
   }
 
-  const { addAttachment, removeAttachment, handlePaste } = createPromptAttachments({
+  const { addAttachments, removeAttachment, handlePaste } = createPromptAttachments({
     editor: () => editorRef,
     isDialogActive: () => !!dialog.active,
     setDraggingType: (type) => setStore("draggingType", type),
@@ -1336,16 +1102,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       event.preventDefault()
       if (store.mode !== "normal") return
       pick()
-      return
-    }
-
-    // CEO expansion: Cmd+Shift+S opens skill picker directly
-    // Design review: only fires when prompt editor is focused (focus guard)
-    if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === "s") {
-      event.preventDefault()
-      if (store.mode !== "normal") return
-      // Focus guard: only open if editor has focus (which it does since we're in keyDown)
-      setStore("popover", "skill")
       return
     }
 
@@ -1447,9 +1203,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         if (store.popover === "slash") {
           slashOnKeyDown(event)
         }
-        if (store.popover === "skill") {
-          skillOnKeyDown(event)
-        }
         event.preventDefault()
         return
       }
@@ -1488,6 +1241,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     // Note: Shift+Enter is handled earlier, before IME check
     if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault()
+      if (event.repeat) return
+      if (
+        working() &&
+        prompt
+          .current()
+          .map((part) => ("content" in part ? part.content : ""))
+          .join("")
+          .trim().length === 0 &&
+        imageAttachments().length === 0 &&
+        commentCount() === 0
+      ) {
+        return
+      }
       handleSubmit(event)
     }
   }
@@ -1508,10 +1275,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         onSlashSelect={handleSlashSelect}
         commandKeybind={command.keybind}
         t={(key) => language.t(key as Parameters<typeof language.t>[0])}
-        skillFlat={skillFlat()}
-        skillActive={skillActive() ?? undefined}
-        setSkillActive={setSkillActive}
-        onSkillSelect={handleSkillSelect}
       />
       <DockShellForm
         onSubmit={handleSubmit}
@@ -1547,84 +1310,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           onRemove={removeAttachment}
           removeLabel={language.t("prompt.attachment.remove")}
         />
-        {/* ─── Active Skills Badge Strip ─────────────────────────────────
-            Design spec: row above editor showing loaded skills, reusable
-            steer queue badge pattern. Each badge: skill name + × close.
-            Clicking × calls DELETE /session/:id/skill/:name via SDK.
-            aria-label on × for accessibility (design review).
-            text-syntax-string color (warm/amber, design review).
-            Hidden when no active skills (Show when={}).
-        */}
-        <Show when={activeSkills().length > 0}>
-          <div class="flex flex-wrap items-center gap-1 px-3 pt-2 pb-1">
-            <For each={activeSkills()}>
-              {(skill) => (
-                <Tooltip
-                  placement="top"
-                  value={
-                    <div class="flex flex-col gap-0.5 max-w-[280px]">
-                      <span class="text-12-medium text-text-strong">{skill.name}</span>
-                      <span class="text-11-regular text-text-weak">
-                        {sync.data.skill.find((s) => s.name === skill.name)?.description ?? "Skill loaded"}
-                      </span>
-                      <Show when={skill.token_estimate}>
-                        <span class="text-10-regular text-text-subtle">~{Math.round((skill.token_estimate ?? 0) / 1000)}K tokens</span>
-                      </Show>
-                    </div>
-                  }
-                >
-                <span class="inline-flex items-center gap-1 text-12-medium text-syntax-string bg-surface-invert/5 rounded px-1.5 py-0.5 leading-tight">
-                  <span>${skill.name}</span>
-                  <button
-                    type="button"
-                    class="size-3.5 shrink-0 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
-                    onClick={() => skillApi("DELETE", skill.name)}
-                    aria-label={`Remove skill ${skill.name}`}
-                  >
-                    <Icon name="close" size="small" class="size-2.5" />
-                  </button>
-                </span>
-                </Tooltip>
-              )}
-            </For>
-          </div>
-        </Show>
-        <Show when={steerQueue().length > 0}>
-          <div class="flex flex-col gap-1 px-3 pt-2 pb-1">
-            <div class="flex items-center gap-1.5 text-11-medium text-text-weak uppercase tracking-wide">
-              <Icon name="bullet-list" size="small" class="size-3" />
-              <span>Pending ({steerQueue().length})</span>
-            </div>
-            <For each={steerQueue()}>
-              {(item) => (
-                <div class="flex items-center gap-1.5 group/steer">
-                  <span
-                    class="text-10-medium uppercase shrink-0 rounded px-1 py-px leading-tight"
-                    classList={{
-                      "text-syntax-keyword bg-surface-invert/5": item.mode === "steer",
-                      "text-text-weak bg-surface-invert/3": item.mode === "queue",
-                    }}
-                  >
-                    {item.mode === "steer" ? "steer" : "queue"}
-                  </span>
-                  <span class="text-13-regular text-text-base truncate flex-1">{item.text}</span>
-                  <button
-                    type="button"
-                    class="size-4 shrink-0 flex items-center justify-center opacity-0 group-hover/steer:opacity-100 transition-opacity text-icon-weak hover:text-icon-strong-base"
-                    onClick={() => {
-                      const sessionID = params.id
-                      if (!sessionID) return
-                      sdk.client.session.steer2.remove({ sessionID, steerID: item.id }).catch(() => {})
-                    }}
-                    aria-label={language.t("prompt.attachment.remove") ?? "Remove"}
-                  >
-                    <Icon name="close" size="small" class="size-3" />
-                  </button>
-                </div>
-              )}
-            </For>
-          </div>
-        </Show>
         <div
           class="relative"
           onMouseDown={(e) => {
@@ -1632,7 +1317,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             if (!(target instanceof HTMLElement)) return
             if (
               target.closest(
-                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-action="prompt-steer"], [data-action="prompt-permissions"]',
+                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-action="prompt-permissions"]',
               )
             ) {
               return
@@ -1669,8 +1354,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 "w-full pl-3 pr-2 pt-2 text-14-regular text-text-strong focus:outline-none whitespace-pre-wrap": true,
                 "[&_[data-type=file]]:text-syntax-property": true,
                 "[&_[data-type=agent]]:text-syntax-type": true,
-                // Design review: text-syntax-string (warm/amber) for $skill pills
-                "[&_[data-type=skill]]:text-syntax-string": true,
                 "font-mono!": store.mode === "shell",
               }}
               style={{ "padding-bottom": space }}
@@ -1696,162 +1379,64 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             }}
           />
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ACCEPTED_FILE_TYPES.join(",")}
-            class="hidden"
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0]
-              if (file) void addAttachment(file)
-              e.currentTarget.value = ""
-            }}
-          />
+          <div class="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPTED_FILE_TYPES.join(",")}
+              class="hidden"
+              onChange={(e) => {
+                const list = e.currentTarget.files
+                if (list) void addAttachments(Array.from(list))
+                e.currentTarget.value = ""
+              }}
+            />
 
-          {/* Action bar — Codex/Kilo Code style: below editor, not floating */}
-          <div
-            class="flex items-center justify-between px-2 pb-2 pt-0"
-            style={buttons()}
-          >
-            {/* Left: attach + enhance */}
-            <div class="flex items-center gap-1">
-              <TooltipKeybind
-                placement="top"
-                gutter={8}
-                title={language.t("prompt.action.attachFile")}
-                keybind={command.keybind("file.attach")}
-              >
-                <IconButton
-                  data-action="prompt-attach"
-                  type="button"
-                  icon="plus"
-                  variant="ghost"
-                  class="size-8"
-                  onClick={pick}
-                  disabled={store.mode !== "normal"}
-                  tabIndex={store.mode === "normal" ? undefined : -1}
-                  aria-label={language.t("prompt.action.attachFile")}
-                />
-              </TooltipKeybind>
-
-              <Show when={prompt.dirty() && !working()}>
-                <Tooltip
-                  placement="top"
-                  value={language.t("prompt.action.enhance") ?? "Enhance prompt"}
-                >
-                  <IconButton
-                    data-action="prompt-enhance"
-                    type="button"
-                    icon="sparkle"
-                    variant="ghost"
-                    class="size-8"
-                    onClick={enhancePrompt}
-                    disabled={enhancing() || store.mode !== "normal"}
-                    aria-label={language.t("prompt.action.enhance") ?? "Enhance prompt"}
-                    classList={{ "animate-pulse": enhancing() }}
-                  />
-                </Tooltip>
-              </Show>
-            </div>
-
-            {/* Right: steer + submit */}
-            <div class="flex items-center gap-1.5">
-              <Show when={working() && prompt.dirty()}>
-                <Tooltip
-                  placement="top"
-                  value={
-                    <div class="flex items-center gap-2">
-                      <span>Steer</span>
-                      <span class="text-icon-base text-12-medium text-[10px]!">⇧⏎</span>
-                    </div>
-                  }
-                >
-                  <IconButton
-                    data-action="prompt-steer"
-                    type="button"
-                    icon="align-right"
-                    variant="ghost"
-                    class="size-8"
-                    onClick={() => {
-                      const sessionID = params.id
-                      if (!sessionID || steerPending()) return
-                      const text = prompt
-                        .current()
-                        .filter((p) => p.type === "text")
-                        .map((p) => p.content)
-                        .join("")
-                        .trim()
-                      if (!text) return
-                      setSteerPending(true)
-                      sdk.client.session
-                        .steer({ sessionID, text, mode: "steer" })
-                        .then((res) => {
-                          if (res.error) throw new Error("Failed to steer")
-                          const kept = clearText()
-                          showToast({
-                            title: language.t("prompt.action.steered") ?? "Steering",
-                            description: kept
-                              ? (language.t("prompt.action.attachmentsKept") ?? "Text steered — attachments still attached")
-                              : (language.t("prompt.action.steered.description") ?? "Will be injected at the next step"),
-                          })
-                          const editor = editorRef
-                          if (editor) editor.innerHTML = ""
-                        })
-                        .catch((err) =>
-                          showToast({
-                            title: language.t("common.requestFailed") ?? "Failed to steer",
-                            description: err?.message,
-                          }),
-                        )
-                        .finally(() => setSteerPending(false))
-                    }}
-                    aria-label="Steer"
-                  />
-                </Tooltip>
-              </Show>
-              <Tooltip
-                placement="top"
-                inactive={!prompt.dirty() && !working()}
-                value={
-                  <Switch>
-                    <Match when={working() && prompt.dirty()}>
-                      <div class="flex items-center gap-2">
-                        <span>Queue</span>
-                        <Icon name="enter" size="small" class="text-icon-base" />
-                      </div>
-                    </Match>
-                    <Match when={working()}>
-                      <div class="flex items-center gap-2">
-                        <span>{language.t("prompt.action.stop")}</span>
-                        <span class="text-icon-base text-12-medium text-[10px]!">{language.t("common.key.esc")}</span>
-                      </div>
-                    </Match>
-                    <Match when={true}>
-                      <div class="flex items-center gap-2">
-                        <span>{language.t("prompt.action.send")}</span>
-                        <Icon name="enter" size="small" class="text-icon-base" />
-                      </div>
-                    </Match>
-                  </Switch>
-                }
-              >
+            <div class="flex items-center gap-1 pointer-events-auto">
+              <Tooltip placement="top" inactive={!prompt.dirty() && !working()} value={tip()}>
                 <IconButton
                   data-action="prompt-submit"
                   type="submit"
                   disabled={store.mode !== "normal" || (!prompt.dirty() && !working() && commentCount() === 0)}
                   tabIndex={store.mode === "normal" ? undefined : -1}
-                  icon={working() ? (prompt.dirty() ? "arrow-up" : "stop") : "arrow-up"}
+                  icon={working() ? "stop" : "arrow-up"}
                   variant="primary"
                   class="size-8"
-                  aria-label={
-                    working()
-                      ? prompt.dirty()
-                        ? language.t("prompt.action.queued") ?? "Queue"
-                        : language.t("prompt.action.stop")
-                      : language.t("prompt.action.send")
-                  }
+                  style={buttons()}
+                  aria-label={working() ? language.t("prompt.action.stop") : language.t("prompt.action.send")}
                 />
               </Tooltip>
+            </div>
+          </div>
+
+          <div class="pointer-events-none absolute bottom-2 left-2">
+            <div
+              aria-hidden={store.mode !== "normal"}
+              class="pointer-events-auto"
+              style={{
+                "pointer-events": buttonsSpring() > 0.5 ? "auto" : "none",
+              }}
+            >
+              <TooltipKeybind
+                placement="top"
+                title={language.t("prompt.action.attachFile")}
+                keybind={command.keybind("file.attach")}
+              >
+                <Button
+                  data-action="prompt-attach"
+                  type="button"
+                  variant="ghost"
+                  class="size-8 p-0"
+                  style={buttons()}
+                  onClick={pick}
+                  disabled={store.mode !== "normal"}
+                  tabIndex={store.mode === "normal" ? undefined : -1}
+                  aria-label={language.t("prompt.action.attachFile")}
+                >
+                  <Icon name="plus" class="size-4.5" />
+                </Button>
+              </TooltipKeybind>
             </div>
           </div>
         </div>
@@ -1908,11 +1493,15 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                           size="normal"
                           class="min-w-0 max-w-[320px] text-13-regular text-text-base group"
                           style={control()}
-                          onClick={() => dialog.show(() => <DialogSelectModelUnpaid model={local.model} />)}
+                          onClick={() => {
+                            void import("@/components/dialog-select-model-unpaid").then((x) => {
+                              dialog.show(() => <x.DialogSelectModelUnpaid model={local.model} />)
+                            })
+                          }}
                         >
                           <Show when={local.model.current()?.provider?.id}>
                             <ProviderIcon
-                              id={local.model.current()!.provider.id}
+                              id={local.model.current()?.provider?.id ?? ""}
                               class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
                               style={{ "will-change": "opacity", transform: "translateZ(0)" }}
                             />
@@ -1944,7 +1533,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                       >
                         <Show when={local.model.current()?.provider?.id}>
                           <ProviderIcon
-                            id={local.model.current()!.provider.id}
+                            id={local.model.current()?.provider?.id ?? ""}
                             class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
                             style={{ "will-change": "opacity", transform: "translateZ(0)" }}
                           />

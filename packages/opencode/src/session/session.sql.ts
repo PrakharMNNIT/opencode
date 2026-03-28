@@ -2,7 +2,7 @@ import { sqliteTable, text, integer, index, primaryKey } from "drizzle-orm/sqlit
 import { ProjectTable } from "../project/project.sql"
 import type { MessageV2 } from "./message-v2"
 import type { Snapshot } from "../snapshot"
-import type { PermissionNext } from "../permission"
+import type { Permission } from "../permission"
 import type { ProjectID } from "../project/schema"
 import type { SessionID, MessageID, PartID } from "./schema"
 import type { WorkspaceID } from "../control-plane/schema"
@@ -31,7 +31,7 @@ export const SessionTable = sqliteTable(
     summary_files: integer(),
     summary_diffs: text({ mode: "json" }).$type<Snapshot.FileDiff[]>(),
     revert: text({ mode: "json" }).$type<{ messageID: MessageID; partID?: PartID; snapshot?: string; diff?: string }>(),
-    permission: text({ mode: "json" }).$type<PermissionNext.Ruleset>(),
+    permission: text({ mode: "json" }).$type<Permission.Ruleset>(),
     ...Timestamps,
     time_compacting: integer(),
     time_archived: integer(),
@@ -94,36 +94,10 @@ export const TodoTable = sqliteTable(
   ],
 )
 
-// session_skills — persists user-initiated $skill mentions per session.
-// Each row represents one active skill for one session.
-// Skills are added via "$brainstorming" in the prompt or POST /session/:id/skill,
-// removed via "$-brainstorming" or DELETE /session/:id/skill/:name.
-// The loop() function in prompt.ts reads this table each message to inject
-// skill content into the system prompt.
-//
-// Schema: composite PK on (session_id, skill_name) ensures uniqueness.
-// Index on session_id for fast list queries.
-export const SessionSkillTable = sqliteTable(
-  "session_skill",
-  {
-    session_id: text()
-      .$type<SessionID>()
-      .notNull()
-      .references(() => SessionTable.id, { onDelete: "cascade" }),
-    skill_name: text().notNull(),
-    added_at: integer().notNull(),
-    token_estimate: integer(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.session_id, table.skill_name] }),
-    index("session_skill_session_idx").on(table.session_id),
-  ],
-)
-
 export const PermissionTable = sqliteTable("permission", {
   project_id: text()
     .primaryKey()
     .references(() => ProjectTable.id, { onDelete: "cascade" }),
   ...Timestamps,
-  data: text({ mode: "json" }).notNull().$type<PermissionNext.Ruleset>(),
+  data: text({ mode: "json" }).notNull().$type<Permission.Ruleset>(),
 })

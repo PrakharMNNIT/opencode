@@ -6,22 +6,16 @@ import { APICallError, convertToModelMessages, LoadAPIKeyError, type ModelMessag
 import { LSP } from "../lsp"
 import { Snapshot } from "@/snapshot"
 import { fn } from "@/util/fn"
-import { SyncEvent } from "../sync"
 import { Database, NotFoundError, and, desc, eq, inArray, lt, or } from "@/storage/db"
 import { MessageTable, PartTable, SessionTable } from "./session.sql"
+import { ProviderTransform } from "@/provider/transform"
+import { STATUS_CODES } from "http"
+import { Storage } from "@/storage/storage"
 import { ProviderError } from "@/provider/error"
 import { iife } from "@/util/iife"
-import { errorMessage } from "@/util/error"
-import type { SystemError } from "bun"
+import { type SystemError } from "bun"
 import type { Provider } from "@/provider/provider"
 import { ModelID, ProviderID } from "@/provider/schema"
-
-/** Error shape thrown by Bun's fetch() when gzip/br decompression fails mid-stream */
-interface FetchDecompressionError extends Error {
-  code: "ZlibError"
-  errno: number
-  path: string
-}
 
 export namespace MessageV2 {
   export function isMedia(mime: string) {
@@ -203,6 +197,26 @@ export namespace MessageV2 {
     ref: "AgentPart",
   })
   export type AgentPart = z.infer<typeof AgentPart>
+
+  // SkillPart — represents a user-initiated $skill mention.
+  // When a user types "$brainstorming" in the prompt, this part is created.
+  // The backend uses it to inject the skill's SKILL.md content into the
+  // system prompt (wrapped in <skill> XML tags) for every message in the
+  // session until the skill is removed.
+  //
+  // Data flow:
+  //   User types "$brainstorming" → UI creates SkillPart → submitted with message
+  //   → createUserMessage() extracts it → SessionSkills.add() persists to DB
+  //   → loop() reads SessionSkills.list() → LRU cache → Skill.load() → system prompt
+  //
+  // See also: SessionSkills service (session/skill.service.ts)
+  export const SkillPart = PartBase.extend({
+    type: z.literal("skill"),
+    name: z.string(), // skill name, e.g. "brainstorming" (matches SKILL.md directory name)
+  }).meta({
+    ref: "SkillPart",
+  })
+  export type SkillPart = z.infer<typeof SkillPart>
 
   export const CompactionPart = PartBase.extend({
     type: z.literal("compaction"),
@@ -392,6 +406,7 @@ export namespace MessageV2 {
       SnapshotPart,
       PatchPart,
       AgentPart,
+      SkillPart,
       RetryPart,
       CompactionPart,
     ])
@@ -455,34 +470,25 @@ export namespace MessageV2 {
   export type Info = z.infer<typeof Info>
 
   export const Event = {
-    Updated: SyncEvent.define({
-      type: "message.updated",
-      version: 1,
-      aggregate: "sessionID",
-      schema: z.object({
-        sessionID: SessionID.zod,
+    Updated: BusEvent.define(
+      "message.updated",
+      z.object({
         info: Info,
       }),
-    }),
-    Removed: SyncEvent.define({
-      type: "message.removed",
-      version: 1,
-      aggregate: "sessionID",
-      schema: z.object({
+    ),
+    Removed: BusEvent.define(
+      "message.removed",
+      z.object({
         sessionID: SessionID.zod,
         messageID: MessageID.zod,
       }),
-    }),
-    PartUpdated: SyncEvent.define({
-      type: "message.part.updated",
-      version: 1,
-      aggregate: "sessionID",
-      schema: z.object({
-        sessionID: SessionID.zod,
+    ),
+    PartUpdated: BusEvent.define(
+      "message.part.updated",
+      z.object({
         part: Part,
-        time: z.number(),
       }),
-    }),
+    ),
     PartDelta: BusEvent.define(
       "message.part.delta",
       z.object({
@@ -493,16 +499,14 @@ export namespace MessageV2 {
         delta: z.string(),
       }),
     ),
-    PartRemoved: SyncEvent.define({
-      type: "message.part.removed",
-      version: 1,
-      aggregate: "sessionID",
-      schema: z.object({
+    PartRemoved: BusEvent.define(
+      "message.part.removed",
+      z.object({
         sessionID: SessionID.zod,
         messageID: MessageID.zod,
         partID: PartID.zod,
       }),
-    }),
+    ),
   }
 
   export const WithParts = z.object({
@@ -573,13 +577,30 @@ export namespace MessageV2 {
     }))
   }
 
-  export async function toModelMessages(
+  export function toModelMessages(
     input: WithParts[],
     model: Provider.Model,
-    options?: { stripMedia?: boolean },
-  ): Promise<ModelMessage[]> {
+    options?: { stripMedia?: boolean; stripLastReasoning?: boolean },
+  ): ModelMessage[] {
     const result: UIMessage[] = []
     const toolNames = new Set<string>()
+
+    // Pre-scan: collect user message IDs whose assistant response errored.
+    // When a file attachment causes an API error, the user message is preserved
+    // in DB with the bad file. On replay, we strip file/media parts from these
+    // user messages to prevent the same error from poisoning the session forever.
+    const poisoned = new Set<string>()
+    for (const msg of input) {
+      if (msg.info.role !== "assistant") continue
+      if (!msg.info.error) continue
+      // Skip AbortedError with real content (those are kept, not errors)
+      if (
+        MessageV2.AbortedError.isInstance(msg.info.error) &&
+        msg.parts.some((part) => part.type !== "step-start" && part.type !== "reasoning")
+      )
+        continue
+      poisoned.add(msg.info.parentID)
+    }
     // Track media from tool results that need to be injected as user messages
     // for providers that don't support media in tool results.
     //
@@ -601,8 +622,7 @@ export namespace MessageV2 {
       return false
     })()
 
-    const toModelOutput = (options: { toolCallId: string; input: unknown; output: unknown }) => {
-      const output = options.output
+    const toModelOutput = (output: unknown) => {
       if (typeof output === "string") {
         return { type: "text", value: output }
       }
@@ -653,17 +673,32 @@ export namespace MessageV2 {
             })
           // text/plain and directory files are converted into text parts, ignore them
           if (part.type === "file" && part.mime !== "text/plain" && part.mime !== "application/x-directory") {
-            if (options?.stripMedia && isMedia(part.mime)) {
+            // If this user message caused an API error, strip media/file parts
+            // to prevent the same error from poisoning the session forever.
+            // Text content is preserved so conversation context isn't lost.
+            if (poisoned.has(msg.info.id)) {
+              userMessage.parts.push({
+                type: "text",
+                text: `[Removed attachment: ${part.filename ?? part.mime} — caused API error]`,
+              })
+            } else if (options?.stripMedia && isMedia(part.mime)) {
               userMessage.parts.push({
                 type: "text",
                 text: `[Attached ${part.mime}: ${part.filename ?? "file"}]`,
               })
             } else {
+              // Sanitize filename for Anthropic API — only allows alphanumeric,
+              // whitespace, hyphens, parentheses, and square brackets.
+              // Replace underscores/dots (except extension) with hyphens.
+              const raw = part.filename ?? "file"
+              const ext = raw.lastIndexOf(".") > 0 ? raw.slice(raw.lastIndexOf(".")) : ""
+              const base = ext ? raw.slice(0, -ext.length) : raw
+              const clean = base.replace(/[^a-zA-Z0-9\s\-\(\)\[\]]/g, "-").replace(/-{2,}/g, "-") + ext
               userMessage.parts.push({
                 type: "file",
                 url: part.url,
                 mediaType: part.mime,
-                filename: part.filename,
+                filename: clean,
               })
             }
           }
@@ -684,7 +719,6 @@ export namespace MessageV2 {
       }
 
       if (msg.info.role === "assistant") {
-        const differentModel = `${model.providerID}/${model.id}` !== `${msg.info.providerID}/${msg.info.modelID}`
         const media: Array<{ mime: string; url: string }> = []
 
         if (
@@ -706,7 +740,7 @@ export namespace MessageV2 {
             assistantMessage.parts.push({
               type: "text",
               text: part.text,
-              ...(differentModel ? {} : { providerMetadata: part.metadata }),
+              providerMetadata: part.metadata,
             })
           if (part.type === "step-start")
             assistantMessage.parts.push({
@@ -741,7 +775,7 @@ export namespace MessageV2 {
                 toolCallId: part.callID,
                 input: part.state.input,
                 output,
-                ...(differentModel ? {} : { callProviderMetadata: part.metadata }),
+                callProviderMetadata: part.metadata,
               })
             }
             if (part.state.status === "error")
@@ -751,7 +785,7 @@ export namespace MessageV2 {
                 toolCallId: part.callID,
                 input: part.state.input,
                 errorText: part.state.error,
-                ...(differentModel ? {} : { callProviderMetadata: part.metadata }),
+                callProviderMetadata: part.metadata,
               })
             // Handle pending/running tool calls to prevent dangling tool_use blocks
             // Anthropic/Claude APIs require every tool_use to have a corresponding tool_result
@@ -762,14 +796,14 @@ export namespace MessageV2 {
                 toolCallId: part.callID,
                 input: part.state.input,
                 errorText: "[Tool execution was interrupted]",
-                ...(differentModel ? {} : { callProviderMetadata: part.metadata }),
+                callProviderMetadata: part.metadata,
               })
           }
           if (part.type === "reasoning") {
             assistantMessage.parts.push({
               type: "reasoning",
               text: part.text,
-              ...(differentModel ? {} : { providerMetadata: part.metadata }),
+              providerMetadata: part.metadata,
             })
           }
         }
@@ -798,9 +832,31 @@ export namespace MessageV2 {
       }
     }
 
+    // Strip reasoning/thinking parts from the last assistant message when enabled.
+    // Claude API enforces that thinking blocks in the latest assistant message
+    // must be byte-identical to the original response. Since OpenCode reconstructs
+    // them from stored parts, they may not match exactly.
+    //
+    // Strategy "strip": Always strip — prevents errors proactively.
+    // Strategy "compact": Don't strip — let API error, then auto-compact to recover.
+    // Strategy "none" (default): Don't strip — original behavior.
+    //
+    // Only strip when explicitly requested via options.stripLastReasoning = true.
+    if (options?.stripLastReasoning === true) {
+      const lastAssistantIdx = result.findLastIndex((msg) => msg.role === "assistant")
+      if (lastAssistantIdx !== -1) {
+        const filtered = result[lastAssistantIdx].parts.filter((part) => part.type !== "reasoning")
+        if (filtered.length > 0 && !filtered.every((p) => p.type === "step-start")) {
+          result[lastAssistantIdx].parts = filtered
+        } else {
+          result.splice(lastAssistantIdx, 1)
+        }
+      }
+    }
+
     const tools = Object.fromEntries(Array.from(toolNames).map((toolName) => [toolName, { toModelOutput }]))
 
-    return await convertToModelMessages(
+    return convertToModelMessages(
       result.filter((msg) => msg.parts.some((part) => part.type !== "step-start")),
       {
         //@ts-expect-error (convertToModelMessages expects a ToolSet but only actually needs tools[name]?.toModelOutput)
@@ -872,13 +928,7 @@ export namespace MessageV2 {
       db.select().from(PartTable).where(eq(PartTable.message_id, message_id)).orderBy(PartTable.id).all(),
     )
     return rows.map(
-      (row) =>
-        ({
-          ...row.data,
-          id: row.id,
-          sessionID: row.session_id,
-          messageID: row.message_id,
-        }) as MessageV2.Part,
+      (row) => ({ ...row.data, id: row.id, sessionID: row.session_id, messageID: row.message_id }) as MessageV2.Part,
     )
   })
 
@@ -921,10 +971,7 @@ export namespace MessageV2 {
     return result
   }
 
-  export function fromError(
-    e: unknown,
-    ctx: { providerID: ProviderID; aborted?: boolean },
-  ): NonNullable<Assistant["error"]> {
+  export function fromError(e: unknown, ctx: { providerID: ProviderID }): NonNullable<Assistant["error"]> {
     switch (true) {
       case e instanceof DOMException && e.name === "AbortError":
         return new MessageV2.AbortedError(
@@ -956,21 +1003,6 @@ export namespace MessageV2 {
           },
           { cause: e },
         ).toObject()
-      case e instanceof Error && (e as FetchDecompressionError).code === "ZlibError":
-        if (ctx.aborted) {
-          return new MessageV2.AbortedError({ message: e.message }, { cause: e }).toObject()
-        }
-        return new MessageV2.APIError(
-          {
-            message: "Response decompression failed",
-            isRetryable: true,
-            metadata: {
-              code: (e as FetchDecompressionError).code,
-              message: e.message,
-            },
-          },
-          { cause: e },
-        ).toObject()
       case APICallError.isInstance(e):
         const parsed = ProviderError.parseAPICallError({
           providerID: ctx.providerID,
@@ -998,7 +1030,7 @@ export namespace MessageV2 {
           { cause: e },
         ).toObject()
       case e instanceof Error:
-        return new NamedError.Unknown({ message: errorMessage(e) }, { cause: e }).toObject()
+        return new NamedError.Unknown({ message: e instanceof Error ? e.message : String(e) }, { cause: e }).toObject()
       default:
         try {
           const parsed = ProviderError.parseStreamError(e)

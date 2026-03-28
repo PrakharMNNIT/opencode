@@ -15,8 +15,6 @@ import type { State, VcsCache } from "./types"
 import { trimSessions } from "./session-trim"
 import { dropSessionCaches } from "./session-cache"
 
-const SKIP_PARTS = new Set(["patch", "step-start", "step-finish"])
-
 export function applyGlobalEvent(input: {
   event: { type: string; properties?: unknown }
   project: Project[]
@@ -176,6 +174,17 @@ export function applyDirectoryEvent(input: {
       input.setStore("session_status", props.sessionID, reconcile(props.status))
       break
     }
+    case "session.queue.changed": {
+      const props = event.properties as { sessionID: string; queue: { id: string; text: string; time: number; mode: "queue" | "steer" }[] }
+      input.setStore("steer_queue", props.sessionID, reconcile(props.queue, { key: "id" }))
+      break
+    }
+    // $skill: sync active skills per session from SessionSkills.Event.Changed
+    case "session.skill.changed": {
+      const props = event.properties as { sessionID: string; skills: { name: string; added_at: number; token_estimate: number | null }[] }
+      input.setStore("session_skill", props.sessionID, reconcile(props.skills, { key: "name" }))
+      break
+    }
     case "message.updated": {
       const info = (event.properties as { info: Message }).info
       const messages = input.store.message[info.sessionID]
@@ -213,7 +222,6 @@ export function applyDirectoryEvent(input: {
     }
     case "message.part.updated": {
       const part = (event.properties as { part: Part }).part
-      if (SKIP_PARTS.has(part.type)) break
       const parts = input.store.part[part.messageID]
       if (!parts) {
         input.setStore("part", part.messageID, [part])

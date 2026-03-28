@@ -368,14 +368,40 @@ export const SettingsGeneral: Component = () => {
         </SettingsRow>
 
         <SettingsRow
-          title="Wide Mode"
-          description="Use full window width for chat instead of centered narrow layout"
+          title="Font Size"
+          description="Base font size for code and messages"
         >
-          <div data-action="settings-wide-mode">
-            <Switch
-              checked={settings.appearance.wideMode()}
-              onChange={(checked) => settings.appearance.setWideMode(checked)}
+          <div data-action="settings-font-size" class="flex items-center gap-3 w-full sm:w-[220px]">
+            <input
+              type="range"
+              min="10"
+              max="24"
+              step="1"
+              value={settings.appearance.fontSize()}
+              onInput={(e) => settings.appearance.setFontSize(Number(e.currentTarget.value) || 14)}
+              class="flex-1 accent-color-accent h-1.5 cursor-pointer"
+              style={{ "transition": "all 200ms ease-out" }}
             />
+            <span class="text-12-regular text-text-weak tabular-nums w-8 text-right">{settings.appearance.fontSize()}px</span>
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title="Chat Width"
+          description="0 = centered layout, drag right for wider chat"
+        >
+          <div data-action="settings-max-width" class="flex items-center gap-3 w-full sm:w-[220px]">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={settings.appearance.maxWidth()}
+              onInput={(e) => settings.appearance.setMaxWidth(Number(e.currentTarget.value) || 0)}
+              class="flex-1 accent-color-accent h-1.5 cursor-pointer"
+              style={{ "transition": "all 200ms ease-out" }}
+            />
+            <span class="text-12-regular text-text-weak tabular-nums w-8 text-right">{settings.appearance.maxWidth() === 0 ? "auto" : `${settings.appearance.maxWidth()}%`}</span>
           </div>
         </SettingsRow>
       </SettingsList>

@@ -401,7 +401,7 @@ export default function Page() {
     if (desktopReviewOpen()) return `${layout.session.width()}px`
     return `calc(100% - ${layout.fileTree.width()}px)`
   })
-  const centered = createMemo(() => isDesktop() && !desktopReviewOpen() && !settings.appearance.wideMode())
+  const centered = createMemo(() => isDesktop() && !desktopReviewOpen() && settings.appearance.maxWidth() === 0)
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab

@@ -401,7 +401,8 @@ export default function Page() {
     if (desktopReviewOpen()) return `${layout.session.width()}px`
     return `calc(100% - ${layout.fileTree.width()}px)`
   })
-  const centered = createMemo(() => isDesktop() && !desktopReviewOpen() && settings.appearance.maxWidth() === 0)
+  const centered = createMemo(() => isDesktop() && !desktopReviewOpen())
+  const chatWidth = createMemo(() => settings.appearance.maxWidth())
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab
@@ -1769,6 +1770,7 @@ export default function Page() {
                     onTurnBackfillScroll={historyWindow.onScrollerScroll}
                     onAutoScrollInteraction={autoScroll.handleInteraction}
                     centered={centered()}
+                    chatWidth={chatWidth()}
                     setContentRef={(el) => {
                       content = el
                       autoScroll.contentRef(el)
@@ -1797,6 +1799,7 @@ export default function Page() {
             state={composer}
             ready={!store.deferRender && messagesReady()}
             centered={centered()}
+            chatWidth={chatWidth()}
             inputRef={(el) => {
               inputRef = el
             }}

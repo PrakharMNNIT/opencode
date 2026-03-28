@@ -211,6 +211,7 @@ export function MessageTimeline(props: {
   onTurnBackfillScroll: () => void
   onAutoScrollInteraction: (event: MouseEvent) => void
   centered: boolean
+  chatWidth?: number
   setContentRef: (el: HTMLDivElement) => void
   turnStart: number
   historyMore: boolean
@@ -642,8 +643,10 @@ export function MessageTimeline(props: {
                   "w-full": true,
                   "pb-4": true,
                   "pl-2 pr-3 md:pl-4 md:pr-3": true,
-                  "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
+                  "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered && !props.chatWidth,
+                  "md:mx-auto": props.centered && !!props.chatWidth,
                 }}
+                style={props.centered && props.chatWidth ? { "max-width": `${props.chatWidth}%` } : undefined}
               >
                 <div class="h-12 w-full flex items-center justify-between gap-2">
                   <div class="flex items-center gap-1 min-w-0 flex-1 pr-3">
@@ -900,10 +903,12 @@ export function MessageTimeline(props: {
               class="flex flex-col items-start justify-start pb-16 transition-[margin]"
               classList={{
                 "w-full": true,
-                "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
+                "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered && !props.chatWidth,
+                "md:mx-auto": props.centered && !!props.chatWidth,
                 "mt-0.5": props.centered,
                 "mt-0": !props.centered,
               }}
+              style={props.centered && props.chatWidth ? { "max-width": `${props.chatWidth}%` } : undefined}
             >
               <Show when={props.turnStart > 0 || props.historyMore}>
                 <div class="w-full flex justify-center">
@@ -941,7 +946,7 @@ export function MessageTimeline(props: {
                       data-message-id={messageID}
                       classList={{
                         "min-w-0 w-full max-w-full": true,
-                        "md:max-w-200 2xl:max-w-[1000px]": props.centered,
+                        "md:max-w-200 2xl:max-w-[1000px]": props.centered && !props.chatWidth,
                       }}
                       style={{
                         "content-visibility": active() ? undefined : "auto",

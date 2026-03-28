@@ -1,0 +1,36 @@
+/* ================================================================
+   AURORA DESIGN SYSTEM — "Code illuminated from within"
+   ================================================================
+
+   This file previously contained 1174 lines of !important overrides
+   for the Aurora theme. Those have been absorbed into the native
+   architecture:
+
+   Token pipeline (resolve.ts):
+     --accent-*, --glow-*, --glass-*, --border-accent-*, --card-*,
+     --message-*, --prompt-*, --dialog-*, --popover-*, --code-*,
+     --scroll-*, --selection-*, --thinking-*, --progress-*,
+     --empty-bg, --permission-glow, --radius-*, --ease-*, --duration-*
+
+   Component CSS files (23 files):
+     button, icon-button, dialog, card, dock-surface, session-turn,
+     popover, dropdown-menu, context-menu, text-field, checkbox,
+     switch, progress, spinner, tooltip, toast, collapsible,
+     accordion, tag, hover-card, logo, keybind, resize-handle
+
+   Global styles (base.css):
+     ::selection, :focus-visible, cursor:pointer, prefers-reduced-motion
+
+   Typography + spacing (theme.css):
+     --font-family-display, --text-xs through --text-4xl,
+     --space-*, --gap-*, --padding-*, --max-prose-width
+
+   ================================================================ */
+
+/* Aurora-specific font override: prefer JetBrains Mono Nerd Font for full
+   Unicode coverage (arrows ←→↑↓, box-drawing ╭╮╰╯, math ∑∫≤≥±√∞, icons) */
+html[data-theme="aurora"] {
+  --font-family-mono:
+    "JetBrains Mono Nerd Font Mono", "JetBrains Mono", "GeistMono Nerd Font Mono", "SF Mono", "Fira Code",
+    "CaskaydiaCove Nerd Font Mono", "IBM Plex Mono", ui-monospace, monospace;
+}

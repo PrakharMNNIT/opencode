@@ -34,7 +34,7 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
         c: isDark ? 1.04 : 1.02,
       })
     : undefined
-  const backgroundOverride = overrides["background-base"]
+  const backgroundOverride = overrides["background-base"] as ColorValue | undefined
   const backgroundHex = getHex(backgroundOverride)
   const overlay = Boolean(backgroundOverride) && !backgroundHex
   const content = (seed: HexColor, scale: HexColor[]) => {

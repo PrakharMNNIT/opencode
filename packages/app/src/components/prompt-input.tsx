@@ -284,6 +284,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   }
 
   const [steerPending, setSteerPending] = createSignal(false)
+  // TODO(contamination): enhancePrompt belongs to prax/enhance-prompt (PR #9).
+  // It leaked into this branch during extraction from prax-dev.
+  // Remove when prax/enhance-prompt is merged via prax-build.sh.
   const [enhancing, setEnhancing] = createSignal(false)
 
   const enhancePrompt = async () => {

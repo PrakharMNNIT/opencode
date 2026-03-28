@@ -634,6 +634,8 @@ export function Prompt(props: PromptProps) {
       // Guards: $ must be at start-of-line or after whitespace (not $$).
       // $name  → adds skill to session (SkillPart in parts array)
       // $-name → removes skill from session (DELETE API call)
+      // NOTE: This regex MUST stay in sync with packages/app/src/util/skill-parse.ts
+      // (the web frontend's source-of-truth parser). If you change it here, update there too.
       const skillPattern = /(?:^|(?<=\s))\$(-?[a-zA-Z][\w-]*)/g
       const skills: Array<{ type: "skill"; name: string }> = []
       const removals: string[] = []
@@ -644,13 +646,11 @@ export function Prompt(props: PromptProps) {
         else skills.push({ type: "skill" as const, name: token })
       }
 
-      // Process $-removal requests via DELETE /session/:id/skill
+      // Process $-removal requests via DELETE /session/:id/skill/:name
       if (sessionID) {
         for (const name of removals) {
-          fetch(`${sdk.url}/session/${sessionID}/skill`, {
+          fetch(`${sdk.url}/session/${sessionID}/skill/${encodeURIComponent(name)}`, {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name }),
           }).catch(() => {
             toast.show({
               variant: "error",

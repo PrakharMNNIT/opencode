@@ -150,4 +150,102 @@ describe("parseSkills", () => {
     expect(result.removals).toEqual([])
     expect(result.text).toBe("$123 fix the bug")
   })
+
+  // ── Edge: multiple removals ───────────────────────────────
+
+  test("handles multiple removals", () => {
+    const result = parseSkills("$-tdd $-security fix this")
+    expect(result.skills).toEqual([])
+    expect(result.removals).toEqual(["tdd", "security"])
+    expect(result.text).toBe("fix this")
+  })
+
+  // ── Edge: duplicate skills ────────────────────────────────
+
+  test("returns duplicate skills (dedup is caller responsibility)", () => {
+    const result = parseSkills("$tdd $tdd fix this")
+    expect(result.skills).toEqual([
+      { type: "skill", name: "tdd" },
+      { type: "skill", name: "tdd" },
+    ])
+    expect(result.text).toBe("fix this")
+  })
+
+  // ── Edge: removal-only input ──────────────────────────────
+
+  test("handles removal-only input with no text", () => {
+    const result = parseSkills("$-brainstorming")
+    expect(result.skills).toEqual([])
+    expect(result.removals).toEqual(["brainstorming"])
+    expect(result.text).toBe("")
+  })
+
+  // ── Edge: $ with tab separator ────────────────────────────
+
+  test("extracts $skill after tab", () => {
+    const result = parseSkills("fix\t$brainstorming the bug")
+    expect(result.skills).toEqual([{ type: "skill", name: "brainstorming" }])
+    expect(result.text).toBe("fix the bug")
+  })
+
+  // ── Edge: multiple spaces before $ ────────────────────────
+
+  test("extracts $skill after multiple spaces", () => {
+    const result = parseSkills("fix   $brainstorming the bug")
+    expect(result.skills).toEqual([{ type: "skill", name: "brainstorming" }])
+    expect(result.text).toBe("fix the bug")
+  })
+
+  // ── Edge: single character skill name ─────────────────────
+
+  test("matches single character skill name", () => {
+    const result = parseSkills("$x fix")
+    expect(result.skills).toEqual([{ type: "skill", name: "x" }])
+    expect(result.text).toBe("fix")
+  })
+
+  // ── Edge: long skill name ─────────────────────────────────
+
+  test("matches long hyphenated skill name", () => {
+    const result = parseSkills("$backend-principle-eng-python-pro-max fix")
+    expect(result.skills).toEqual([{ type: "skill", name: "backend-principle-eng-python-pro-max" }])
+    expect(result.text).toBe("fix")
+  })
+
+  // ── Edge: $ followed by hyphen only (removal with no name) ─
+
+  test("does not match $- alone (no name after hyphen)", () => {
+    const result = parseSkills("$- fix the bug")
+    expect(result.skills).toEqual([])
+    expect(result.removals).toEqual([])
+    expect(result.text).toBe("$- fix the bug")
+  })
+
+  // ── Edge: skill followed by punctuation ───────────────────
+
+  test("stops at non-word characters", () => {
+    const result = parseSkills("$tdd: review this")
+    expect(result.skills).toEqual([{ type: "skill", name: "tdd" }])
+    // Colon remains in text
+    expect(result.text).toBe(": review this")
+  })
+
+  // ── Edge: whitespace-only input ───────────────────────────
+
+  test("returns whitespace as-is when no skills (no trim without skills)", () => {
+    const result = parseSkills("   ")
+    expect(result.skills).toEqual([])
+    expect(result.removals).toEqual([])
+    // No skills/removals → text returned as-is (trim only runs when stripping)
+    expect(result.text).toBe("   ")
+  })
+
+  // ── Edge: many skills stress test ─────────────────────────
+
+  test("extracts many skills", () => {
+    const result = parseSkills("$a $b $c $d $e $f $g")
+    expect(result.skills).toHaveLength(7)
+    expect(result.skills.map(s => s.name)).toEqual(["a", "b", "c", "d", "e", "f", "g"])
+    expect(result.text).toBe("")
+  })
 })

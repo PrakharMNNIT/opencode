@@ -94,6 +94,24 @@ export const TodoTable = sqliteTable(
   ],
 )
 
+// session_skills — persists user-initiated $skill mentions per session.
+export const SessionSkillTable = sqliteTable(
+  "session_skill",
+  {
+    session_id: text()
+      .$type<SessionID>()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    skill_name: text().notNull(),
+    added_at: integer().notNull(),
+    token_estimate: integer(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.session_id, table.skill_name] }),
+    index("session_skill_session_idx").on(table.session_id),
+  ],
+)
+
 export const PermissionTable = sqliteTable("permission", {
   project_id: text()
     .primaryKey()

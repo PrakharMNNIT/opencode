@@ -770,6 +770,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const el = node as HTMLElement
       if (el.dataset.type === "file") return true
       if (el.dataset.type === "agent") return true
+      if (el.dataset.type === "skill") return true
       return el.tagName === "BR"
     })
 
@@ -936,6 +937,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       if (el.dataset.type === "agent") {
         flushText()
         pushAgent(el)
+        return
+      }
+      // Skill pills: treat as atomic (like agent) — don't recurse into children
+      if (el.dataset.type === "skill") {
+        flushText()
+        const content = el.textContent ?? ""
+        parts.push({
+          type: "agent",
+          name: el.dataset.name!,
+          content,
+          start: position,
+          end: position + content.length,
+        })
+        position += content.length
         return
       }
       if (el.tagName === "BR") {

@@ -17,8 +17,14 @@ export interface SlashCommand {
   source?: "command" | "mcp" | "skill"
 }
 
+export type SkillOption = {
+  type: "skill"
+  name: string
+  description: string
+}
+
 type PromptPopoverProps = {
-  popover: "at" | "slash" | null
+  popover: "at" | "slash" | "skill" | null
   setSlashPopoverRef: (el: HTMLDivElement) => void
   atFlat: AtOption[]
   atActive?: string
@@ -31,6 +37,10 @@ type PromptPopoverProps = {
   onSlashSelect: (item: SlashCommand) => void
   commandKeybind: (id: string) => string | undefined
   t: (key: string) => string
+  skillFlat?: SkillOption[]
+  skillActive?: string
+  onSkillSelect?: (item: SkillOption) => void
+  setSkillActive?: (id: string) => void
 }
 
 export const PromptPopover: Component<PromptPopoverProps> = (props) => {
@@ -129,6 +139,35 @@ export const PromptPopover: Component<PromptPopoverProps> = (props) => {
                         <span class="text-12-regular text-text-subtle">{props.commandKeybind(cmd.id)}</span>
                       </Show>
                     </div>
+                  </button>
+                )}
+              </For>
+            </Show>
+          </Match>
+          <Match when={props.popover === "skill"}>
+            <Show
+              when={props.skillFlat && props.skillFlat.length > 0}
+              fallback={
+                <div class="flex flex-col gap-1.5 px-2 py-2 text-center">
+                  <span class="text-14-regular text-text-strong">💡 No skills installed</span>
+                  <span class="text-12-regular text-text-weak">Add skills to ~/.claude/skills/</span>
+                </div>
+              }
+            >
+              <For each={props.skillFlat}>
+                {(skill) => (
+                  <button
+                    classList={{
+                      "w-full flex items-center gap-2 rounded-md px-2 py-1": true,
+                      "bg-surface-raised-base-hover": props.skillActive === skill.name,
+                    }}
+                    onClick={() => props.onSkillSelect?.(skill)}
+                    onMouseEnter={() => props.setSkillActive?.(skill.name)}
+                  >
+                    <span class="text-14-regular text-syntax-string whitespace-nowrap">${skill.name}</span>
+                    <Show when={skill.description}>
+                      <span class="text-14-regular text-text-weak truncate">{skill.description}</span>
+                    </Show>
                   </button>
                 )}
               </For>

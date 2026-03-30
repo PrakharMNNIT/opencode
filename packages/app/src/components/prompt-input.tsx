@@ -49,7 +49,7 @@ import {
   promptLength,
 } from "./prompt-input/history"
 import { createPromptSubmit, type FollowupDraft } from "./prompt-input/submit"
-import { PromptPopover, type AtOption, type SlashCommand } from "./prompt-input/slash-popover"
+import { PromptPopover, type AtOption, type SlashCommand, type SkillOption } from "./prompt-input/slash-popover"
 import { PromptContextItems } from "./prompt-input/context-items"
 import { PromptImageAttachments } from "./prompt-input/image-attachments"
 import { PromptDragOverlay } from "./prompt-input/drag-overlay"
@@ -265,7 +265,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
 
   const [store, setStore] = createStore<{
-    popover: "at" | "slash" | null
+    popover: "at" | "slash" | "skill" | null
     historyIndex: number
     savedPrompt: PromptHistoryEntry | null
     placeholder: number
@@ -651,6 +651,43 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     onSelect: handleSlashSelect,
   })
 
+  // ─── $skill mentions ───────────────────────────────────────────────
+  const activeSkills = createMemo(() => sync.data.session_skill[params.id ?? ""] ?? [])
+  const skillItems = createMemo<SkillOption[]>(() =>
+    sync.data.skill.map((s): SkillOption => ({ type: "skill", name: s.name, description: s.description })),
+  )
+
+  const skillApi = (method: "POST" | "DELETE", name: string) => {
+    const sessionID = params.id
+    if (!sessionID) return
+    fetch(`${sdk.url}/session/${sessionID}/skill${method === "DELETE" ? `/${encodeURIComponent(name)}` : ""}`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      ...(method === "POST" ? { body: JSON.stringify({ name }) } : {}),
+    }).catch(() => {})
+  }
+
+  const handleSkillSelect = (skill: SkillOption | undefined) => {
+    if (!skill) return
+    if (activeSkills().length >= 5) return
+    if (activeSkills().some((s) => s.name === skill.name)) return
+    skillApi("POST", skill.name)
+    closePopover()
+  }
+
+  const {
+    flat: skillFlat,
+    active: skillActive,
+    setActive: setSkillActive,
+    onInput: skillOnInput,
+    onKeyDown: skillOnKeyDown,
+  } = useFilteredList<SkillOption>({
+    items: skillItems,
+    key: (x) => x?.name,
+    filterKeys: ["name", "description"],
+    onSelect: handleSkillSelect,
+  })
+
   const createPill = (part: FileAttachmentPart | AgentPart) => {
     const pill = document.createElement("span")
     pill.textContent = part.content
@@ -879,12 +916,17 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const atMatch = rawText.substring(0, cursorPosition).match(/@(\S*)$/)
       const slashMatch = rawText.match(/^\/(\S*)$/)
 
+      const dollarMatch = rawText.substring(0, cursorPosition).match(/(?:^|(?<=\s))\$(?!\$)(\S*)$/)
+
       if (atMatch) {
         atOnInput(atMatch[1])
         setStore("popover", "at")
       } else if (slashMatch) {
         slashOnInput(slashMatch[1])
         setStore("popover", "slash")
+      } else if (dollarMatch) {
+        skillOnInput(dollarMatch[1])
+        setStore("popover", "skill")
       } else {
         closePopover()
       }
@@ -1203,6 +1245,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         if (store.popover === "slash") {
           slashOnKeyDown(event)
         }
+        if (store.popover === "skill") {
+          skillOnKeyDown(event)
+        }
         event.preventDefault()
         return
       }
@@ -1275,6 +1320,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         onSlashSelect={handleSlashSelect}
         commandKeybind={command.keybind}
         t={(key) => language.t(key as Parameters<typeof language.t>[0])}
+        skillFlat={skillFlat()}
+        skillActive={skillActive() ?? undefined}
+        setSkillActive={setSkillActive}
+        onSkillSelect={handleSkillSelect}
       />
       <DockShellForm
         onSubmit={handleSubmit}

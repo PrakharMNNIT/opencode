@@ -706,6 +706,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       pill.setAttribute("contenteditable", "false")
       pill.style.userSelect = "text"
       pill.style.cursor = "default"
+      pill.style.backgroundColor = "var(--surface-invert, rgba(255,255,255,0.08))"
+      pill.style.borderRadius = "4px"
+      pill.style.padding = "1px 6px"
+      pill.style.fontSize = "13px"
       const gap = document.createTextNode(" ")
       range.deleteContents()
       range.insertNode(gap)
@@ -981,6 +985,18 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
 
     resetHistoryNavigation()
+
+    // Detect skill pills removed by backspace — call DELETE to remove from context
+    const pillsInDom = new Set(
+      Array.from(editorRef.querySelectorAll<HTMLElement>("[data-type=skill]"))
+        .map((el) => el.dataset.name)
+        .filter(Boolean),
+    )
+    for (const skill of activeSkills()) {
+      if (!pillsInDom.has(skill.name)) {
+        skillApi("DELETE", skill.name)
+      }
+    }
 
     mirror.input = true
     prompt.set([...rawParts, ...images], cursorPosition)

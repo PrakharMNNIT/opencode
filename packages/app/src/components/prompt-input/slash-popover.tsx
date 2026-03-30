@@ -161,6 +161,7 @@ export const PromptPopover: Component<PromptPopoverProps> = (props) => {
                       "w-full flex items-center gap-2 rounded-md px-2 py-1": true,
                       "bg-surface-raised-base-hover": props.skillActive === skill.name,
                     }}
+                    data-skill-name={skill.name}
                     onClick={() => props.onSkillSelect?.(skill)}
                     onMouseEnter={() => props.setSkillActive?.(skill.name)}
                   >

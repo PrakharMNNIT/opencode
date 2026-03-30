@@ -704,12 +704,16 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       pill.setAttribute("data-type", "skill")
       pill.setAttribute("data-name", skill.name)
       pill.setAttribute("contenteditable", "false")
-      pill.style.userSelect = "text"
+      pill.style.display = "inline-block"
+      pill.style.userSelect = "none"
       pill.style.cursor = "default"
-      pill.style.backgroundColor = "var(--surface-invert, rgba(255,255,255,0.08))"
-      pill.style.borderRadius = "4px"
-      pill.style.padding = "1px 6px"
+      pill.style.backgroundColor = "color-mix(in srgb, var(--text-syntax-string, #e5c07b) 12%, transparent)"
+      pill.style.border = "1px solid color-mix(in srgb, var(--text-syntax-string, #e5c07b) 25%, transparent)"
+      pill.style.borderRadius = "6px"
+      pill.style.padding = "2px 8px"
       pill.style.fontSize = "13px"
+      pill.style.lineHeight = "1.4"
+      pill.style.verticalAlign = "baseline"
       const gap = document.createTextNode(" ")
       range.deleteContents()
       range.insertNode(gap)
@@ -798,6 +802,19 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     })
   })
 
+  // Auto-scroll active skill into view in popover (uses slashPopoverRef since skill popover reuses it)
+  createEffect(() => {
+    const name = skillActive()
+    if (!name || store.popover !== "skill") return
+    requestAnimationFrame(() => {
+      // Walk up from editor to find the popover container
+      const container = editorRef?.parentElement?.parentElement?.parentElement
+      if (!container) return
+      const el = container.querySelector(`[data-skill-name="${name}"]`)
+      el?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    })
+  })
+
   if (promptEnabled()) {
     createEffect(() => {
       promptProbe.set({
@@ -828,6 +845,14 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const active = slashActive()
       const item = items.find((entry) => entry.id === active) ?? items[0]
       handleSlashSelect(item)
+    }
+
+    if (store.popover === "skill") {
+      const items = skillFlat()
+      if (items.length === 0) return
+      const active = skillActive()
+      const item = items.find((entry) => entry.name === active) ?? items[0]
+      handleSkillSelect(item)
     }
   }
 
@@ -992,9 +1017,14 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         .map((el) => el.dataset.name)
         .filter(Boolean),
     )
-    for (const skill of activeSkills()) {
-      if (!pillsInDom.has(skill.name)) {
-        skillApi("DELETE", skill.name)
+    // Only check pill removal if there are active skills and editor has no skill pills
+    if (activeSkills().length > 0) {
+      for (const skill of activeSkills()) {
+        if (!pillsInDom.has(skill.name)) {
+          skillApi("DELETE", skill.name)
+          showToast({ title: `Removed $${skill.name}`, variant: "error" })
+          break // Only remove one per input event to avoid rapid-fire
+        }
       }
     }
 
@@ -1414,7 +1444,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           t={(key) => language.t(key as Parameters<typeof language.t>[0])}
         />
         <Show when={activeSkills().length > 0}>
-          <div class="flex flex-wrap items-center gap-1 px-3 pt-2 pb-1">
+          <div class="flex flex-wrap items-center gap-1.5 px-3 pt-2 pb-1">
+            <span class="text-10-regular text-text-subtle">{activeSkills().length}/5</span>
             <For each={activeSkills()}>
               {(skill) => (
                 <span class="inline-flex items-center gap-1 text-12-medium text-syntax-string bg-surface-invert/5 rounded px-1.5 py-0.5 leading-tight">
@@ -1422,7 +1453,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   <button
                     type="button"
                     class="size-3.5 shrink-0 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
-                    onClick={() => skillApi("DELETE", skill.name)}
+                    onClick={() => {
+                      skillApi("DELETE", skill.name)
+                      showToast({ title: `Removed $${skill.name}`, variant: "error" })
+                    }}
                     aria-label={`Remove skill ${skill.name}`}
                   >
                     <Icon name="close" size="small" class="size-2.5" />

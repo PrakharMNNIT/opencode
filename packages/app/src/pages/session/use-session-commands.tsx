@@ -9,6 +9,7 @@ import { useLocal } from "@/context/local"
 import { usePermission } from "@/context/permission"
 import { usePrompt } from "@/context/prompt"
 import { useSDK } from "@/context/sdk"
+import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { useTerminal } from "@/context/terminal"
 import { showToast } from "@opencode-ai/ui/toast"
@@ -44,6 +45,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const sync = useSync()
   const terminal = useTerminal()
   const layout = useLayout()
+  const settings = useSettings()
   const navigate = useNavigate()
   const { params, tabs, view } = useSessionLayout()
 
@@ -312,6 +314,15 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         title: language.t("command.fileTree.toggle"),
         keybind: "mod+\\",
         onSelect: () => layout.fileTree.toggle(),
+      }),
+      viewCommand({
+        id: "wide.toggle",
+        title: "Toggle Wide Mode",
+        keybind: "mod+shift+w",
+        onSelect: () => {
+          const cur = settings.appearance.maxWidth()
+          settings.appearance.setMaxWidth(cur === 0 ? 100 : 0)
+        },
       }),
       viewCommand({
         id: "input.focus",

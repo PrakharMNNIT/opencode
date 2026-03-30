@@ -32,6 +32,7 @@ export interface Settings {
   }
   appearance: {
     fontSize: number
+    maxWidth: number
     mono: string
     sans: string
   }
@@ -98,6 +99,7 @@ const defaultSettings: Settings = {
   },
   appearance: {
     fontSize: 14,
+    maxWidth: 0,
     mono: "",
     sans: "",
   },
@@ -186,6 +188,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         fontSize: withFallback(() => store.appearance?.fontSize, defaultSettings.appearance.fontSize),
         setFontSize(value: number) {
           setStore("appearance", "fontSize", value)
+        },
+        maxWidth: withFallback(() => store.appearance?.maxWidth, defaultSettings.appearance.maxWidth),
+        setMaxWidth(value: number) {
+          setStore("appearance", "maxWidth", Math.max(0, Math.min(100, value)))
         },
         font: withFallback(() => store.appearance?.mono, defaultSettings.appearance.mono),
         setFont(value: string) {

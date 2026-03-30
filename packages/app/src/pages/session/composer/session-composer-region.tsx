@@ -18,6 +18,7 @@ export function SessionComposerRegion(props: {
   state: SessionComposerState
   ready: boolean
   centered: boolean
+  chatWidth?: number
   inputRef: (el: HTMLDivElement) => void
   newSessionWorktree: string
   onNewSessionWorktreeReset: () => void
@@ -133,8 +134,10 @@ export function SessionComposerRegion(props: {
       <div
         classList={{
           "w-full px-3 pointer-events-auto": true,
-          "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
+          "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered && !props.chatWidth,
+          "md:mx-auto": props.centered && !!props.chatWidth,
         }}
+        style={props.centered && props.chatWidth ? { "max-width": `${props.chatWidth}%` } : undefined}
       >
         <Show when={props.state.questionRequest()} keyed>
           {(request) => (

@@ -17,6 +17,7 @@ import { Log } from "../../util/log"
 import { Permission } from "@/permission"
 import { PermissionID } from "@/permission/schema"
 import { ModelID, ProviderID } from "@/provider/schema"
+import { SessionSkills } from "@/session/skill.service"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 import { Bus } from "../../bus"
@@ -990,6 +991,49 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.valid("param").sessionID
         const session = await SessionRevert.unrevert({ sessionID })
         return c.json(session)
+      },
+    )
+    // ─── Skill Routes ───────────────────────────────────────────────
+    .post(
+      "/:sessionID/skill",
+      describeRoute({
+        summary: "Add skill to session",
+        operationId: "session.skill.add",
+        responses: { 200: { description: "Active skills", content: { "application/json": { schema: resolver(z.array(z.object({ name: z.string(), added_at: z.number(), token_estimate: z.number().nullable() }))) } } }, ...errors(400, 404) },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      validator("json", z.object({ name: z.string().min(1) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID as SessionID
+        await Session.get(sessionID)
+        SessionSkills.add(sessionID, c.req.valid("json").name)
+        return c.json(SessionSkills.list(sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/skill",
+      describeRoute({
+        summary: "List active skills",
+        operationId: "session.skill.list",
+        responses: { 200: { description: "Active skills", content: { "application/json": { schema: resolver(z.array(z.object({ name: z.string(), added_at: z.number(), token_estimate: z.number().nullable() }))) } } }, ...errors(400, 404) },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        return c.json(SessionSkills.list(c.req.valid("param").sessionID as SessionID))
+      },
+    )
+    .delete(
+      "/:sessionID/skill/:skillName",
+      describeRoute({
+        summary: "Remove skill from session",
+        operationId: "session.skill.remove",
+        responses: { 200: { description: "Removed", content: { "application/json": { schema: resolver(z.boolean()) } } }, ...errors(400, 404) },
+      }),
+      validator("param", z.object({ sessionID: z.string(), skillName: z.string() })),
+      async (c) => {
+        const params = c.req.valid("param")
+        await Session.get(params.sessionID as SessionID)
+        return c.json(SessionSkills.remove(params.sessionID as SessionID, params.skillName))
       },
     )
     .post(

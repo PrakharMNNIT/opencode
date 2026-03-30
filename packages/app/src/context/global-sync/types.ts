@@ -53,6 +53,10 @@ export type State = {
   todo: {
     [sessionID: string]: Todo[]
   }
+  skill: { name: string; description: string; location: string; content: string }[]
+  session_skill: {
+    [sessionID: string]: { name: string; added_at: number; token_estimate: number | null }[]
+  }
   permission: {
     [sessionID: string]: PermissionRequest[]
   }

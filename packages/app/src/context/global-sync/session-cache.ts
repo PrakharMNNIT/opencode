@@ -14,6 +14,7 @@ type SessionCache = {
   session_status: Record<string, SessionStatus | undefined>
   session_diff: Record<string, FileDiff[] | undefined>
   todo: Record<string, Todo[] | undefined>
+  session_skill?: Record<string, unknown[] | undefined>
   message: Record<string, Message[] | undefined>
   part: Record<string, Part[] | undefined>
   permission: Record<string, PermissionRequest[] | undefined>
@@ -37,6 +38,7 @@ export function dropSessionCaches(store: SessionCache, sessionIDs: Iterable<stri
     delete store.session_status[sessionID]
     delete store.permission[sessionID]
     delete store.question[sessionID]
+    if (store.session_skill) delete store.session_skill[sessionID]
   }
 }
 

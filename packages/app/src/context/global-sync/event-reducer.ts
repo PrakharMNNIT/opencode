@@ -176,6 +176,11 @@ export function applyDirectoryEvent(input: {
       input.setStore("session_status", props.sessionID, reconcile(props.status))
       break
     }
+    case "session.skill.changed": {
+      const props = event.properties as { sessionID: string; skills: { name: string; added_at: number; token_estimate: number | null }[] }
+      input.setStore("session_skill", props.sessionID, reconcile(props.skills, { key: "name" }))
+      break
+    }
     case "message.updated": {
       const info = (event.properties as { info: Message }).info
       const messages = input.store.message[info.sessionID]

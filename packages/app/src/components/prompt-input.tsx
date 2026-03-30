@@ -1,6 +1,6 @@
 import { useFilteredList } from "@opencode-ai/ui/hooks"
 import { useSpring } from "@opencode-ai/ui/motion-spring"
-import { createEffect, on, Component, Show, onCleanup, createMemo, createSignal } from "solid-js"
+import { createEffect, on, Component, Show, For, onCleanup, createMemo, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLocal } from "@/context/local"
 import { selectionFromLines, type SelectedLineRange, useFile } from "@/context/file"
@@ -24,6 +24,7 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { IconButton } from "@opencode-ai/ui/icon-button"
+import { showToast } from "@opencode-ai/ui/toast"
 import { Select } from "@opencode-ai/ui/select"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ModelSelectorPopover } from "@/components/dialog-select-model"
@@ -49,7 +50,7 @@ import {
   promptLength,
 } from "./prompt-input/history"
 import { createPromptSubmit, type FollowupDraft } from "./prompt-input/submit"
-import { PromptPopover, type AtOption, type SlashCommand } from "./prompt-input/slash-popover"
+import { PromptPopover, type AtOption, type SlashCommand, type SkillOption } from "./prompt-input/slash-popover"
 import { PromptContextItems } from "./prompt-input/context-items"
 import { PromptImageAttachments } from "./prompt-input/image-attachments"
 import { PromptDragOverlay } from "./prompt-input/drag-overlay"
@@ -265,7 +266,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
 
   const [store, setStore] = createStore<{
-    popover: "at" | "slash" | null
+    popover: "at" | "slash" | "skill" | null
     historyIndex: number
     savedPrompt: PromptHistoryEntry | null
     placeholder: number
@@ -652,6 +653,96 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     onSelect: handleSlashSelect,
   })
 
+  // ─── $skill mentions ───────────────────────────────────────────────
+  const activeSkills = createMemo(() => sync.data.session_skill[params.id ?? ""] ?? [])
+  const skillItems = createMemo<SkillOption[]>(() =>
+    sync.data.skill.map((s): SkillOption => ({ type: "skill", name: s.name, description: s.description })),
+  )
+
+  const skillApi = (method: "POST" | "DELETE", name: string) => {
+    const sessionID = params.id
+    if (!sessionID) return
+    const headers: Record<string, string> = {}
+    if ((sdk as any).password) {
+      headers.Authorization = `Basic ${btoa(`opencode:${(sdk as any).password}`)}`
+    }
+    fetch(`${sdk.url}/session/${sessionID}/skill${method === "DELETE" ? `/${encodeURIComponent(name)}` : ""}`, {
+      method,
+      headers: { ...headers, "Content-Type": "application/json" },
+      ...(method === "POST" ? { body: JSON.stringify({ name }) } : {}),
+    }).catch(() => {})
+  }
+
+  const handleSkillSelect = (skill: SkillOption | undefined) => {
+    if (!skill) return
+    if (activeSkills().length >= 5) {
+      showToast({ title: "Max 5 skills per session", description: "Remove a skill before adding another", variant: "error" })
+      return
+    }
+    if (activeSkills().some((s) => s.name === skill.name)) {
+      showToast({ title: `$${skill.name} already active`, variant: "error" })
+      return
+    }
+    skillApi("POST", skill.name)
+
+    // Replace $query text in editor with a styled pill
+    editorRef.focus()
+    const cursor = prompt.cursor() ?? promptLength(prompt.current())
+    setCursorPosition(editorRef, cursor)
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0) {
+      const raw = prompt.current().map((p) => ("content" in p ? p.content : "")).join("")
+      const before = raw.substring(0, cursor)
+      const match = before.match(/\$\S*$/)
+      const range = sel.getRangeAt(0)
+      if (match) {
+        const start = match.index ?? cursor - match[0].length
+        setRangeEdge(editorRef, range, "start", start)
+        setRangeEdge(editorRef, range, "end", cursor)
+      }
+      const pill = document.createElement("span")
+      pill.textContent = `✨ ${skill.name}`
+      pill.setAttribute("data-type", "skill")
+      pill.setAttribute("data-name", skill.name)
+      pill.setAttribute("contenteditable", "false")
+      pill.style.display = "inline-block"
+      pill.style.userSelect = "none"
+      pill.style.cursor = "default"
+      pill.style.backgroundColor = "color-mix(in srgb, var(--text-syntax-string, #e5c07b) 12%, transparent)"
+      pill.style.border = "1px solid color-mix(in srgb, var(--text-syntax-string, #e5c07b) 25%, transparent)"
+      pill.style.borderRadius = "6px"
+      pill.style.padding = "2px 8px"
+      pill.style.fontSize = "13px"
+      pill.style.lineHeight = "1.4"
+      pill.style.verticalAlign = "baseline"
+      const gap = document.createTextNode(" ")
+      range.deleteContents()
+      range.insertNode(gap)
+      range.insertNode(pill)
+      range.setStartAfter(gap)
+      range.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(range)
+      handleInput()
+    }
+
+    showToast({ title: `✓ Loaded $${skill.name}`, description: "Skill added to session context" })
+    closePopover()
+  }
+
+  const {
+    flat: skillFlat,
+    active: skillActive,
+    setActive: setSkillActive,
+    onInput: skillOnInput,
+    onKeyDown: skillOnKeyDown,
+  } = useFilteredList<SkillOption>({
+    items: skillItems,
+    key: (x) => x?.name,
+    filterKeys: ["name", "description"],
+    onSelect: handleSkillSelect,
+  })
+
   const createPill = (part: FileAttachmentPart | AgentPart) => {
     const pill = document.createElement("span")
     pill.textContent = part.content
@@ -712,6 +803,19 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     })
   })
 
+  // Auto-scroll active skill into view in popover (uses slashPopoverRef since skill popover reuses it)
+  createEffect(() => {
+    const name = skillActive()
+    if (!name || store.popover !== "skill") return
+    requestAnimationFrame(() => {
+      // Walk up from editor to find the popover container
+      const container = editorRef?.parentElement?.parentElement?.parentElement
+      if (!container) return
+      const el = container.querySelector(`[data-skill-name="${name}"]`)
+      el?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    })
+  })
+
   if (promptEnabled()) {
     createEffect(() => {
       promptProbe.set({
@@ -742,6 +846,14 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const active = slashActive()
       const item = items.find((entry) => entry.id === active) ?? items[0]
       handleSlashSelect(item)
+    }
+
+    if (store.popover === "skill") {
+      const items = skillFlat()
+      if (items.length === 0) return
+      const active = skillActive()
+      const item = items.find((entry) => entry.name === active) ?? items[0]
+      handleSkillSelect(item)
     }
   }
 
@@ -880,12 +992,17 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const atMatch = rawText.substring(0, cursorPosition).match(/@(\S*)$/)
       const slashMatch = rawText.match(/^\/(\S*)$/)
 
+      const dollarMatch = rawText.substring(0, cursorPosition).match(/(?:^|(?<=\s))\$(?!\$)(\S*)$/)
+
       if (atMatch) {
         atOnInput(atMatch[1])
         setStore("popover", "at")
       } else if (slashMatch) {
         slashOnInput(slashMatch[1])
         setStore("popover", "slash")
+      } else if (dollarMatch) {
+        skillOnInput(dollarMatch[1])
+        setStore("popover", "skill")
       } else {
         closePopover()
       }
@@ -894,6 +1011,23 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
 
     resetHistoryNavigation()
+
+    // Detect skill pills removed by backspace — call DELETE to remove from context
+    const pillsInDom = new Set(
+      Array.from(editorRef.querySelectorAll<HTMLElement>("[data-type=skill]"))
+        .map((el) => el.dataset.name)
+        .filter(Boolean),
+    )
+    // Only check pill removal if there are active skills and editor has no skill pills
+    if (activeSkills().length > 0) {
+      for (const skill of activeSkills()) {
+        if (!pillsInDom.has(skill.name)) {
+          skillApi("DELETE", skill.name)
+          showToast({ title: `Removed $${skill.name}`, variant: "error" })
+          break // Only remove one per input event to avoid rapid-fire
+        }
+      }
+    }
 
     mirror.input = true
     prompt.set([...rawParts, ...images], cursorPosition)
@@ -1204,6 +1338,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         if (store.popover === "slash") {
           slashOnKeyDown(event)
         }
+        if (store.popover === "skill") {
+          skillOnKeyDown(event)
+        }
         event.preventDefault()
         return
       }
@@ -1276,6 +1413,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         onSlashSelect={handleSlashSelect}
         commandKeybind={command.keybind}
         t={(key) => language.t(key as Parameters<typeof language.t>[0])}
+        skillFlat={skillFlat()}
+        skillActive={skillActive() ?? undefined}
+        setSkillActive={setSkillActive}
+        onSkillSelect={handleSkillSelect}
       />
       <DockShellForm
         onSubmit={handleSubmit}
@@ -1303,6 +1444,29 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           }}
           t={(key) => language.t(key as Parameters<typeof language.t>[0])}
         />
+        <Show when={activeSkills().length > 0}>
+          <div class="flex flex-wrap items-center gap-1.5 px-3 pt-2 pb-1">
+            <span class="text-10-regular text-text-subtle">{activeSkills().length}/5</span>
+            <For each={activeSkills()}>
+              {(skill) => (
+                <span class="inline-flex items-center gap-1 text-12-medium text-syntax-string bg-surface-invert/5 rounded px-1.5 py-0.5 leading-tight">
+                  <span>${skill.name}</span>
+                  <button
+                    type="button"
+                    class="size-3.5 shrink-0 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      skillApi("DELETE", skill.name)
+                      showToast({ title: `Removed $${skill.name}`, variant: "error" })
+                    }}
+                    aria-label={`Remove skill ${skill.name}`}
+                  >
+                    <Icon name="close" size="small" class="size-2.5" />
+                  </button>
+                </span>
+              )}
+            </For>
+          </div>
+        </Show>
         <PromptImageAttachments
           attachments={imageAttachments()}
           onOpen={(attachment) =>

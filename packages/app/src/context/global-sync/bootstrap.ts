@@ -254,6 +254,13 @@ export async function bootstrapDirectory(input: {
     () => retry(() => input.sdk.command.list().then((x) => input.setStore("command", x.data ?? []))),
     () =>
       retry(() =>
+        (typeof input.sdk.app?.skills === "function"
+          ? input.sdk.app.skills()
+          : Promise.resolve({ data: [] })
+        ).then((x) => input.setStore("skill", (x as { data?: { name: string; description: string; location: string; content: string }[] }).data ?? [])),
+      ),
+    () =>
+      retry(() =>
         input.sdk.permission.list().then((x) => {
           const ids = (x.data ?? []).map((perm) => perm?.sessionID).filter((id): id is string => !!id)
           const grouped = groupBySession(
